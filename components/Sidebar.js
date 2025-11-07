@@ -1,89 +1,175 @@
-// components/Sidebar.js
-'use client';
+"use client";
 
-import React from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useUserRole } from '../context/UserRoleContext';
+import Link from "next/link";
+import { useRouter, usePathname } from "next/navigation";
+import {
+  LayoutDashboard,
+  Map,
+  CreditCard,
+  Upload,
+  LogOut,
+  ChevronRight,
+  Settings,
+  HelpCircle,
+} from "lucide-react";
 
-const Sidebar = () => {
+export default function Sidebar() {
+  const router = useRouter();
   const pathname = usePathname();
-  const { userRole, userName, memberTier, logout } = useUserRole();
 
-  const getNavItems = (role) => {
-    switch (role) {
-      case 'admin':
-        return [
-          { name: 'Dashboard', href: '/dashboard' },
-          { name: 'Contact', href: '/contact' },
-          { name: 'Upload File', href: '/upload' },
-          { name: 'Log', href: '/log' },
-        ];
-      case 'member':
-        return [
-          { name: 'Dashboard', href: '/dashboard' },
-          { name: 'Contact', href: '/contact' },
-          { name: 'Status', href: '/status' },
-        ];
-      case 'user':
-        return [
-          { name: 'Dashboard', href: '/dashboard' },
-          { name: 'Contact', href: '/contact' },
-          { name: 'Fitur & Harga', href: '/features-pricing' },
-        ];
-      default: // guest or no role
-        return [];
-    }
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    router.push("/login");
   };
 
-  const navItems = getNavItems(userRole);
+  const isActive = (path) => {
+    return pathname === path;
+  };
+
+  const mainMenuItems = [
+    {
+      href: "/dashboard",
+      label: "Ringkasan",
+      icon: <LayoutDashboard className="w-4 h-4" />,
+    },
+    {
+      href: "/dashboard/maps",
+      label: "Peta Saya",
+      icon: <Map className="w-4 h-4" />,
+    },
+    {
+      href: "/dashboard/subscription",
+      label: "Langganan",
+      icon: <CreditCard className="w-4 h-4" />,
+    },
+  ];
+
+  const adminMenuItems = [
+    {
+      href: "/dashboard/upload",
+      label: "Upload Peta",
+      icon: <Upload className="w-4 h-4" />,
+    },
+  ];
+
+  const bottomMenuItems = [
+    {
+      href: "/dashboard/settings",
+      label: "Pengaturan",
+      icon: <Settings className="w-4 h-4" />,
+    },
+    {
+      href: "/dashboard/help",
+      label: "Bantuan",
+      icon: <HelpCircle className="w-4 h-4" />,
+    },
+  ];
 
   return (
-    <aside className="sidebar">
-      <div>
-        {/* Top section: Name, Username, Role/Tier */}
-        <div className="sidebar-profile">
-          <h3>NAMA</h3>
-          <p>USERNAME</p>
-          <p>{userName}</p>
-          {userRole === 'member' && memberTier && (
-            <p>Tier: {memberTier.charAt(0).toUpperCase() + memberTier.slice(1)}</p>
-          )}
-        </div>
-
-        {/* Main Navigation */}
-        <nav className="sidebar-nav">
-          <ul>
-            <li>
-              <a href="#" onClick={logout}>
-                Logout
-              </a>
-            </li>
-            {navItems.map((item) => (
-              <li key={item.href}>
-                <Link href={item.href} className={pathname === item.href ? 'active' : ''}>
-                  {item.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
+    <div className="w-64 h-screen bg-white border-r border-gray-200 flex flex-col">
+      {/* Logo */}
+      <div className="px-6 py-5 border-b border-gray-200">
+        <Link href="/dashboard" className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center">
+            <Map className="w-4 h-4 text-white" />
+          </div>
+          <span className="text-lg font-semibold text-gray-900">
+            UAV Platform
+          </span>
+        </Link>
       </div>
 
-      {/* Bottom Navigation */}
-      <ul className="sidebar-bottom">
-        <li>
-          <Link href="/subscription">Subscription</Link>
-        </li>
-        <li>
-          <Link href="/settings">Settings</Link>
-        </li>
-        <li>
-          <Link href="/help">Help</Link>
-        </li>
-      </ul>
-    </aside>
-  );
-};
+      {/* Main Navigation */}
+      <nav className="flex-grow px-3 py-4 overflow-y-auto">
+        <div className="space-y-1">
+          {mainMenuItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                isActive(item.href)
+                  ? "bg-gray-900 text-white"
+                  : "text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                {item.icon}
+                <span>{item.label}</span>
+              </div>
+              {isActive(item.href) && <ChevronRight className="w-4 h-4" />}
+            </Link>
+          ))}
+        </div>
 
-export default Sidebar;
+        {/* Admin Section */}
+        <div className="mt-6 pt-6 border-t border-gray-200">
+          <p className="px-3 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            Admin
+          </p>
+          <div className="space-y-1">
+            {adminMenuItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                  isActive(item.href)
+                    ? "bg-gray-900 text-white"
+                    : "text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  {item.icon}
+                  <span>{item.label}</span>
+                </div>
+                {isActive(item.href) && <ChevronRight className="w-4 h-4" />}
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        {/* Bottom Menu */}
+        <div className="mt-6 pt-6 border-t border-gray-200">
+          <div className="space-y-1">
+            {bottomMenuItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                {item.icon}
+                <span>{item.label}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </nav>
+
+      {/* User Info & Logout */}
+      <div className="px-3 py-4 border-t border-gray-200">
+        {/* User Info */}
+        <div className="px-3 py-2 mb-2 bg-gray-50 rounded-lg border border-gray-200">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-xs font-semibold text-gray-700">
+              KS
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-gray-900 truncate">
+                Kades Sriharjo
+              </p>
+              <p className="text-xs text-gray-500">Free Plan</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Logout Button */}
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors border border-transparent hover:border-red-200"
+        >
+          <LogOut className="w-4 h-4" />
+          <span>Logout</span>
+        </button>
+      </div>
+    </div>
+  );
+}
