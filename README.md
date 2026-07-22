@@ -39,7 +39,7 @@ uavDashboard-frontend/
     └── ...                         # Asset Statis (Gambar, Icon)
 ```
 
-## Kondisi Saat Ini (MVP Phase 1) — Siap Integrasi API
+## Kondisi Saat Ini
 
 1. **Autentikasi & Backend (FastAPI):** Proyek ini **telah terhubung secara arsitektur** dengan backend FastAPI. Endpoint untuk Auth (`/auth/login`, `/auth/register`), User (`/users/me`), dan Maps (`/maps`) sudah tersedia. 
 2. **TypeScript:** Proyek ini menggunakan TypeScript secara penuh. Konfigurasi `tsconfig.json` dan `global.d.ts` sudah siap.
