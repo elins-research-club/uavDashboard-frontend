@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
+import { useUserRole } from "@/context/UserRoleContext";
 import {
   LayoutDashboard,
   Map,
@@ -11,11 +12,13 @@ import {
   ChevronRight,
   Settings,
   HelpCircle,
+  Users,
 } from "lucide-react";
 
 export default function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
+  const { user } = useUserRole();
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -45,6 +48,11 @@ export default function Sidebar() {
   ];
 
   const adminMenuItems = [
+    ...(user?.role === "admin" ? [{
+      href: "/dashboard/users",
+      label: "Users",
+      icon: <Users className="w-4 h-4" />,
+    }] : []),
     {
       href: "/dashboard/upload",
       label: "Upload Peta",
@@ -150,13 +158,15 @@ export default function Sidebar() {
         <div className="px-3 py-2 mb-2 bg-gray-50 rounded-lg border border-gray-200">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-xs font-semibold text-gray-700">
-              KS
+              {(user?.username || "P").slice(0, 2).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-medium text-gray-900 truncate">
-                Kades Sriharjo
+                {user?.username || "Pengguna"}
               </p>
-              <p className="text-xs text-gray-500">Free Plan</p>
+              <p className="text-xs text-gray-500">
+                {user?.role === "admin" ? "Admin" : `${user?.tier || "Free"} Plan`}
+              </p>
             </div>
           </div>
         </div>

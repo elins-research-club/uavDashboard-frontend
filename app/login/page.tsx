@@ -11,6 +11,7 @@ import {
   Shield,
   Zap,
 } from "lucide-react";
+import api from "@/lib/api";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -19,25 +20,18 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setMessage("");
 
     try {
-      if (email && password) {
-        console.log("Login (dummy) berhasil untuk:", email);
-        localStorage.setItem("token", "dummy_token_123456789");
-
-        setTimeout(() => {
-          window.location.href = "/dashboard";
-        }, 1000);
-      } else {
-        setMessage("Email dan Password harus diisi.");
-        setLoading(false);
-      }
+      const { data } = await api.post("/auth/login", { email, password });
+      localStorage.setItem("token", data.access_token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      window.location.href = "/dashboard";
     } catch (error) {
-      setMessage("Terjadi kesalahan. Silakan coba lagi.");
+      setMessage(error.response?.data?.detail || "Email atau password salah.");
       setLoading(false);
     }
   };

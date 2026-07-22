@@ -4,22 +4,37 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "./Sidebar";
 import { Bell, Search, Menu, X } from "lucide-react";
+import api from "@/lib/api";
+import { useUserRole } from "@/context/UserRoleContext";
 
 export default function DashboardLayout({ children }) {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { user, setAuthenticatedUser } = useUserRole();
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
+    if (!localStorage.getItem("token")) {
       router.push("/login");
-    } else {
-      setIsAuthenticated(true);
+      setIsLoading(false);
+      return;
     }
-    setIsLoading(false);
-  }, [router]);
+
+    Promise.all([api.get("/users/me"), api.get("/subscriptions/current")])
+      .then(([profileResponse, subscriptionResponse]) => {
+        setAuthenticatedUser({
+          ...profileResponse.data,
+          tier: subscriptionResponse.data.tier,
+        });
+        setIsAuthenticated(true);
+      })
+      .catch(() => {
+        localStorage.removeItem("token");
+        router.push("/login");
+      })
+      .finally(() => setIsLoading(false));
+  }, [router, setAuthenticatedUser]);
 
   if (isLoading) {
     return (
@@ -103,12 +118,14 @@ export default function DashboardLayout({ children }) {
               <div className="hidden sm:flex items-center gap-3 pl-3 border-l border-gray-200">
                 <div className="text-right">
                   <p className="text-xs font-medium text-gray-900">
-                    Kades Sriharjo
+                    {user?.username || "Pengguna"}
                   </p>
-                  <p className="text-xs text-gray-500">Free Plan</p>
+                  <p className="text-xs text-gray-500">
+                    {user?.role === "admin" ? "Admin" : `${user?.tier || "Free"} Plan`}
+                  </p>
                 </div>
                 <div className="w-9 h-9 bg-gray-300 rounded-full flex items-center justify-center text-sm font-semibold text-gray-700">
-                  KS
+                  {(user?.username || "P").slice(0, 2).toUpperCase()}
                 </div>
               </div>
             </div>

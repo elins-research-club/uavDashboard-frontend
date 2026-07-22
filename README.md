@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# UAV DaaS Platform — Frontend
 
-## Getting Started
+Frontend aplikasi web untuk **UAV DaaS (Data-as-a-Service) Platform**, yaitu platform pemetaan lahan pertanian presisi berbasis drone dengan sistem subscription.
 
-First, run the development server:
+## Tech Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 15 (App Router) |
+| Language | TypeScript (.tsx) |
+| Styling | CSS Modules / TailwindCSS (campur, butuh standarisasi) |
+| Map Library | React-Leaflet (`leaflet`) |
+| Icons | Lucide React |
+
+## Struktur Folder & Rute
+
+```
+uavDashboard-frontend/
+├── app/
+│   ├── page.tsx                    # Landing Page Publik (/, Marketing)
+│   ├── login/page.tsx              # Form Login
+│   ├── register/page.tsx           # Form Register
+│   └── dashboard/                  # Area Terproteksi (Butuh Login)
+│       ├── page.tsx                # Dashboard Home (Ringkasan)
+│       ├── maps/page.tsx           # Peta Interaktif (Leaflet)
+│       ├── upload/page.tsx         # Upload Peta (TIFF/PNG/JPG)
+│       └── subscription/page.tsx   # Tier/Pricing Plans
+├── components/
+│   ├── DashboardLayout.tsx         # Layout Utama & Auth Guard
+│   ├── Sidebar.tsx                 # Navigasi Kiri
+│   ├── MapDisplay.tsx              # Map Wrapper (Dynamic Import SSR: false)
+│   └── ActualMap.tsx               # Komponen Leaflet Core
+├── context/
+│   └── UserRoleContext.tsx         # Global State untuk User Auth (Dummy saat ini)
+└── public/
+    └── ...                         # Asset Statis (Gambar, Icon)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Kondisi Saat Ini (MVP Phase 1)
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+1. **Autentikasi masih Dummy:** Login, Register, dan state user saat ini dikelola menggunakan `localStorage` via `UserRoleContext.tsx`. Belum terhubung ke backend API.
+2. **TypeScript:** Proyek ini baru saja dimigrasi dari JavaScript murni ke TypeScript. Konfigurasi `tsconfig.json` sudah dibuat.
+3. **Peta (Leaflet):** Menggunakan `react-leaflet`. Harus di-*import* secara dinamis (`next/dynamic` dengan `ssr: false`) karena Leaflet bergantung pada objek `window` browser.
+4. **Data Peta:** Komponen peta saat ini menampilkan *dummy markers* / *polygons*. Belum me-render file TIFF dari backend.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Roadmap Integrasi Backend (Tugas AI Agent Selanjutnya)
 
-## Learn More
+1. **Ganti Axios/Fetch:** Ubah fungsi dummy di `login` dan `register` agar memanggil API backend (`POST http://localhost:8000/api/auth/login`).
+2. **Ganti Auth Context:** Ubah `UserRoleContext` agar membaca token JWT dan menyimpannya (baik di `localStorage` atau HTTP-only cookies), lalu mengambil data profil via `GET /api/users/me`.
+3. **Upload Peta:** Hubungkan form di `app/dashboard/upload/page.tsx` ke endpoint `POST /api/maps` menggunakan `multipart/form-data`.
+4. **Fetch Daftar Peta:** Ambil data dari `GET /api/maps` dan tampilkan di list `app/dashboard/maps/page.tsx`.
 
-To learn more about Next.js, take a look at the following resources:
+## Setup & Menjalankan
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+cd uavDashboard-frontend
+npm install
+npm run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Aplikasi berjalan di **http://localhost:3000**

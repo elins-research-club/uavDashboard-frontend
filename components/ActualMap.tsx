@@ -5,11 +5,11 @@ import { useEffect } from "react";
 import L from "leaflet";
 
 export default function ActualMap() {
-  const position = [-6.2, 106.816666]; // Jakarta
+  const position: [number, number] = [-6.2, 106.816666]; // Jakarta
 
   useEffect(() => {
     // Fix icon issue
-    delete L.Icon.Default.prototype._getIconUrl;
+    delete (L.Icon.Default.prototype as any)._getIconUrl;
     L.Icon.Default.mergeOptions({
       iconRetinaUrl:
         "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",

@@ -1,6 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import api from "@/lib/api";
+import { useUserRole } from "@/context/UserRoleContext";
 import {
   MapPin,
   TrendingUp,
@@ -13,65 +16,45 @@ import {
   FileText,
   BarChart3,
   Clock,
-  CheckCircle2,
-  Download,
 } from "lucide-react";
 
-const dummyUserData = {
-  username: "Kades Sriharjo",
-  tier: "Free",
-  mapsAvailable: 5,
-  mapsUsed: 2,
+type MapRecord = {
+  id: string;
+  title: string;
+  location: string;
+  survey_date: string;
+  map_type: string;
+  description?: string;
+  file_size: number;
+  locked_for_free: boolean;
+  created_at: string;
 };
 
-const dummyMapLayers = [
-  {
-    id: "map1",
-    name: "Peta Vegetasi (Jan 2024)",
-    isLocked: false,
-    description: "Data vegetasi dari drone A.",
-    date: "15 Jan 2024",
-    size: "45 MB",
-    type: "NDVI",
-  },
-  {
-    id: "map2",
-    name: "Peta NPK (Jan 2024)",
-    isLocked: true,
-    description: "Analisis NPK. Upgrade untuk membuka.",
-    date: "20 Jan 2024",
-    size: "38 MB",
-    type: "Soil Analysis",
-  },
-  {
-    id: "map3",
-    name: "Peta Kontur Lahan (Feb 2024)",
-    isLocked: false,
-    description: "Data topografi dasar.",
-    date: "05 Feb 2024",
-    size: "52 MB",
-    type: "Topography",
-  },
-  {
-    id: "map4",
-    name: "Peta Kesuburan Tanah (Mei 2024)",
-    isLocked: true,
-    description: "Data kesuburan. Upgrade untuk membuka.",
-    date: "10 Mei 2024",
-    size: "41 MB",
-    type: "Fertility",
-  },
-];
+const formatSize = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(2)} MB`;
 
 export default function DashboardHomePage() {
-  const [user] = useState(dummyUserData);
-  const [layers] = useState(dummyMapLayers);
+  const { user } = useUserRole();
+  const [maps, setMaps] = useState<MapRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    api.get("/maps")
+      .then(({ data }) => setMaps(data.maps))
+      .catch((requestError) => setError(requestError.response?.data?.detail || "Gagal memuat dashboard."))
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  const totalStorage = maps.reduce((total, map) => total + map.file_size, 0);
+  const latestMaps = maps.slice(0, 4);
+  const username = user?.username || "Pengguna";
+  const tier = user?.tier || "Free";
 
   const stats = [
     {
       title: "Total Peta",
-      value: user.mapsUsed,
-      subtitle: `dari ${user.mapsAvailable} tersedia`,
+      value: maps.length,
+      subtitle: "peta tersimpan",
       icon: <MapPin className="w-5 h-5" />,
       color: "text-blue-600",
       bgColor: "bg-blue-50",
@@ -79,7 +62,7 @@ export default function DashboardHomePage() {
     },
     {
       title: "Paket Tier",
-      value: user.tier,
+      value: tier,
       subtitle: "Upgrade untuk lebih",
       icon: <Award className="w-5 h-5" />,
       color: "text-purple-600",
@@ -88,8 +71,8 @@ export default function DashboardHomePage() {
     },
     {
       title: "Aktivitas",
-      value: "12",
-      subtitle: "aksi bulan ini",
+      value: latestMaps.length,
+      subtitle: "upload terbaru",
       icon: <TrendingUp className="w-5 h-5" />,
       color: "text-green-600",
       bgColor: "bg-green-50",
@@ -97,8 +80,8 @@ export default function DashboardHomePage() {
     },
     {
       title: "Penyimpanan",
-      value: "176 MB",
-      subtitle: "dari 500 MB",
+      value: formatSize(totalStorage),
+      subtitle: "total file peta",
       icon: <Database className="w-5 h-5" />,
       color: "text-orange-600",
       bgColor: "bg-orange-50",
@@ -112,12 +95,12 @@ export default function DashboardHomePage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-semibold text-gray-900 mb-2">
-            Selamat Datang, {user.username}
+            Selamat Datang, {username}
           </h1>
           <p className="text-sm text-gray-600">
             Anda menggunakan paket{" "}
             <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
-              {user.tier}
+              {tier}
             </span>
           </p>
         </div>
@@ -162,10 +145,10 @@ export default function DashboardHomePage() {
                 </p>
               </div>
             </div>
-            <button className="flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors whitespace-nowrap">
+            <Link href="/dashboard/subscription" className="flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors whitespace-nowrap">
               Lihat Paket
               <ArrowRight className="w-4 h-4" />
-            </button>
+            </Link>
           </div>
         </div>
 
@@ -180,14 +163,19 @@ export default function DashboardHomePage() {
                 Kelola dan pantau data lahan pertanian
               </p>
             </div>
-            <button className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700">
+            <Link href="/dashboard/maps" className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700">
               Lihat Semua
               <ArrowRight className="w-4 h-4" />
-            </button>
+            </Link>
           </div>
 
           <div className="space-y-3">
-            {layers.map((layer) => (
+            {isLoading && <p className="text-sm text-gray-500">Memuat data peta...</p>}
+            {error && <p className="text-sm text-red-600">{error}</p>}
+            {!isLoading && !error && !latestMaps.length && (
+              <p className="text-sm text-gray-500">Belum ada peta tersimpan.</p>
+            )}
+            {latestMaps.map((layer) => (
               <div
                 key={layer.id}
                 className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 hover:shadow-sm transition-all"
@@ -196,38 +184,38 @@ export default function DashboardHomePage() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <h3 className="text-sm font-semibold text-gray-900">
-                        {layer.name}
+                        {layer.title}
                       </h3>
                       <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded border border-gray-200">
-                        {layer.type}
+                        {layer.map_type}
                       </span>
                     </div>
                     <p className="text-xs text-gray-600 mb-3">
-                      {layer.description}
+                      {layer.description || layer.location}
                     </p>
                     <div className="flex items-center gap-4 text-xs text-gray-500">
                       <div className="flex items-center gap-1.5">
                         <Calendar className="w-3.5 h-3.5" />
-                        <span>{layer.date}</span>
+                        <span>{new Date(layer.survey_date).toLocaleDateString("id-ID")}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <Database className="w-3.5 h-3.5" />
-                        <span>{layer.size}</span>
+                        <span>{formatSize(layer.file_size)}</span>
                       </div>
                     </div>
                   </div>
 
                   <div className="ml-4">
-                    {layer.isLocked ? (
+                    {layer.locked_for_free ? (
                       <button className="flex items-center gap-2 bg-amber-500 text-white px-4 py-2 rounded-lg text-xs font-medium hover:bg-amber-600 transition-colors">
                         <Lock className="w-3.5 h-3.5" />
                         Upgrade
                       </button>
                     ) : (
-                      <button className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-lg text-xs font-medium hover:bg-gray-800 transition-colors">
+                      <Link href="/dashboard/maps" className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-lg text-xs font-medium hover:bg-gray-800 transition-colors">
                         <Eye className="w-3.5 h-3.5" />
                         Lihat Peta
-                      </button>
+                      </Link>
                     )}
                   </div>
                 </div>
@@ -241,42 +229,21 @@ export default function DashboardHomePage() {
           <div className="bg-white border border-gray-200 rounded-lg p-6">
             <div className="flex items-center gap-2 mb-4">
               <Clock className="w-4 h-4 text-gray-600" />
-              <h3 className="text-base font-semibold text-gray-900">
-                Aktivitas Terkini
-              </h3>
+              <h3 className="text-base font-semibold text-gray-900">Upload Terbaru</h3>
             </div>
             <div className="space-y-4">
-              {[
-                {
-                  action: "Upload peta baru",
-                  time: "2 jam lalu",
-                  icon: <FileText className="w-4 h-4" />,
-                  color: "text-blue-600 bg-blue-50",
-                },
-                {
-                  action: "Analisis NPK selesai",
-                  time: "5 jam lalu",
-                  icon: <CheckCircle2 className="w-4 h-4" />,
-                  color: "text-green-600 bg-green-50",
-                },
-                {
-                  action: "Laporan diunduh",
-                  time: "1 hari lalu",
-                  icon: <Download className="w-4 h-4" />,
-                  color: "text-purple-600 bg-purple-50",
-                },
-              ].map((activity, idx) => (
-                <div key={idx} className="flex items-start gap-3">
+              {latestMaps.slice(0, 3).map((map) => (
+                <div key={map.id} className="flex items-start gap-3">
                   <div
-                    className={`p-1.5 rounded ${activity.color} flex items-center justify-center`}
+                    className="p-1.5 rounded text-blue-600 bg-blue-50 flex items-center justify-center"
                   >
-                    {activity.icon}
+                    <FileText className="w-4 h-4" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900">
-                      {activity.action}
+                      {map.title}
                     </p>
-                    <p className="text-xs text-gray-500">{activity.time}</p>
+                    <p className="text-xs text-gray-500">{new Date(map.created_at).toLocaleDateString("id-ID")}</p>
                   </div>
                 </div>
               ))}

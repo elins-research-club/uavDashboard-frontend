@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useUserRole } from "@/context/UserRoleContext";
 import {
   Check,
   Star,
@@ -13,11 +14,6 @@ import {
   Building2,
   ChevronRight,
 } from "lucide-react";
-
-const dummyUserSubscription = {
-  username: "Kades Sriharjo",
-  currentTier: "Free",
-};
 
 const pricingTiers = [
   {
@@ -82,8 +78,13 @@ const pricingTiers = [
 ];
 
 export default function SubscriptionPage() {
-  const [user] = useState(dummyUserSubscription);
+  const { user } = useUserRole();
   const [billingCycle, setBillingCycle] = useState("monthly");
+  const currentTier = ({
+    free: "Free",
+    desa: "Tier Desa",
+    kecamatan: "Tier Kecamatan",
+  } as Record<string, string>)[user?.tier] || "Free";
 
   const handleUpgrade = (tierName) => {
     alert(
@@ -106,7 +107,7 @@ export default function SubscriptionPage() {
           <p className="text-sm text-gray-600 mb-6">
             Status Anda saat ini:{" "}
             <span className="font-semibold text-blue-600">
-              {user.currentTier}
+              {currentTier}
             </span>
           </p>
 
@@ -141,7 +142,7 @@ export default function SubscriptionPage() {
         {/* Pricing Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
           {pricingTiers.map((tier) => {
-            const isCurrent = tier.name === user.currentTier;
+            const isCurrent = tier.name === currentTier;
 
             return (
               <div

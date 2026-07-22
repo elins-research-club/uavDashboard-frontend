@@ -1,7 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import api from "@/lib/api";
 import {
   Map as MapIcon,
   Layers,
@@ -30,41 +31,29 @@ const Map = dynamic(() => import("@/components/MapDisplay"), {
 });
 
 export default function MapsPage() {
-  const [selectedLayer, setSelectedLayer] = useState("vegetation");
+  const [maps, setMaps] = useState([]);
+  const [selectedLayer, setSelectedLayer] = useState("");
   const [isLayerPanelOpen, setIsLayerPanelOpen] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const mapLayers = [
-    {
-      id: "vegetation",
-      name: "Vegetasi (NDVI)",
-      date: "15 Jan 2024",
-      active: true,
-      color: "bg-green-500",
-    },
-    {
-      id: "topography",
-      name: "Kontur Lahan",
-      date: "05 Feb 2024",
-      active: false,
-      color: "bg-blue-500",
-    },
-    {
-      id: "npk",
-      name: "Analisis NPK",
-      date: "20 Jan 2024",
-      active: false,
-      color: "bg-orange-500",
-      locked: true,
-    },
-    {
-      id: "fertility",
-      name: "Kesuburan Tanah",
-      date: "10 Mei 2024",
-      active: false,
-      color: "bg-purple-500",
-      locked: true,
-    },
-  ];
+  useEffect(() => {
+    api.get("/maps")
+      .then(({ data }) => {
+        setMaps(data.maps);
+        setSelectedLayer(data.maps[0]?.id || "");
+      })
+      .catch((requestError) => setError(requestError.response?.data?.detail || "Gagal memuat peta."))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const mapLayers = maps.map((map) => ({
+    id: map.id,
+    name: map.title,
+    date: new Date(map.survey_date).toLocaleDateString("id-ID"),
+    color: map.map_type === "NDVI" ? "bg-green-500" : "bg-blue-500",
+    locked: map.locked_for_free,
+  }));
 
   const mapTools = [
     {
@@ -155,6 +144,9 @@ export default function MapsPage() {
                 </div>
 
                 <div className="space-y-2">
+                  {loading && <p className="text-xs text-gray-500">Memuat peta...</p>}
+                  {!loading && !mapLayers.length && <p className="text-xs text-gray-500">Belum ada peta.</p>}
+                  {error && <p className="text-xs text-red-600">{error}</p>}
                   {mapLayers.map((layer) => (
                     <div
                       key={layer.id}

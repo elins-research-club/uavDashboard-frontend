@@ -16,12 +16,14 @@ import {
   X,
   Folder,
 } from "lucide-react";
+import api from "@/lib/api";
 
 export default function UploadPage() {
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedFile, setSelectedFile] = useState(null);
   const [dragActive, setDragActive] = useState(false);
+  const [message, setMessage] = useState("");
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -53,24 +55,27 @@ export default function UploadPage() {
     setSelectedFile(null);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setUploadProgress(0);
+    setMessage("");
 
-    const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setLoading(false);
-          alert("Upload berhasil! Data peta telah ditambahkan.");
-          setSelectedFile(null);
-          e.target.reset();
-          return 0;
-        }
-        return prev + 10;
+    try {
+      await api.post("/maps", new FormData(e.currentTarget), {
+        headers: { "Content-Type": "multipart/form-data" },
+        onUploadProgress: ({ loaded, total }) => {
+          if (total) setUploadProgress(Math.round((loaded * 100) / total));
+        },
       });
-    }, 200);
+      setMessage("Upload berhasil! Data peta telah ditambahkan.");
+      setSelectedFile(null);
+      e.currentTarget.reset();
+    } catch (error) {
+      setMessage(error.response?.data?.detail || "Upload gagal. Silakan coba lagi.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -114,6 +119,7 @@ export default function UploadPage() {
                   <input
                     type="file"
                     id="fileUpload"
+                    name="file"
                     className="hidden"
                     accept=".tiff,.tif,.png,.jpg,.jpeg"
                     onChange={handleFileChange}
@@ -199,6 +205,7 @@ export default function UploadPage() {
                       <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <input
                         type="text"
+                        name="title"
                         className="w-full pl-10 pr-3 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition text-gray-900"
                         placeholder="Contoh: Peta NPK Desa Sriharjo - Nov 2025"
                         required
@@ -215,6 +222,7 @@ export default function UploadPage() {
                       <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <input
                         type="text"
+                        name="location"
                         className="w-full pl-10 pr-3 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition text-gray-900"
                         placeholder="Contoh: Desa Sriharjo, Kec. Imogiri"
                         required
@@ -231,6 +239,7 @@ export default function UploadPage() {
                       <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <input
                         type="date"
+                        name="survey_date"
                         className="w-full pl-10 pr-3 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition text-gray-900"
                         required
                       />
@@ -242,11 +251,11 @@ export default function UploadPage() {
                     <label className="block text-xs font-medium text-gray-700 mb-2">
                       Tipe Peta
                     </label>
-                    <select className="w-full px-3 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition text-gray-900">
-                      <option>NDVI (Vegetasi)</option>
-                      <option>Soil Analysis (NPK)</option>
-                      <option>Topography</option>
-                      <option>Fertility</option>
+                    <select name="map_type" defaultValue="NDVI" className="w-full px-3 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition text-gray-900">
+                      <option value="NDVI">NDVI (Vegetasi)</option>
+                      <option value="Soil Analysis">Soil Analysis (NPK)</option>
+                      <option value="Topography">Topography</option>
+                      <option value="Fertility">Fertility</option>
                     </select>
                   </div>
 
@@ -256,8 +265,9 @@ export default function UploadPage() {
                       Deskripsi (Opsional)
                     </label>
                     <textarea
+                      name="description"
                       className="w-full px-3 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition text-gray-900 resize-none"
-                      rows="3"
+                      rows={3}
                       placeholder="Tambahkan deskripsi detail tentang peta ini..."
                     ></textarea>
                   </div>
@@ -277,6 +287,7 @@ export default function UploadPage() {
                   <label className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors border border-transparent hover:border-gray-200">
                     <input
                       type="checkbox"
+                      name="locked_for_free"
                       className="w-4 h-4 mt-0.5 text-gray-900 border-gray-300 rounded focus:ring-gray-900"
                     />
                     <div>
@@ -292,6 +303,7 @@ export default function UploadPage() {
                   <label className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors border border-transparent hover:border-gray-200">
                     <input
                       type="checkbox"
+                      name="purchasable"
                       className="w-4 h-4 mt-0.5 text-gray-900 border-gray-300 rounded focus:ring-gray-900"
                     />
                     <div>
@@ -339,6 +351,7 @@ export default function UploadPage() {
                   </>
                 )}
               </button>
+              {message && <p className="text-sm text-gray-700">{message}</p>}
             </form>
           </div>
 

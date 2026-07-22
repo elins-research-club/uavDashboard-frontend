@@ -18,7 +18,7 @@ import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility
 // Komponen Peta kita, sekarang sangat bersih
 export default function MapDisplay() {
   // Koordinat tengah peta (Contoh: Yogyakarta)
-  const position = [-7.7956, 110.3695];
+  const position: [number, number] = [-7.7956, 110.3695];
 
   return (
     <MapContainer

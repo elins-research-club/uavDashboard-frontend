@@ -14,6 +14,7 @@ import {
   Zap,
   Clock,
 } from "lucide-react";
+import api from "@/lib/api";
 
 export default function RegisterPage() {
   const [username, setUsername] = useState("");
@@ -31,22 +32,16 @@ export default function RegisterPage() {
     setIsSuccess(false);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      if (username && email && password) {
-        setMessage(
-          `Registrasi berhasil! Selamat datang, ${username}. Silakan login.`
-        );
-        setIsSuccess(true);
-        setTimeout(() => {
-          window.location.href = "/login";
-        }, 2000);
-      } else {
-        setMessage("Semua field harus diisi.");
-        setIsSuccess(false);
-      }
+      const { data } = await api.post("/auth/register", {
+        username,
+        email,
+        password,
+      });
+      localStorage.setItem("token", data.access_token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      window.location.href = "/dashboard";
     } catch (error) {
-      setMessage("Terjadi kesalahan. Silakan coba lagi.");
+      setMessage(error.response?.data?.detail || "Registrasi gagal. Silakan coba lagi.");
       setIsSuccess(false);
     } finally {
       setLoading(false);
