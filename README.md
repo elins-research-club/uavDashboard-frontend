@@ -10,6 +10,7 @@ Frontend aplikasi web untuk **UAV DaaS (Data-as-a-Service) Platform**, yaitu pla
 | Language | TypeScript (.tsx) |
 | Styling | CSS Modules / TailwindCSS (campur, butuh standarisasi) |
 | Map Library | React-Leaflet (`leaflet`) |
+| API Client | Axios (dengan JWT Interceptor) |
 | Icons | Lucide React |
 
 ## Struktur Folder & Rute
@@ -31,24 +32,19 @@ uavDashboard-frontend/
 │   ├── MapDisplay.tsx              # Map Wrapper (Dynamic Import SSR: false)
 │   └── ActualMap.tsx               # Komponen Leaflet Core
 ├── context/
-│   └── UserRoleContext.tsx         # Global State untuk User Auth (Dummy saat ini)
+│   └── UserRoleContext.tsx         # Global State untuk User Auth (terhubung ke /users/me)
+├── lib/
+│   └── api.ts                      # Konfigurasi Axios & JWT Interceptor
 └── public/
     └── ...                         # Asset Statis (Gambar, Icon)
 ```
 
-## Kondisi Saat Ini (MVP Phase 1)
+## Kondisi Saat Ini (MVP Phase 1) — Siap Integrasi API
 
-1. **Autentikasi masih Dummy:** Login, Register, dan state user saat ini dikelola menggunakan `localStorage` via `UserRoleContext.tsx`. Belum terhubung ke backend API.
-2. **TypeScript:** Proyek ini baru saja dimigrasi dari JavaScript murni ke TypeScript. Konfigurasi `tsconfig.json` sudah dibuat.
-3. **Peta (Leaflet):** Menggunakan `react-leaflet`. Harus di-*import* secara dinamis (`next/dynamic` dengan `ssr: false`) karena Leaflet bergantung pada objek `window` browser.
-4. **Data Peta:** Komponen peta saat ini menampilkan *dummy markers* / *polygons*. Belum me-render file TIFF dari backend.
-
-## Roadmap Integrasi Backend (Tugas AI Agent Selanjutnya)
-
-1. **Ganti Axios/Fetch:** Ubah fungsi dummy di `login` dan `register` agar memanggil API backend (`POST http://localhost:8000/api/auth/login`).
-2. **Ganti Auth Context:** Ubah `UserRoleContext` agar membaca token JWT dan menyimpannya (baik di `localStorage` atau HTTP-only cookies), lalu mengambil data profil via `GET /api/users/me`.
-3. **Upload Peta:** Hubungkan form di `app/dashboard/upload/page.tsx` ke endpoint `POST /api/maps` menggunakan `multipart/form-data`.
-4. **Fetch Daftar Peta:** Ambil data dari `GET /api/maps` dan tampilkan di list `app/dashboard/maps/page.tsx`.
+1. **Autentikasi & Backend (FastAPI):** Proyek ini **telah terhubung secara arsitektur** dengan backend FastAPI. Endpoint untuk Auth (`/auth/login`, `/auth/register`), User (`/users/me`), dan Maps (`/maps`) sudah tersedia. 
+2. **TypeScript:** Proyek ini menggunakan TypeScript secara penuh. Konfigurasi `tsconfig.json` dan `global.d.ts` sudah siap.
+3. **Peta (Leaflet):** Menggunakan `react-leaflet`. Di-*import* secara dinamis (`next/dynamic` dengan `ssr: false`) agar tidak *crash* saat SSR di Next.js.
+4. **Setup API Client:** Sudah disediakan *blueprint* integrasi di `lib/api.ts` dan panduan unggah file *multipart* (TIFF) di `INTEGRATION_GUIDE.md`.
 
 ## Setup & Menjalankan
 
@@ -59,3 +55,4 @@ npm run dev
 ```
 
 Aplikasi berjalan di **http://localhost:3000**
+Pastikan **Backend FastAPI** juga berjalan di `http://localhost:8000` agar fitur API bisa diakses.
