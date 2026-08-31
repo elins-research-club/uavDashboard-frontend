@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Menu,
   X,
@@ -22,6 +22,50 @@ import {
 
 export default function UAVLandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Mapping tier → display config
+  const TIER_CONFIG: Record<string, { name: string; cta: string; popular: boolean }> = {
+    free: { name: "Paket Kelompok Tani", cta: "Hubungi Koperasi", popular: false },
+    desa: { name: "Paket Koperasi Desa", cta: "Konsultasi Gratis", popular: true },
+    kecamatan: { name: "Paket Enterprise", cta: "Hubungi Tim", popular: false },
+  };
+
+  type PricingPlan = {
+    id: string;
+    tier: string;
+    price: number;
+    features: string[];
+    name: string;
+    cta: string;
+    popular: boolean;
+  };
+
+  const [pricingPlans, setPricingPlans] = useState<PricingPlan[]>([]);
+
+  useEffect(() => {
+    fetch("http://localhost:8000/api/admin/plans")
+      .then((res) => res.json())
+      .then((data: { id: string; tier: string; price: number; features: string[] }[]) => {
+        const mapped = data.map((plan) => ({
+          ...plan,
+          name: TIER_CONFIG[plan.tier]?.name || plan.tier,
+          cta: TIER_CONFIG[plan.tier]?.cta || "Mulai Sekarang",
+          popular: TIER_CONFIG[plan.tier]?.popular || false,
+        }));
+        // Ensure order: free, desa, kecamatan
+        const order = ["free", "desa", "kecamatan"];
+        mapped.sort((a, b) => order.indexOf(a.tier) - order.indexOf(b.tier));
+        setPricingPlans(mapped);
+      })
+      .catch(() => {
+        // Fallback static data jika backend tidak bisa dihubungi
+        setPricingPlans([
+          { id: "1", tier: "free", price: 0, features: ["Cakupan lahan 10-20 hektar", "Analisis NDVI dasar", "Peta kesehatan tanaman"], name: "Paket Kelompok Tani", cta: "Hubungi Koperasi", popular: false },
+          { id: "2", tier: "desa", price: 500000, features: ["Cakupan hingga 100 hektar", "Analisis NDVI + NPK", "Dashboard web interaktif", "Priority support"], name: "Paket Koperasi Desa", cta: "Konsultasi Gratis", popular: true },
+          { id: "3", tier: "kecamatan", price: 1500000, features: ["Cakupan unlimited", "Semua sensor", "API access", "Dedicated account manager"], name: "Paket Enterprise", cta: "Hubungi Tim", popular: false },
+        ]);
+      });
+  }, []);
 
   const features = [
     {
@@ -83,51 +127,8 @@ export default function UAVLandingPage() {
     },
   ];
 
-  const pricingPlans = [
-    {
-      name: "Paket Kelompok Tani",
-      price: "5-10 Juta",
-      features: [
-        "Cakupan lahan 10-20 hektar",
-        "Analisis NDVI dasar",
-        "Peta kesehatan tanaman",
-        "Laporan bulanan",
-        "Support via WhatsApp",
-      ],
-      cta: "Hubungi Koperasi",
-      popular: false,
-    },
-    {
-      name: "Paket Koperasi Desa",
-      price: "Paket Musiman",
-      features: [
-        "Cakupan hingga 100 hektar",
-        "Analisis NDVI + NPK",
-        "Sensor hiperspektral penuh",
-        "Dashboard web interaktif",
-        "Laporan detail & rekomendasi",
-        "Training penggunaan sistem",
-        "Priority support",
-      ],
-      cta: "Konsultasi Gratis",
-      popular: true,
-    },
-    {
-      name: "Paket Enterprise",
-      price: "Custom",
-      features: [
-        "Cakupan unlimited",
-        "Semua sensor (Hiperspektral + LiDAR)",
-        "API access untuk integrasi",
-        "Custom dashboard",
-        "Dedicated account manager",
-        "SLA guarantee",
-        "White-label option",
-      ],
-      cta: "Hubungi Tim",
-      popular: false,
-    },
-  ];
+  // pricingPlans now fetched dynamically from API
+
 
   return (
     <div className="min-h-screen bg-white">
@@ -403,7 +404,7 @@ export default function UAVLandingPage() {
       {/* Pricing Section */}
       <section id="harga" className="py-24 px-6 lg:px-8 bg-gray-50">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-20">
+          <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4 tracking-tight">
               Paket Langganan Fleksibel
             </h2>
@@ -411,62 +412,124 @@ export default function UAVLandingPage() {
               Model berlangganan per musim tanam untuk berbagai skala usaha
             </p>
           </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            {pricingPlans.map((plan, index) => (
-              <div
-                key={index}
-                className={`rounded-xl p-10 ${
-                  plan.popular
-                    ? "bg-gray-900 text-white shadow-2xl scale-105 border-2 border-gray-900"
-                    : "bg-white border-2 border-gray-100"
-                }`}
-              >
-                {plan.popular && (
-                  <div className="bg-white text-gray-900 px-4 py-1.5 rounded-full text-xs font-bold inline-block mb-6 uppercase tracking-wide">
-                    Paling Populer
-                  </div>
-                )}
-                <h3
-                  className={`text-xl font-bold mb-4 ${
-                    plan.popular ? "text-white" : "text-gray-900"
-                  }`}
-                >
-                  {plan.name}
-                </h3>
-                <div className="mb-8">
-                  <span className="text-4xl font-bold">
-                    {plan.price === "Custom" ? "Custom" : `Rp${plan.price}`}
-                  </span>
-                  {plan.price !== "Custom" && (
-                    <span className="text-base font-normal">/musim</span>
-                  )}
-                </div>
-                <ul className="space-y-4 mb-10">
-                  {plan.features.map((feature, idx) => (
-                    <li key={idx} className="flex items-start gap-3 text-sm">
-                      <CheckCircle
-                        className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
-                          plan.popular ? "text-white" : "text-gray-900"
-                        }`}
-                      />
-                      <span>{feature}</span>
-                    </li>
+
+          {/* Loading skeleton */}
+          {pricingPlans.length === 0 && (
+            <div className="grid md:grid-cols-3 gap-6">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="rounded-2xl p-8 bg-white border border-gray-200 animate-pulse shadow-sm">
+                  <div className="h-5 bg-gray-200 rounded-full w-20 mb-6" />
+                  <div className="h-4 bg-gray-200 rounded w-1/2 mb-2" />
+                  <div className="h-10 bg-gray-200 rounded w-3/4 mb-8" />
+                  {[0, 1, 2, 3].map((j) => (
+                    <div key={j} className="h-4 bg-gray-100 rounded mb-3" />
                   ))}
-                </ul>
-                <button
-                  className={`w-full py-3.5 rounded-lg text-sm font-semibold transition-colors ${
-                    plan.popular
-                      ? "bg-white text-gray-900 hover:bg-gray-100"
-                      : "bg-gray-900 text-white hover:bg-gray-800"
+                  <div className="h-11 bg-gray-200 rounded-xl mt-8" />
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {pricingPlans.map((plan, index) => {
+              const tierBadgeStyle: Record<string, string> = {
+                free: "bg-gray-100 text-gray-600 border border-gray-200",
+                desa: "bg-blue-50 text-blue-700 border border-blue-200",
+                kecamatan: "bg-purple-50 text-purple-700 border border-purple-200",
+              };
+              const tierIcon: Record<string, string> = {
+                free: "🗂️",
+                desa: "🏘️",
+                kecamatan: "👑",
+              };
+              const isPopular = plan.popular;
+
+              return (
+                <div
+                  key={index}
+                  className={`rounded-2xl p-8 flex flex-col bg-white border shadow-sm transition-shadow hover:shadow-md ${
+                    isPopular
+                      ? "border-gray-900 ring-2 ring-gray-900 ring-offset-2"
+                      : "border-gray-200"
                   }`}
                 >
-                  {plan.cta}
-                </button>
-              </div>
-            ))}
+                  {/* Tier badge */}
+                  <div className="flex items-center justify-between mb-6">
+                    <span
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
+                        tierBadgeStyle[plan.tier] || "bg-gray-100 text-gray-600 border border-gray-200"
+                      }`}
+                    >
+                      <span>{tierIcon[plan.tier] || "📦"}</span>
+                      <span className="capitalize">{plan.tier}</span>
+                    </span>
+                    {isPopular && (
+                      <span className="bg-gray-900 text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">
+                        Populer
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Package name */}
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">{plan.name}</h3>
+
+                  {/* Price */}
+                  <div className="mb-6">
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
+                      Harga / Bulan
+                    </p>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-bold text-gray-900">
+                        {plan.tier === "kecamatan"
+                          ? "Custom"
+                          : plan.price === 0
+                          ? "Gratis"
+                          : `Rp ${plan.price.toLocaleString("id-ID")}`}
+                      </span>
+                      {plan.tier !== "kecamatan" && plan.price > 0 && (
+                        <span className="text-sm text-gray-400">/bulan</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="border-t border-gray-100 mb-6" />
+
+                  {/* Features */}
+                  <div className="flex-1 mb-8">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                      Fitur Termasuk
+                    </p>
+                    <ul className="space-y-2.5">
+                      {plan.features.map((feature, idx) => (
+                        <li key={idx} className="flex items-start gap-2.5 text-sm">
+                          <CheckCircle
+                            className="w-4 h-4 flex-shrink-0 mt-0.5 text-green-500"
+                            aria-hidden="true"
+                          />
+                          <span className="text-gray-700">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* CTA Button */}
+                  <button
+                    className={`w-full py-3 rounded-xl text-sm font-semibold transition-colors ${
+                      isPopular
+                        ? "bg-gray-900 text-white hover:bg-gray-800"
+                        : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+                    }`}
+                  >
+                    {plan.cta}
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
+
 
       {/* Partnership Section */}
       <section id="tentang" className="py-24 px-6 lg:px-8 bg-white">

@@ -13,6 +13,7 @@ import {
   Settings,
   HelpCircle,
   Users,
+  ShieldCheck,
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -25,9 +26,7 @@ export default function Sidebar() {
     router.push("/login");
   };
 
-  const isActive = (path) => {
-    return pathname === path;
-  };
+  const isActive = (path: string) => pathname === path;
 
   const mainMenuItems = [
     {
@@ -48,16 +47,25 @@ export default function Sidebar() {
   ];
 
   const adminMenuItems = [
-    ...(user?.role === "admin" ? [{
-      href: "/dashboard/users",
-      label: "Users",
-      icon: <Users className="w-4 h-4" />,
-    }] : []),
-    {
-      href: "/dashboard/upload",
-      label: "Upload Peta",
-      icon: <Upload className="w-4 h-4" />,
-    },
+    ...(user?.role === "admin"
+      ? [
+          {
+            href: "/dashboard/users",
+            label: "Manajemen User",
+            icon: <Users className="w-4 h-4" />,
+          },
+          {
+            href: "/dashboard/admin",
+            label: "Admin Panel (RBAC)",
+            icon: <ShieldCheck className="w-4 h-4" />,
+          },
+          {
+            href: "/dashboard/upload",
+            label: "Upload Peta",
+            icon: <Upload className="w-4 h-4" />,
+          },
+        ]
+      : []),
   ];
 
   const bottomMenuItems = [
@@ -154,7 +162,6 @@ export default function Sidebar() {
 
       {/* User Info & Logout */}
       <div className="px-3 py-4 border-t border-gray-200">
-        {/* User Info */}
         <div className="px-3 py-2 mb-2 bg-gray-50 rounded-lg border border-gray-200">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-xs font-semibold text-gray-700">
@@ -164,14 +171,25 @@ export default function Sidebar() {
               <p className="text-xs font-medium text-gray-900 truncate">
                 {user?.username || "Pengguna"}
               </p>
-              <p className="text-xs text-gray-500">
-                {user?.role === "admin" ? "Admin" : `${user?.tier || "Free"} Plan`}
-              </p>
+              {user?.role === "admin" ? (
+                <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gray-900 text-white">
+                  <ShieldCheck className="w-3 h-3" />
+                  Admin
+                </span>
+              ) : (
+                <span className={`inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[10px] font-semibold capitalize border ${
+                  user?.tier === "kecamatan"
+                    ? "bg-purple-50 text-purple-700 border-purple-200"
+                    : user?.tier === "desa"
+                    ? "bg-blue-50 text-blue-700 border-blue-200"
+                    : "bg-gray-100 text-gray-700 border-gray-200"
+                }`}>
+                  {user?.tier === "kecamatan" ? "👑" : user?.tier === "desa" ? "🏘️" : "🗂️"} {user?.tier || "Free"}
+                </span>
+              )}
             </div>
           </div>
         </div>
-
-        {/* Logout Button */}
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors border border-transparent hover:border-red-200"

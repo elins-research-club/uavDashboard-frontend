@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUserRole } from "@/context/UserRoleContext";
+import api from "@/lib/api";
 import {
   Check,
   Star,
@@ -13,73 +14,44 @@ import {
   AlertCircle,
   Building2,
   ChevronRight,
+  CheckCircle,
 } from "lucide-react";
-
-const pricingTiers = [
-  {
-    name: "Free",
-    price: "0",
-    frequency: "/selamanya",
-    description: "Sempurna untuk memulai dan eksplorasi platform",
-    icon: <Star className="w-6 h-6" />,
-    color: "text-gray-600",
-    bgColor: "bg-gray-50",
-    borderColor: "border-gray-200",
-    popular: false,
-    features: [
-      "Akses 2 Peta Dasar",
-      "Analisis Vegetasi (terbatas)",
-      "Dukungan Komunitas",
-      "Storage 500 MB",
-      "Export format PNG",
-    ],
-  },
-  {
-    name: "Tier Desa",
-    price: "200.000",
-    frequency: "/bulan",
-    description: "Ideal untuk pemantauan level desa dan kelompok tani",
-    icon: <Zap className="w-6 h-6" />,
-    color: "text-blue-600",
-    bgColor: "bg-blue-50",
-    borderColor: "border-blue-200",
-    popular: true,
-    features: [
-      "Semua fitur Tier Free",
-      "Akses Peta NPK Premium",
-      "Analisis Kesuburan Tanah",
-      "Laporan Bulanan Otomatis",
-      "Storage 5 GB",
-      "Export Multi-format",
-      "Priority Support",
-    ],
-  },
-  {
-    name: "Tier Kecamatan",
-    price: "1.000.000",
-    frequency: "/bulan",
-    description: "Solusi lengkap untuk analisis agregat level kecamatan",
-    icon: <Crown className="w-6 h-6" />,
-    color: "text-purple-600",
-    bgColor: "bg-purple-50",
-    borderColor: "border-purple-200",
-    popular: false,
-    features: [
-      "Semua fitur Tier Desa",
-      "API Access Unlimited",
-      "Perbandingan Antar-Desa",
-      "Custom Dashboard",
-      "Storage 50 GB",
-      "White-label Report",
-      "Dedicated Account Manager",
-      "SLA 99.9% Uptime",
-    ],
-  },
-];
 
 export default function SubscriptionPage() {
   const { user } = useUserRole();
   const [billingCycle, setBillingCycle] = useState("monthly");
+  const [pricingPlans, setPricingPlans] = useState([]);
+  
+  useEffect(() => {
+    api.get("/admin/plans").then((res) => {
+      // Sort plans by price
+      const sortedPlans = res.data.sort((a, b) => a.price - b.price);
+      
+      // Add visual properties based on tier
+      const enrichedPlans = sortedPlans.map((plan) => {
+        const isFree = plan.tier === "free";
+        const isKecamatan = plan.tier === "kecamatan";
+        const isDesa = plan.tier === "desa";
+        
+        return {
+          ...plan,
+          name: plan.tier === "free" ? "Free" : plan.tier === "desa" ? "Tier Desa" : "Tier Kecamatan",
+          description: isFree 
+            ? "Sempurna untuk memulai dan eksplorasi platform" 
+            : isDesa 
+            ? "Ideal untuk pemantauan level desa dan kelompok tani" 
+            : "Solusi lengkap untuk analisis agregat level kecamatan",
+          icon: isKecamatan ? <Crown className="w-6 h-6" /> : isDesa ? <Zap className="w-6 h-6" /> : <Star className="w-6 h-6" />,
+          color: isKecamatan ? "text-purple-600" : isDesa ? "text-blue-600" : "text-gray-600",
+          bgColor: isKecamatan ? "bg-purple-50" : isDesa ? "bg-blue-50" : "bg-gray-50",
+          borderColor: isKecamatan ? "border-purple-200" : isDesa ? "border-blue-200" : "border-gray-200",
+          popular: isDesa,
+        };
+      });
+      setPricingPlans(enrichedPlans);
+    }).catch(console.error);
+  }, []);
+
   const currentTier = ({
     free: "Free",
     desa: "Tier Desa",
@@ -140,95 +112,136 @@ export default function SubscriptionPage() {
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          {pricingTiers.map((tier) => {
-            const isCurrent = tier.name === currentTier;
+        {pricingPlans.length === 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="rounded-lg p-6 bg-white border border-gray-200 animate-pulse shadow-sm h-96">
+                <div className="w-12 h-12 bg-gray-200 rounded-lg mb-4" />
+                <div className="h-6 bg-gray-200 rounded w-1/2 mb-2" />
+                <div className="h-4 bg-gray-200 rounded w-full mb-6" />
+                <div className="h-10 bg-gray-200 rounded w-3/4 mb-6" />
+                {[0, 1, 2, 3].map((j) => (
+                  <div key={j} className="h-4 bg-gray-100 rounded mb-3" />
+                ))}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-3 gap-6 mb-10">
+            {pricingPlans.map((plan, index) => {
+              const isCurrent = plan.name === currentTier;
+              const isPopular = plan.popular;
+              const tierBadgeStyle: Record<string, string> = {
+                free: "bg-gray-100 text-gray-600 border border-gray-200",
+                desa: "bg-blue-50 text-blue-700 border border-blue-200",
+                kecamatan: "bg-purple-50 text-purple-700 border border-purple-200",
+              };
+              const tierIcon: Record<string, string> = {
+                free: "🗂️",
+                desa: "🏘️",
+                kecamatan: "👑",
+              };
 
-            return (
-              <div
-                key={tier.name}
-                className={`relative bg-white rounded-lg border overflow-hidden transition-all hover:shadow-lg ${
-                  tier.popular
-                    ? "border-blue-500 shadow-md ring-2 ring-blue-100"
-                    : "border-gray-200"
-                }`}
-              >
-                {tier.popular && (
-                  <div className="absolute top-0 right-0 bg-blue-600 text-white px-4 py-1.5 text-xs font-semibold">
-                    PALING POPULER
-                  </div>
-                )}
-
-                <div className="p-6">
-                  {/* Icon */}
-                  <div
-                    className={`w-12 h-12 ${tier.bgColor} rounded-lg flex items-center justify-center ${tier.color} mb-4 border ${tier.borderColor}`}
-                  >
-                    {tier.icon}
-                  </div>
-
-                  {/* Tier Name */}
-                  <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                    {tier.name}
-                  </h2>
-                  <p className="text-xs text-gray-600 mb-6 h-10 leading-relaxed">
-                    {tier.description}
-                  </p>
-
-                  {/* Price */}
-                  <div className="mb-6">
-                    <span className="text-3xl font-bold text-gray-900">
-                      {tier.price === "0" ? "Gratis" : `Rp${tier.price}`}
+              return (
+                <div
+                  key={index}
+                  className={`rounded-2xl p-8 flex flex-col bg-white border shadow-sm transition-shadow hover:shadow-md ${
+                    isPopular
+                      ? "border-gray-900 ring-2 ring-gray-900 ring-offset-2"
+                      : "border-gray-200"
+                  }`}
+                >
+                  {/* Tier badge */}
+                  <div className="flex items-center justify-between mb-6">
+                    <span
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
+                        tierBadgeStyle[plan.tier] || "bg-gray-100 text-gray-600 border border-gray-200"
+                      }`}
+                    >
+                      <span>{tierIcon[plan.tier] || "📦"}</span>
+                      <span className="capitalize">{plan.tier}</span>
                     </span>
-                    {tier.price !== "0" && (
-                      <span className="text-sm text-gray-500 ml-1">
-                        {tier.frequency}
+                    {isPopular && (
+                      <span className="bg-gray-900 text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">
+                        Populer
                       </span>
                     )}
                   </div>
 
-                  {/* Features */}
-                  <ul className="space-y-3 mb-6">
-                    {tier.features.map((feature, idx) => (
-                      <li key={idx} className="flex items-start gap-2.5">
-                        <div className="flex-shrink-0 w-4 h-4 bg-green-100 rounded-full flex items-center justify-center mt-0.5 border border-green-200">
-                          <Check className="w-2.5 h-2.5 text-green-600" />
-                        </div>
-                        <span className="text-xs text-gray-700 leading-relaxed">
-                          {feature}
+                  {/* Package name */}
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">{plan.name}</h3>
+
+                  {/* Price */}
+                  <div className="mb-6">
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
+                      Harga / Bulan
+                    </p>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-bold text-gray-900">
+                        {plan.tier === "kecamatan"
+                          ? "Custom"
+                          : plan.price === 0
+                          ? "Gratis"
+                          : `Rp ${(billingCycle === "yearly" ? plan.price * 12 * 0.8 : plan.price).toLocaleString("id-ID")}`}
+                      </span>
+                      {plan.tier !== "kecamatan" && plan.price > 0 && (
+                        <span className="text-sm text-gray-400">
+                          {billingCycle === "yearly" ? "/tahun" : "/bulan"}
                         </span>
-                      </li>
-                    ))}
-                  </ul>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="border-t border-gray-100 mb-6" />
+
+                  {/* Features */}
+                  <div className="flex-1 mb-8">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                      Fitur Termasuk
+                    </p>
+                    <ul className="space-y-2.5">
+                      {plan.features.map((feature, idx) => (
+                        <li key={idx} className="flex items-start gap-2.5 text-sm">
+                          <CheckCircle
+                            className="w-4 h-4 flex-shrink-0 mt-0.5 text-green-500"
+                            aria-hidden="true"
+                          />
+                          <span className="text-gray-700">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
 
                   {/* CTA Button */}
                   {isCurrent ? (
                     <button
-                      className="w-full bg-gray-100 text-gray-500 font-medium py-3 px-4 rounded-lg text-sm cursor-not-allowed border border-gray-200"
+                      className="w-full py-3 rounded-xl text-sm font-semibold text-gray-500 bg-gray-100 border border-gray-200 cursor-not-allowed mt-auto"
                       disabled
                     >
                       Paket Anda Saat Ini
                     </button>
                   ) : (
                     <button
-                      onClick={() => handleUpgrade(tier.name)}
-                      className={`w-full font-medium py-3 px-4 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 ${
-                        tier.popular
-                          ? "bg-blue-600 text-white hover:bg-blue-700"
-                          : "bg-gray-900 text-white hover:bg-gray-800"
+                      onClick={() => handleUpgrade(plan.name)}
+                      className={`w-full py-3 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2 mt-auto ${
+                        isPopular
+                          ? "bg-gray-900 text-white hover:bg-gray-800"
+                          : "bg-gray-100 text-gray-800 hover:bg-gray-200"
                       }`}
                     >
-                      {tier.name === "Free"
+                      {plan.tier === "free"
                         ? "Downgrade ke Free"
+                        : plan.tier === "kecamatan"
+                        ? "Hubungi Tim Sales"
                         : "Upgrade Sekarang"}
-                      <ChevronRight className="w-4 h-4" />
                     </button>
                   )}
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Trust Indicators */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10">
