@@ -24,8 +24,48 @@ import {
   ArrowRight,
   ShieldCheck,
   RefreshCw,
+  Globe,
+  Layers,
+  Cpu,
+  Check,
 } from "lucide-react";
 import api from "@/lib/api";
+
+interface GeoMetadata {
+  crs: string;
+  crs_epsg?: number | null;
+  width: number;
+  height: number;
+  bands: number;
+  driver: string;
+  dtypes: string[];
+  bounds_native?: { left: number; bottom: number; right: number; top: number };
+  bounds_wgs84?: { min_lon: number; min_lat: number; max_lon: number; max_lat: number } | null;
+  nodata?: number | null;
+  is_tiled?: boolean;
+}
+
+interface RejectedErrorDetails {
+  file_characteristics?: {
+    crs?: string;
+    gps_metadata?: string;
+    camera_source?: string;
+    dimensions?: string;
+    driver?: string;
+  };
+  missing_requirements?: string[];
+  why_rejected?: string;
+  solution?: string;
+  detected_format?: string;
+  supported_formats?: string[];
+}
+
+interface ErrorDetailObject {
+  status?: string;
+  error_type?: string;
+  message?: string;
+  details?: RejectedErrorDetails;
+}
 
 export default function UploadPage() {
   const router = useRouter();
@@ -36,6 +76,8 @@ export default function UploadPage() {
   const [dragActive, setDragActive] = useState(false);
   const [message, setMessage] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
+  const [geoSuccess, setGeoSuccess] = useState<{ title: string; mapId: string; metadata?: GeoMetadata } | null>(null);
+  const [geoError, setGeoError] = useState<ErrorDetailObject | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
@@ -62,6 +104,8 @@ export default function UploadPage() {
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       setSelectedFile(e.dataTransfer.files[0]);
       setMessage("");
+      setGeoError(null);
+      setGeoSuccess(null);
     }
   };
 
@@ -69,16 +113,19 @@ export default function UploadPage() {
     if (e.target.files && e.target.files[0]) {
       setSelectedFile(e.target.files[0]);
       setMessage("");
+      setGeoError(null);
+      setGeoSuccess(null);
     }
   };
 
   const handleRemoveFile = () => {
     setSelectedFile(null);
     setMessage("");
+    setGeoError(null);
+    setGeoSuccess(null);
   };
 
   const isTiff = selectedFile?.name.toLowerCase().endsWith(".tif") || selectedFile?.name.toLowerCase().endsWith(".tiff");
-  const isImage = selectedFile?.name.toLowerCase().endsWith(".png") || selectedFile?.name.toLowerCase().endsWith(".jpg") || selectedFile?.name.toLowerCase().endsWith(".jpeg");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -88,12 +135,14 @@ export default function UploadPage() {
     setUploadProgress(0);
     setMessage("");
     setIsSuccess(false);
+    setGeoError(null);
+    setGeoSuccess(null);
 
     // Save form reference before async call (currentTarget becomes null after await)
     const formData = new FormData(e.currentTarget);
 
     try {
-      await api.post("/maps", formData, {
+      const res = await api.post("/maps", formData, {
         headers: { "Content-Type": "multipart/form-data" },
         onUploadProgress: ({ loaded, total }) => {
           if (total) {
@@ -105,12 +154,26 @@ export default function UploadPage() {
       setUploadProgress(100);
       setMessage("Upload & Validasi Geospasial Berhasil! File GeoTIFF siap digunakan untuk analisis dan tiling.");
       setIsSuccess(true);
+      setGeoError(null);
+      setGeoSuccess({
+        title: res.data.title,
+        mapId: res.data.id,
+        metadata: res.data.geo_metadata,
+      });
       setSelectedFile(null);
       formRef.current?.reset();
     } catch (error: unknown) {
-      const axiosError = error as { response?: { data?: { detail?: string } } };
-      setMessage(axiosError.response?.data?.detail || "Upload gagal. Silakan periksa kembali file dan koneksi server.");
+      const axiosError = error as { response?: { data?: { detail?: string | ErrorDetailObject } } };
+      const detail = axiosError.response?.data?.detail;
+      if (typeof detail === "object" && detail !== null) {
+        setGeoError(detail);
+        setMessage(detail.message || "Validasi Geospasial Ditolak");
+      } else {
+        setGeoError(null);
+        setMessage(detail || "Upload gagal. Silakan periksa kembali file dan koneksi server.");
+      }
       setIsSuccess(false);
+      setGeoSuccess(null);
     } finally {
       setLoading(false);
     }
@@ -154,7 +217,7 @@ export default function UploadPage() {
                       ? "border-blue-500 bg-blue-50"
                       : selectedFile
                       ? isTiff
-                        ? "border-emerald-500 bg-emerald-50/50"
+                        ? "border-blue-400 bg-blue-50/50"
                         : "border-amber-500 bg-amber-50/50"
                       : "border-gray-300 hover:border-gray-400 bg-gray-50"
                   }`}
@@ -168,7 +231,7 @@ export default function UploadPage() {
                     id="fileUpload"
                     name="file"
                     className="hidden"
-                    accept=".tiff,.tif,.png,.jpg,.jpeg"
+                    accept=".tiff,.tif"
                     onChange={handleFileChange}
                   />
 
@@ -178,7 +241,7 @@ export default function UploadPage() {
                         <div className="flex items-center gap-3">
                           <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${
                             isTiff
-                              ? "bg-emerald-100 border-emerald-200 text-emerald-700"
+                              ? "bg-blue-100 border-blue-200 text-blue-700"
                               : "bg-amber-100 border-amber-200 text-amber-700"
                           }`}>
                             {isTiff ? <CheckCircle className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
@@ -204,16 +267,16 @@ export default function UploadPage() {
                       {/* File Format Badge */}
                       <div className="text-left pt-2 border-t border-gray-200/60">
                         {isTiff ? (
-                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-100 text-emerald-800 text-xs font-semibold rounded-md border border-emerald-300">
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-md border border-blue-300">
                             <Compass className="w-3.5 h-3.5" />
-                            Format GeoTIFF (Memenuhi Standar Orthomosaic Presisi)
+                            Ekstensi GeoTIFF Terdeteksi (Menunggu Validasi Server)
                           </div>
-                        ) : isImage ? (
-                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-100 text-amber-800 text-xs font-semibold rounded-md border border-amber-300">
+                        ) : (
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-100 text-red-800 text-xs font-semibold rounded-md border border-red-300">
                             <AlertTriangle className="w-3.5 h-3.5" />
-                            Citra Standar: Tidak memiliki metadata CRS spasial native
+                            Format Tidak Didukung: Wajib file GeoTIFF (.tif / .tiff)
                           </div>
-                        ) : null}
+                        )}
                       </div>
                     </div>
                   ) : (
@@ -231,7 +294,7 @@ export default function UploadPage() {
                         Pilih File GeoTIFF
                       </label>
                       <p className="text-xs text-gray-500 mt-3">
-                        Rekomendasi: <strong>.tif, .tiff (GeoTIFF Orthomosaic)</strong> (Maks: 150MB)
+                        Rekomendasi: <strong>.tif, .tiff (GeoTIFF Orthomosaic)</strong> (Maks: 5GB)
                       </p>
                     </>
                   )}
@@ -392,53 +455,190 @@ export default function UploadPage() {
                 </div>
               </div>
 
-              {/* Result Message (Success / Error Alert Card) */}
-              {message && (
-                <div
-                  className={`p-4 rounded-xl border transition-all ${
-                    isSuccess
-                      ? "bg-emerald-50 border-emerald-200 text-emerald-900"
-                      : "bg-red-50 border-red-200 text-red-900"
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    {isSuccess ? (
-                      <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
-                    ) : (
-                      <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                    )}
-                    <div className="flex-1 text-sm">
-                      <p className="font-bold mb-1">
-                        {isSuccess ? "Upload & Validasi Berhasil!" : "Gagal Memproses File Peta"}
-                      </p>
-                      <p className="text-xs leading-relaxed opacity-90">{message}</p>
+              {/* Result Message: Rejection Diagnosis Card */}
+              {!isSuccess && (geoError || message) && (
+                <div className="p-5 rounded-2xl border bg-red-50/80 border-red-200 text-red-950 shadow-sm animate-in fade-in slide-in-from-top-2">
+                  <div className="flex items-start gap-3.5">
+                    <div className="w-9 h-9 rounded-xl bg-red-100 border border-red-200 flex items-center justify-center text-red-600 flex-shrink-0 mt-0.5">
+                      <AlertCircle className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 text-sm space-y-3">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider bg-red-200/80 text-red-900 border border-red-300">
+                            {geoError?.error_type || "VALIDASI DITOLAK"}
+                          </span>
+                          <span className="text-xs text-red-700 font-medium">Standard DaaS GIS Integrity</span>
+                        </div>
+                        <h4 className="font-bold text-base text-red-900 leading-snug">
+                          {geoError?.message || message || "Gagal Memproses File Peta"}
+                        </h4>
+                      </div>
 
-                      {/* Success Actions */}
-                      {isSuccess && (
-                        <div className="mt-3 flex items-center gap-3">
-                          <Link
-                            href="/dashboard/maps"
-                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors"
-                          >
-                            🗺️ Buka di Peta (Dashboard)
-                            <ArrowRight className="w-3.5 h-3.5" />
-                          </Link>
+                      {/* File Characteristics Detected */}
+                      {geoError?.details?.file_characteristics && (
+                        <div className="bg-white/90 rounded-xl p-3.5 border border-red-200 text-xs space-y-2">
+                          <p className="font-semibold text-gray-900 flex items-center gap-1.5">
+                            <Info className="w-4 h-4 text-red-600" />
+                            Karakteristik File yang Terdeteksi oleh Engine GIS:
+                          </p>
+                          <div className="grid sm:grid-cols-2 gap-2 text-[11px] text-gray-700">
+                            <div className="bg-red-50/60 p-2 rounded-lg border border-red-100">
+                              <span className="text-gray-500 block">Status Proyeksi (CRS):</span>
+                              <span className="font-bold text-red-700">{geoError.details.file_characteristics.crs}</span>
+                            </div>
+                            {geoError.details.file_characteristics.gps_metadata && (
+                              <div className="bg-amber-50/60 p-2 rounded-lg border border-amber-100">
+                                <span className="text-gray-500 block">Metadata GPS Kamera:</span>
+                                <span className="font-semibold text-amber-900">{geoError.details.file_characteristics.gps_metadata}</span>
+                              </div>
+                            )}
+                            {geoError.details.file_characteristics.dimensions && (
+                              <div className="bg-gray-50 p-2 rounded-lg border border-gray-200">
+                                <span className="text-gray-500 block">Dimensi & Saluran:</span>
+                                <span className="font-semibold text-gray-900">{geoError.details.file_characteristics.dimensions}</span>
+                              </div>
+                            )}
+                            {geoError.details.file_characteristics.camera_source && (
+                              <div className="bg-gray-50 p-2 rounded-lg border border-gray-200">
+                                <span className="text-gray-500 block">Sumber Perangkat:</span>
+                                <span className="font-semibold text-gray-900">{geoError.details.file_characteristics.camera_source}</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
 
-                      {/* Error Troubleshooting Guide */}
-                      {!isSuccess && (
-                        <div className="mt-3 p-2.5 bg-white/80 rounded-lg border border-red-200 text-xs text-gray-700">
-                          <p className="font-semibold text-red-800 mb-1">
-                            💡 Panduan untuk Tim GIS / Pengolah Data:
+                      {/* Missing Requirements List */}
+                      {geoError?.details?.missing_requirements && geoError.details.missing_requirements.length > 0 && (
+                        <div className="bg-red-100/50 rounded-xl p-3 border border-red-200 text-xs">
+                          <p className="font-semibold text-red-900 mb-1.5 flex items-center gap-1.5">
+                            <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
+                            Kekurangan / Komponen yang Hilang:
                           </p>
-                          <ul className="list-disc list-inside space-y-0.5 text-[11px] text-gray-600">
-                            <li>Pastikan file diekspor sebagai <strong>Orthomosaic GeoTIFF</strong> dari software WebODM / Pix4D / Agisoft.</li>
-                            <li>Pastikan opsi <strong>Export Coordinate System (CRS)</strong> diset ke <strong>WGS 84 / UTM Zone</strong> atau <strong>EPSG:3857</strong>.</li>
-                            <li>Jangan mengunggah file foto mentah tunggal langsung dari kamera drone.</li>
+                          <ul className="list-disc list-inside space-y-1 text-[11px] text-red-800">
+                            {geoError.details.missing_requirements.map((item, idx) => (
+                              <li key={idx}>{item}</li>
+                            ))}
                           </ul>
                         </div>
                       )}
+
+                      {/* Why Rejected Rationale */}
+                      {geoError?.details?.why_rejected && (
+                        <p className="text-xs text-red-800 bg-white/70 p-3 rounded-xl border border-red-100 leading-relaxed">
+                          <strong>💡 Mengapa ditolak:</strong> {geoError.details.why_rejected}
+                        </p>
+                      )}
+
+                      {/* Solution / Action Required */}
+                      {geoError?.details?.solution && (
+                        <div className="p-3 bg-white rounded-xl border border-red-200 text-xs text-gray-800 shadow-sm">
+                          <p className="font-bold text-red-800 mb-1 flex items-center gap-1.5">
+                            <span>🛠️</span> Langkah Solusi & Panduan Pengolahan:
+                          </p>
+                          <p className="text-[11px] text-gray-600 leading-relaxed">
+                            {geoError.details.solution}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Result Message: Approval Feedback Card with Verified Metadata */}
+              {isSuccess && geoSuccess && (
+                <div className="p-5 rounded-2xl border bg-emerald-50/90 border-emerald-300 text-emerald-950 shadow-sm animate-in fade-in slide-in-from-top-2">
+                  <div className="flex items-start gap-3.5">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-100 border border-emerald-300 flex items-center justify-center text-emerald-700 flex-shrink-0 mt-0.5 shadow-sm">
+                      <CheckCircle2 className="w-6 h-6" />
+                    </div>
+                    <div className="flex-1 text-sm space-y-4">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider bg-emerald-200 text-emerald-900 border border-emerald-300">
+                            ✓ VALIDASI SPASIAL LOLOS
+                          </span>
+                          <span className="text-xs text-emerald-700 font-semibold">100% Standar DaaS Orthomosaic</span>
+                        </div>
+                        <h4 className="font-bold text-base text-emerald-900">
+                          {geoSuccess.title || "Peta Berhasil Divalidasi & Disimpan!"}
+                        </h4>
+                        <p className="text-xs text-emerald-800 mt-0.5">
+                          Metadata geospasial telah diverifikasi. Engine <code className="bg-emerald-200/60 px-1 py-0.5 rounded font-mono text-[11px]">rio-tiler</code> siap menyajikan Slippy Map XYZ tiles secara instan.
+                        </p>
+                      </div>
+
+                      {/* Verified Metadata Bento Grid */}
+                      {geoSuccess.metadata && (
+                        <div className="bg-white/95 rounded-xl p-4 border border-emerald-200 shadow-sm">
+                          <p className="font-bold text-xs text-gray-900 mb-3 flex items-center gap-1.5">
+                            <Compass className="w-4 h-4 text-emerald-600" />
+                            Struktur & Metadata Geospasial Terverifikasi:
+                          </p>
+                          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-2.5 text-xs">
+                            <div className="bg-gray-50 p-2.5 rounded-lg border border-gray-200">
+                              <span className="text-[10px] text-gray-500 font-medium block uppercase tracking-wider">Proyeksi (CRS)</span>
+                              <span className="font-bold text-emerald-700 text-xs truncate block" title={geoSuccess.metadata.crs}>
+                                {geoSuccess.metadata.crs}
+                              </span>
+                            </div>
+
+                            <div className="bg-gray-50 p-2.5 rounded-lg border border-gray-200">
+                              <span className="text-[10px] text-gray-500 font-medium block uppercase tracking-wider">Dimensi Piksel</span>
+                              <span className="font-bold text-gray-900 text-xs">
+                                {geoSuccess.metadata.width.toLocaleString()} × {geoSuccess.metadata.height.toLocaleString()} px
+                              </span>
+                            </div>
+
+                            <div className="bg-gray-50 p-2.5 rounded-lg border border-gray-200">
+                              <span className="text-[10px] text-gray-500 font-medium block uppercase tracking-wider">Saluran / Band</span>
+                              <span className="font-bold text-gray-900 text-xs">
+                                {geoSuccess.metadata.bands} Band ({geoSuccess.metadata.dtypes.join(", ")})
+                              </span>
+                            </div>
+
+                            <div className="bg-gray-50 p-2.5 rounded-lg border border-gray-200">
+                              <span className="text-[10px] text-gray-500 font-medium block uppercase tracking-wider">Driver / Tiling</span>
+                              <span className="font-bold text-gray-900 text-xs">
+                                {geoSuccess.metadata.driver} {geoSuccess.metadata.is_tiled ? "(COG Tiled)" : "(Standar)"}
+                              </span>
+                            </div>
+
+                            {geoSuccess.metadata.bounds_wgs84 && (
+                              <div className="sm:col-span-2 bg-gray-50 p-2.5 rounded-lg border border-gray-200">
+                                <span className="text-[10px] text-gray-500 font-medium block uppercase tracking-wider">Batas Koordinat WGS 84 (Bbox)</span>
+                                <span className="font-semibold text-gray-800 text-[11px] font-mono block">
+                                  [{geoSuccess.metadata.bounds_wgs84.min_lat}°, {geoSuccess.metadata.bounds_wgs84.min_lon}°] s/d [{geoSuccess.metadata.bounds_wgs84.max_lat}°, {geoSuccess.metadata.bounds_wgs84.max_lon}°]
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Action Navigation */}
+                      <div className="flex flex-wrap items-center gap-3 pt-1">
+                        <Link
+                          href="/dashboard/maps"
+                          className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl shadow-sm transition-all hover:shadow"
+                        >
+                          🗺️ Buka di Peta (Dashboard)
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsSuccess(false);
+                            setGeoSuccess(null);
+                            setMessage("");
+                          }}
+                          className="px-3.5 py-2 bg-white hover:bg-gray-100 text-gray-700 text-xs font-semibold rounded-xl border border-gray-300 transition-colors"
+                        >
+                          Unggah File Peta Lain
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -486,7 +686,7 @@ export default function UploadPage() {
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-blue-600 font-bold mt-0.5">•</span>
-                  <span><strong>Ukuran Maksimal:</strong> 150 MB per file peta</span>
+                  <span><strong>Ukuran Maksimal:</strong> 5 GB per file peta</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-blue-600 font-bold mt-0.5">•</span>
@@ -503,16 +703,16 @@ export default function UploadPage() {
               <div className="space-y-2">
                 {[
                   {
-                    ext: "GeoTIFF (.tif/.tiff)",
-                    desc: "Wajib untuk Peta Spasial Ber-CRS",
+                    ext: "GeoTIFF (.tif / .tiff)",
+                    desc: "Wajib untuk Peta Spasial Ber-CRS (WGS84 / UTM)",
                     icon: <Compass className="w-4 h-4" />,
                     color: "text-emerald-700 bg-emerald-50 border-emerald-200",
                   },
                   {
-                    ext: "PNG / JPG",
-                    desc: "Citra biasa (Non-georeferenced)",
-                    icon: <Image className="w-4 h-4" />,
-                    color: "text-amber-700 bg-amber-50 border-amber-200",
+                    ext: "Cloud Optimized GeoTIFF (COG)",
+                    desc: "Sangat direkomendasikan untuk kecepatan tiling",
+                    icon: <ShieldCheck className="w-4 h-4" />,
+                    color: "text-blue-700 bg-blue-50 border-blue-200",
                   },
                 ].map((format, idx) => (
                   <div
@@ -521,7 +721,10 @@ export default function UploadPage() {
                   >
                     <div className="flex items-center gap-2">
                       <div>{format.icon}</div>
-                      <span className="text-xs font-semibold">{format.ext}</span>
+                      <div>
+                        <span className="text-xs font-semibold block">{format.ext}</span>
+                        <span className="text-[10px] text-gray-500 block">{format.desc}</span>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -539,7 +742,7 @@ export default function UploadPage() {
               <div className="mb-3">
                 <div className="flex justify-between text-xs mb-1.5">
                   <span className="text-gray-600">Penyimpanan Server</span>
-                  <span className="font-semibold text-gray-900">Maks 150 MB / File</span>
+                  <span className="font-semibold text-gray-900">Maks 5 GB / File</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-1.5">
                   <div
