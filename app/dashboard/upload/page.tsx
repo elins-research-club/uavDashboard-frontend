@@ -30,42 +30,7 @@ import {
   Check,
 } from "lucide-react";
 import api from "@/lib/api";
-
-interface GeoMetadata {
-  crs: string;
-  crs_epsg?: number | null;
-  width: number;
-  height: number;
-  bands: number;
-  driver: string;
-  dtypes: string[];
-  bounds_native?: { left: number; bottom: number; right: number; top: number };
-  bounds_wgs84?: { min_lon: number; min_lat: number; max_lon: number; max_lat: number } | null;
-  nodata?: number | null;
-  is_tiled?: boolean;
-}
-
-interface RejectedErrorDetails {
-  file_characteristics?: {
-    crs?: string;
-    gps_metadata?: string;
-    camera_source?: string;
-    dimensions?: string;
-    driver?: string;
-  };
-  missing_requirements?: string[];
-  why_rejected?: string;
-  solution?: string;
-  detected_format?: string;
-  supported_formats?: string[];
-}
-
-interface ErrorDetailObject {
-  status?: string;
-  error_type?: string;
-  message?: string;
-  details?: RejectedErrorDetails;
-}
+import { GeoMetadata, ErrorDetailObject } from "@/types/map";
 
 export default function UploadPage() {
   const router = useRouter();
