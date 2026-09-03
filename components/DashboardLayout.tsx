@@ -3,15 +3,21 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "./Sidebar";
-import { Bell, Search, Menu, X } from "lucide-react";
+import { Search, Menu, X, ArrowUpRight, Leaf } from "lucide-react";
 import api from "@/lib/api";
 import { useUserRole } from "@/context/UserRoleContext";
 
-export default function DashboardLayout({ children }) {
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const router = useRouter();
+
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   const { user, setAuthenticatedUser } = useUserRole();
 
   useEffect(() => {
@@ -27,6 +33,7 @@ export default function DashboardLayout({ children }) {
           ...profileResponse.data,
           tier: subscriptionResponse.data.tier,
         });
+
         setIsAuthenticated(true);
       })
       .catch(() => {
@@ -38,10 +45,13 @@ export default function DashboardLayout({ children }) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex min-h-screen items-center justify-center bg-white">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-gray-900 mb-3"></div>
-          <p className="text-sm text-gray-600">Memuat...</p>
+          <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#123c28]/10 border-t-[#123c28] animate-spin" />
+
+          <p className="text-xs font-medium tracking-wide text-[#123c28]/45">
+            Memuat platform...
+          </p>
         </div>
       </div>
     );
@@ -51,89 +61,160 @@ export default function DashboardLayout({ children }) {
     return null;
   }
 
+  const userInitials = (user?.username || "P").slice(0, 2).toUpperCase();
+
+  const userPlan =
+    user?.role === "admin" ? "Administrator" : `${user?.tier || "Free"} Plan`;
+
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
-      {/* Mobile Sidebar Overlay */}
+    <div className="flex h-screen overflow-hidden bg-white text-[#123c28]">
+      {/* =====================================================
+          MOBILE OVERLAY
+      ====================================================== */}
       {isSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+        <button
+          type="button"
+          aria-label="Tutup sidebar"
+          className="fixed inset-0 z-40 bg-[#123c28]/25 backdrop-blur-[2px] lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
-        ></div>
+        />
       )}
 
-      {/* Sidebar - Desktop */}
+      {/* =====================================================
+          DESKTOP SIDEBAR
+      ====================================================== */}
       <div className="hidden lg:block">
         <Sidebar />
       </div>
 
-      {/* Sidebar - Mobile */}
+      {/* =====================================================
+          MOBILE SIDEBAR
+      ====================================================== */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 lg:hidden transform transition-transform duration-300 ease-in-out ${
+        className={`fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-out lg:hidden ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <Sidebar />
       </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top Navigation Bar */}
-        <header className="bg-white border-b border-gray-200 px-6 py-4">
-          <div className="flex items-center justify-between">
-            {/* Left: Mobile Menu & Search */}
-            <div className="flex items-center gap-4 flex-1">
+      {/* =====================================================
+          MAIN AREA
+      ====================================================== */}
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-white">
+        {/* ===================================================
+            TOP NAVBAR
+        ==================================================== */}
+        <header className="flex-shrink-0 bg-white px-3 pt-3 sm:px-5">
+          <div className="flex h-[58px] items-center justify-between rounded-full border border-[#123c28]/10 bg-white px-2.5 shadow-[0_8px_30px_rgba(18,60,40,0.04)]">
+            {/* -------------------------------------------------
+                LEFT
+            -------------------------------------------------- */}
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              {/* Mobile menu */}
               <button
-                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                type="button"
+                aria-label={isSidebarOpen ? "Tutup menu" : "Buka menu"}
+                onClick={() => setIsSidebarOpen((value) => !value)}
+                className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#123c28] text-white transition hover:bg-[#1a5134] lg:hidden"
               >
                 {isSidebarOpen ? (
-                  <X className="w-5 h-5 text-gray-600" />
+                  <X className="h-4 w-4" />
                 ) : (
-                  <Menu className="w-5 h-5 text-gray-600" />
+                  <Menu className="h-4 w-4" />
                 )}
               </button>
 
-              {/* Search Bar */}
-              <div className="hidden md:flex items-center flex-1 max-w-md">
-                <div className="relative w-full">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              {/* Mobile brand */}
+              <div className="flex items-center gap-2 pl-1 lg:hidden">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#123c28]">
+                  <Leaf className="h-3.5 w-3.5 text-white" />
+                </div>
+
+                <div className="hidden leading-none sm:block">
+                  <p className="text-[10px] font-black tracking-[0.18em]">
+                    UAV
+                  </p>
+
+                  <p className="mt-0.5 text-[7px] tracking-[0.25em] text-[#123c28]/35">
+                    DAAS PLATFORM
+                  </p>
+                </div>
+              </div>
+
+              {/* Search */}
+              <div className="hidden min-w-0 flex-1 md:block">
+                <div className="relative max-w-lg">
+                  <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#123c28]/25" />
+
                   <input
                     type="text"
                     placeholder="Cari peta, analisis..."
-                    className="w-full pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                    className="h-10 w-full rounded-full border border-[#123c28]/8 bg-[#f7f8f4] pl-11 pr-4 text-xs text-[#123c28] outline-none transition placeholder:text-[#123c28]/25 hover:border-[#123c28]/15 focus:border-[#123c28]/20 focus:bg-white"
                   />
                 </div>
               </div>
+
+              {/* Small mobile title */}
+              <div className="min-w-0 md:hidden">
+                <p className="truncate text-xs font-semibold text-[#123c28]">
+                  UAV Dashboard
+                </p>
+
+                <p className="truncate text-[9px] text-[#123c28]/35">
+                  Field Intelligence
+                </p>
+              </div>
             </div>
 
-            {/* Right: Notifications & User */}
-            <div className="flex items-center gap-3">
-              {/* Notifications */}
-              <button className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                <Bell className="w-5 h-5 text-gray-600" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
+            {/* -------------------------------------------------
+                RIGHT
+            -------------------------------------------------- */}
+            <div className="flex items-center gap-2 pl-2">
+              {/* Search icon on small screens */}
+              <button
+                type="button"
+                aria-label="Cari"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-[#123c28]/10 bg-white text-[#123c28]/50 transition hover:bg-[#f4f6ef] md:hidden"
+              >
+                <Search className="h-4 w-4" />
               </button>
 
-              {/* User Avatar */}
-              <div className="hidden sm:flex items-center gap-3 pl-3 border-l border-gray-200">
+              {/* User */}
+              <div className="hidden items-center gap-3 border-l border-[#123c28]/8 pl-3 sm:flex">
                 <div className="text-right">
-                  <p className="text-xs font-medium text-gray-900">
+                  <p className="max-w-[140px] truncate text-[11px] font-semibold text-[#123c28]">
                     {user?.username || "Pengguna"}
                   </p>
-                  <p className="text-xs text-gray-500">
-                    {user?.role === "admin" ? "Admin" : `${user?.tier || "Free"} Plan`}
+
+                  <p className="mt-0.5 text-[9px] capitalize text-[#123c28]/40">
+                    {userPlan}
                   </p>
                 </div>
-                <div className="w-9 h-9 bg-gray-300 rounded-full flex items-center justify-center text-sm font-semibold text-gray-700">
-                  {(user?.username || "P").slice(0, 2).toUpperCase()}
+
+                <div className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#123c28] text-[10px] font-bold text-white">
+                  {userInitials}
+
+                  <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-[#91b928]" />
                 </div>
+
+                <ArrowUpRight className="h-3.5 w-3.5 text-[#123c28]/20" />
+              </div>
+
+              {/* Mobile avatar */}
+              <div className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#123c28] text-[10px] font-bold text-white sm:hidden">
+                {userInitials}
+
+                <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-[#91b928]" />
               </div>
             </div>
           </div>
         </header>
 
-        {/* Page Content */}
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        {/* ===================================================
+            PAGE CONTENT
+        ==================================================== */}
+        <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
       </div>
     </div>
   );

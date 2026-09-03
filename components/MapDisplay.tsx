@@ -1,7 +1,19 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { MapContainer, TileLayer, ImageOverlay, Marker, Popup, useMap } from "react-leaflet";
+import React, {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useState,
+} from "react";
+import {
+  MapContainer,
+  TileLayer,
+  ImageOverlay,
+  Marker,
+  Popup,
+  useMap,
+} from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css";
 import "leaflet-defaulticon-compatibility";
@@ -14,6 +26,12 @@ interface MapDisplayProps {
   mapFormat?: string;
   mapTitle?: string;
   mapLocation?: string;
+}
+
+// Methods exposed to the parent (page.tsx) via ref, e.g. mapRef.current?.zoomIn()
+export interface MapHandle {
+  zoomIn: () => void;
+  zoomOut: () => void;
 }
 
 interface BoundsResponse {
@@ -31,8 +49,10 @@ const BASEMAPS = {
   satellite: {
     name: "Satelit Bumi",
     url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    labelsUrl: "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
-    attribution: "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
+    labelsUrl:
+      "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+    attribution:
+      "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
     maxZoom: 19,
   },
   street: {
@@ -72,7 +92,8 @@ function MapViewController({
     }
 
     setLoading(true);
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+    const baseUrl =
+      process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
     const headers: Record<string, string> = {};
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
@@ -88,14 +109,22 @@ function MapViewController({
         if (onBoundsLoaded) onBoundsLoaded(data);
 
         // Teleportasi / Fly ke lokasi peta
-        if (data.bounds && Array.isArray(data.bounds) && data.bounds.length === 2) {
+        if (
+          data.bounds &&
+          Array.isArray(data.bounds) &&
+          data.bounds.length === 2
+        ) {
           map.fitBounds(data.bounds, {
             padding: [60, 60],
             maxZoom: 18,
             animate: true,
             duration: 1.5,
           });
-        } else if (data.center && Array.isArray(data.center) && data.center.length === 2) {
+        } else if (
+          data.center &&
+          Array.isArray(data.center) &&
+          data.center.length === 2
+        ) {
           map.flyTo(data.center, 16, {
             animate: true,
             duration: 1.5,
@@ -110,7 +139,8 @@ function MapViewController({
       });
   }, [mapId, token, mapFormat, map]);
 
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+  const baseUrl =
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
   return (
     <>
@@ -164,7 +194,8 @@ function MapViewController({
                   : "✓ Area Peta"}
               </div>
               <div className="text-[10px] text-gray-500">
-                Koordinat: {mapMeta.center[0].toFixed(5)}, {mapMeta.center[1].toFixed(5)}
+                Koordinat: {mapMeta.center[0].toFixed(5)},{" "}
+                {mapMeta.center[1].toFixed(5)}
               </div>
             </div>
           </Popup>
@@ -174,108 +205,122 @@ function MapViewController({
   );
 }
 
-const MapDisplay = ({
-  mapId,
-  token,
-  mapFormat,
-  mapTitle,
-  mapLocation,
-}: MapDisplayProps) => {
-  const [basemap, setBasemap] = useState<"satellite" | "street">("satellite");
-  const [overlayOpacity, setOverlayOpacity] = useState<number>(0.95);
-  const [currentMeta, setCurrentMeta] = useState<BoundsResponse | null>(null);
+// Small bridge component: lives inside <MapContainer> so it can call useMap(),
+// then exposes zoomIn/zoomOut to the ref passed down from the outer forwardRef component.
+function ZoomBridge({ innerRef }: { innerRef: React.Ref<MapHandle> }) {
+  const map = useMap();
 
-  const activeBasemap = BASEMAPS[basemap];
+  useImperativeHandle(innerRef, () => ({
+    zoomIn: () => map.zoomIn(),
+    zoomOut: () => map.zoomOut(),
+  }));
 
-  return (
-    <div className="relative h-full w-full">
-      {/* Floating Control Bar: Basemap Toggle & Opacity */}
-      <div className="absolute top-3 right-3 z-[1000] flex flex-col gap-2 bg-white/95 backdrop-blur-md p-2 rounded-xl shadow-lg border border-gray-200">
-        <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
-          <button
-            type="button"
-            onClick={() => setBasemap("satellite")}
-            className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
-              basemap === "satellite"
-                ? "bg-gray-900 text-white shadow-sm"
-                : "text-gray-600 hover:text-gray-900"
-            }`}
-          >
-            <Globe className="w-3.5 h-3.5" />
-            Satelit
-          </button>
-          <button
-            type="button"
-            onClick={() => setBasemap("street")}
-            className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
-              basemap === "street"
-                ? "bg-gray-900 text-white shadow-sm"
-                : "text-gray-600 hover:text-gray-900"
-            }`}
-          >
-            <MapIcon className="w-3.5 h-3.5" />
-            Peta Jalan
-          </button>
+  return null;
+}
+
+const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
+  ({ mapId, token, mapFormat, mapTitle, mapLocation }, ref) => {
+    const [basemap, setBasemap] = useState<"satellite" | "street">("satellite");
+    const [overlayOpacity, setOverlayOpacity] = useState<number>(0.95);
+    const [currentMeta, setCurrentMeta] = useState<BoundsResponse | null>(null);
+
+    const activeBasemap = BASEMAPS[basemap];
+
+    return (
+      <div className="relative h-full w-full">
+        {/* Floating Control Bar: Basemap Toggle & Opacity */}
+        <div className="absolute top-3 right-3 z-[1000] flex flex-col gap-2 bg-white/95 backdrop-blur-md p-2 rounded-xl shadow-lg border border-gray-200">
+          <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
+            <button
+              type="button"
+              onClick={() => setBasemap("satellite")}
+              className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+                basemap === "satellite"
+                  ? "bg-gray-900 text-white shadow-sm"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              <Globe className="w-3.5 h-3.5" />
+              Satelit
+            </button>
+            <button
+              type="button"
+              onClick={() => setBasemap("street")}
+              className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+                basemap === "street"
+                  ? "bg-gray-900 text-white shadow-sm"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              <MapIcon className="w-3.5 h-3.5" />
+              Peta Jalan
+            </button>
+          </div>
+
+          {mapId && (
+            <div className="flex items-center justify-between px-2 pt-1 border-t border-gray-200 text-[11px] text-gray-600">
+              <span>Transparansi:</span>
+              <div className="flex gap-1">
+                {[1, 0.75, 0.5, 0.25].map((op) => (
+                  <button
+                    key={op}
+                    type="button"
+                    onClick={() => setOverlayOpacity(op)}
+                    className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                      overlayOpacity === op
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    {Math.round(op * 100)}%
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
-        {mapId && (
-          <div className="flex items-center justify-between px-2 pt-1 border-t border-gray-200 text-[11px] text-gray-600">
-            <span>Transparansi:</span>
-            <div className="flex gap-1">
-              {[1, 0.75, 0.5, 0.25].map((op) => (
-                <button
-                  key={op}
-                  type="button"
-                  onClick={() => setOverlayOpacity(op)}
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                    overlayOpacity === op
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                >
-                  {Math.round(op * 100)}%
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      <MapContainer
-        center={DEFAULT_POSITION}
-        zoom={13}
-        scrollWheelZoom={true}
-        style={{ height: "100%", width: "100%" }}
-      >
-        {/* Basemap Primary Layer */}
-        <TileLayer
-          key={basemap}
-          attribution={activeBasemap.attribution}
-          url={activeBasemap.url}
-          maxZoom={activeBasemap.maxZoom}
-        />
-
-        {/* Reference Labels untuk Satelit */}
-        {activeBasemap.labelsUrl && (
+        <MapContainer
+          center={DEFAULT_POSITION}
+          zoom={13}
+          scrollWheelZoom={true}
+          style={{ height: "100%", width: "100%" }}
+        >
+          {/* Basemap Primary Layer */}
           <TileLayer
-            key={`${basemap}-labels`}
-            url={activeBasemap.labelsUrl}
+            key={basemap}
+            attribution={activeBasemap.attribution}
+            url={activeBasemap.url}
             maxZoom={activeBasemap.maxZoom}
           />
-        )}
 
-        <MapViewController
-          mapId={mapId}
-          token={token}
-          mapFormat={mapFormat}
-          mapTitle={mapTitle}
-          mapLocation={mapLocation}
-          overlayOpacity={overlayOpacity}
-          onBoundsLoaded={setCurrentMeta}
-        />
-      </MapContainer>
-    </div>
-  );
-};
+          {/* Reference Labels untuk Satelit */}
+          {activeBasemap.labelsUrl && (
+            <TileLayer
+              key={`${basemap}-labels`}
+              url={activeBasemap.labelsUrl}
+              maxZoom={activeBasemap.maxZoom}
+            />
+          )}
+
+          <MapViewController
+            mapId={mapId}
+            token={token}
+            mapFormat={mapFormat}
+            mapTitle={mapTitle}
+            mapLocation={mapLocation}
+            overlayOpacity={overlayOpacity}
+            onBoundsLoaded={setCurrentMeta}
+          />
+
+          {/* Exposes zoomIn/zoomOut to the outer ref (used by the toolbar in page.tsx) */}
+          <ZoomBridge innerRef={ref} />
+        </MapContainer>
+      </div>
+    );
+  }
+);
+
+MapDisplay.displayName = "MapDisplay";
 
 export default React.memo(MapDisplay);
