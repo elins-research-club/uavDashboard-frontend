@@ -46,10 +46,15 @@ export default function LoginPage() {
         };
       };
 
-      setMessage(
-        axiosError.response?.data?.detail || "Email atau password salah."
-      );
+      const detail = axiosError.response?.data?.detail;
+      const errorMsg =
+        typeof detail === "string"
+          ? detail
+          : Array.isArray(detail) && detail[0]?.msg
+          ? detail[0].msg
+          : "Email atau password salah.";
 
+      setMessage(errorMsg);
       setLoading(false);
     }
   };
