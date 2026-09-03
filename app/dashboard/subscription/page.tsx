@@ -173,7 +173,7 @@ export default function SubscriptionPage() {
 
                   {/* Price */}
                   <div className="mb-6">
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
+                    <p className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">
                       Harga / Bulan
                     </p>
                     <div className="flex items-baseline gap-1">
@@ -185,7 +185,7 @@ export default function SubscriptionPage() {
                           : `Rp ${(billingCycle === "yearly" ? plan.price * 12 * 0.8 : plan.price).toLocaleString("id-ID")}`}
                       </span>
                       {plan.tier !== "kecamatan" && plan.price > 0 && (
-                        <span className="text-sm text-gray-400">
+                        <span className="text-sm font-medium text-gray-600">
                           {billingCycle === "yearly" ? "/tahun" : "/bulan"}
                         </span>
                       )}
@@ -197,17 +197,17 @@ export default function SubscriptionPage() {
 
                   {/* Features */}
                   <div className="flex-1 mb-8">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                    <p className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">
                       Fitur Termasuk
                     </p>
                     <ul className="space-y-2.5">
                       {plan.features.map((feature, idx) => (
                         <li key={idx} className="flex items-start gap-2.5 text-sm">
                           <CheckCircle
-                            className="w-4 h-4 flex-shrink-0 mt-0.5 text-green-500"
+                            className="w-4 h-4 flex-shrink-0 mt-0.5 text-green-600"
                             aria-hidden="true"
                           />
-                          <span className="text-gray-700">{feature}</span>
+                          <span className="text-gray-800 font-medium">{feature}</span>
                         </li>
                       ))}
                     </ul>
