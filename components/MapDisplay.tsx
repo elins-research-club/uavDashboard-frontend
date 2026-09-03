@@ -85,6 +85,12 @@ function MapViewController({
   const [loading, setLoading] = useState(false);
   const [mapMeta, setMapMeta] = useState<BoundsResponse | null>(null);
 
+  // Daftarkan custom pane 'uavOverlayPane' dengan z-index 450 agar selalu di atas basemap (200)
+  if (typeof window !== "undefined" && map && !map.getPane("uavOverlayPane")) {
+    const pane = map.createPane("uavOverlayPane");
+    pane.style.zIndex = "450";
+  }
+
   useEffect(() => {
     if (!mapId) {
       setMapMeta(null);
@@ -154,7 +160,7 @@ function MapViewController({
         </div>
       )}
 
-      {/* Layer 1: TileLayer XYZ untuk GeoTIFF berproyeksi */}
+      {/* Layer 1: TileLayer XYZ untuk GeoTIFF berproyeksi (selalu di pane uavOverlayPane) */}
       {mapMeta?.has_tiles && mapId && (
         <TileLayer
           key={`tile-${mapId}`}
@@ -162,16 +168,20 @@ function MapViewController({
           maxZoom={22}
           maxNativeZoom={22}
           opacity={overlayOpacity}
+          zIndex={100}
+          pane="uavOverlayPane"
         />
       )}
 
-      {/* Layer 2: ImageOverlay untuk foto udara Drone / TIFF tunggal (misal Mamuya 1) */}
+      {/* Layer 2: ImageOverlay untuk foto udara Drone / TIFF tunggal (selalu di pane uavOverlayPane) */}
       {!mapMeta?.has_tiles && mapMeta?.bounds && mapId && (
         <ImageOverlay
           key={`overlay-${mapId}`}
           url={`${baseUrl}/maps/${mapId}/preview`}
           bounds={mapMeta.bounds}
           opacity={overlayOpacity}
+          zIndex={100}
+          pane="uavOverlayPane"
         />
       )}
 
@@ -286,12 +296,14 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
           scrollWheelZoom={true}
           style={{ height: "100%", width: "100%" }}
         >
-          {/* Basemap Primary Layer */}
+          {/* Basemap Primary Layer (selalu di tilePane dengan zIndex 1) */}
           <TileLayer
             key={basemap}
             attribution={activeBasemap.attribution}
             url={activeBasemap.url}
             maxZoom={activeBasemap.maxZoom}
+            zIndex={1}
+            pane="tilePane"
           />
 
           {/* Reference Labels untuk Satelit */}
@@ -300,6 +312,8 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               key={`${basemap}-labels`}
               url={activeBasemap.labelsUrl}
               maxZoom={activeBasemap.maxZoom}
+              zIndex={2}
+              pane="tilePane"
             />
           )}
 
