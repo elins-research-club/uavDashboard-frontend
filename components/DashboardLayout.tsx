@@ -47,9 +47,9 @@ export default function DashboardLayout({
     return (
       <div className="flex min-h-screen items-center justify-center bg-white">
         <div className="text-center">
-          <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#123c28]/10 border-t-[#123c28] animate-spin" />
+          <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#123c28]/20 border-t-[#123c28] animate-spin" />
 
-          <p className="text-xs font-medium tracking-wide text-[#123c28]/45">
+          <p className="text-xs font-semibold tracking-wide text-[#123c28]/80">
             Memuat platform...
           </p>
         </div>
@@ -75,7 +75,7 @@ export default function DashboardLayout({
         <button
           type="button"
           aria-label="Tutup sidebar"
-          className="fixed inset-0 z-40 bg-[#123c28]/25 backdrop-blur-[2px] lg:hidden"
+          className="fixed inset-0 z-40 bg-[#123c28]/30 backdrop-blur-[2px] lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
@@ -106,7 +106,7 @@ export default function DashboardLayout({
             TOP NAVBAR
         ==================================================== */}
         <header className="flex-shrink-0 bg-white px-3 pt-3 sm:px-5">
-          <div className="flex h-[58px] items-center justify-between rounded-full border border-[#123c28]/10 bg-white px-2.5 shadow-[0_8px_30px_rgba(18,60,40,0.04)]">
+          <div className="flex h-[58px] items-center justify-between rounded-full border border-[#123c28]/15 bg-white px-2.5 shadow-[0_8px_30px_rgba(18,60,40,0.06)]">
             {/* -------------------------------------------------
                 LEFT
             -------------------------------------------------- */}
@@ -136,7 +136,7 @@ export default function DashboardLayout({
                     UAV
                   </p>
 
-                  <p className="mt-0.5 text-[7px] tracking-[0.25em] text-[#123c28]/35">
+                  <p className="mt-0.5 text-[8px] font-bold tracking-[0.25em] text-[#123c28]/75">
                     DAAS PLATFORM
                   </p>
                 </div>
@@ -145,23 +145,23 @@ export default function DashboardLayout({
               {/* Search */}
               <div className="hidden min-w-0 flex-1 md:block">
                 <div className="relative max-w-lg">
-                  <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#123c28]/25" />
+                  <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#123c28]/60" />
 
                   <input
                     type="text"
                     placeholder="Cari peta, analisis..."
-                    className="h-10 w-full rounded-full border border-[#123c28]/8 bg-[#f7f8f4] pl-11 pr-4 text-xs text-[#123c28] outline-none transition placeholder:text-[#123c28]/25 hover:border-[#123c28]/15 focus:border-[#123c28]/20 focus:bg-white"
+                    className="h-10 w-full rounded-full border border-[#123c28]/15 bg-[#f7f8f4] pl-11 pr-4 text-xs font-medium text-[#123c28] outline-none transition placeholder:text-[#123c28]/60 hover:border-[#123c28]/25 focus:border-[#123c28]/40 focus:bg-white"
                   />
                 </div>
               </div>
 
               {/* Small mobile title */}
               <div className="min-w-0 md:hidden">
-                <p className="truncate text-xs font-semibold text-[#123c28]">
+                <p className="truncate text-xs font-bold text-[#123c28]">
                   UAV Dashboard
                 </p>
 
-                <p className="truncate text-[9px] text-[#123c28]/35">
+                <p className="truncate text-[10px] font-medium text-[#123c28]/70">
                   Field Intelligence
                 </p>
               </div>
@@ -175,19 +175,19 @@ export default function DashboardLayout({
               <button
                 type="button"
                 aria-label="Cari"
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-[#123c28]/10 bg-white text-[#123c28]/50 transition hover:bg-[#f4f6ef] md:hidden"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-[#123c28]/15 bg-white text-[#123c28]/75 transition hover:bg-[#f4f6ef] md:hidden"
               >
                 <Search className="h-4 w-4" />
               </button>
 
               {/* User */}
-              <div className="hidden items-center gap-3 border-l border-[#123c28]/8 pl-3 sm:flex">
+              <div className="hidden items-center gap-3 border-l border-[#123c28]/12 pl-3 sm:flex">
                 <div className="text-right">
-                  <p className="max-w-[140px] truncate text-[11px] font-semibold text-[#123c28]">
+                  <p className="max-w-[140px] truncate text-[11px] font-bold text-[#123c28]">
                     {user?.username || "Pengguna"}
                   </p>
 
-                  <p className="mt-0.5 text-[9px] capitalize text-[#123c28]/40">
+                  <p className="mt-0.5 text-[10px] font-semibold capitalize text-[#123c28]/75">
                     {userPlan}
                   </p>
                 </div>
@@ -198,7 +198,7 @@ export default function DashboardLayout({
                   <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-[#91b928]" />
                 </div>
 
-                <ArrowUpRight className="h-3.5 w-3.5 text-[#123c28]/20" />
+                <ArrowUpRight className="h-3.5 w-3.5 text-[#123c28]/50" />
               </div>
 
               {/* Mobile avatar */}

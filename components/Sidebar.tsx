@@ -118,7 +118,7 @@ export default function Sidebar() {
               UAV
             </p>
 
-            <p className="mt-1 text-[8px] font-medium tracking-[0.24em] text-[#123c28]/40">
+            <p className="mt-1 text-[8px] font-bold tracking-[0.24em] text-[#123c28]/75">
               DAAS PLATFORM
             </p>
           </div>
@@ -129,7 +129,7 @@ export default function Sidebar() {
           STATUS
       ====================================================== */}
       <div className="px-5 pb-3">
-        <div className="flex items-center justify-between rounded-2xl border border-[#123c28]/8 bg-[#f7f8f4] px-3.5 py-3">
+        <div className="flex items-center justify-between rounded-2xl border border-[#123c28]/12 bg-[#f7f8f4] px-3.5 py-3">
           <div className="flex items-center gap-2.5">
             <div className="relative">
               <span className="block h-2 w-2 rounded-full bg-[#91b928]" />
@@ -137,17 +137,17 @@ export default function Sidebar() {
             </div>
 
             <div>
-              <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#123c28]/35">
+              <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#123c28]/70">
                 SYSTEM
               </p>
 
-              <p className="mt-0.5 text-[10px] font-semibold text-[#123c28]/70">
+              <p className="mt-0.5 text-[10px] font-bold text-[#123c28]">
                 Platform aktif
               </p>
             </div>
           </div>
 
-          <Activity className="h-3.5 w-3.5 text-[#123c28]/25" />
+          <Activity className="h-3.5 w-3.5 text-[#123c28]/60" />
         </div>
       </div>
 
@@ -157,7 +157,7 @@ export default function Sidebar() {
       <nav className="flex-1 overflow-y-auto px-3 pb-4">
         {/* Main */}
         <div className="pt-4">
-          <p className="mb-2 px-3 text-[9px] font-bold uppercase tracking-[0.22em] text-[#123c28]/30">
+          <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.22em] text-[#123c28]/70">
             Workspace
           </p>
 
@@ -172,7 +172,7 @@ export default function Sidebar() {
                   className={`group relative flex items-center gap-3 rounded-2xl px-3 py-3 transition-all ${
                     active
                       ? "bg-[#123c28] text-white shadow-[0_8px_20px_rgba(18,60,40,0.12)]"
-                      : "text-[#123c28]/65 hover:bg-[#f3f6ed] hover:text-[#123c28]"
+                      : "text-[#123c28] hover:bg-[#f3f6ed]"
                   }`}
                 >
                   {/* Active indicator */}
@@ -184,7 +184,7 @@ export default function Sidebar() {
                     className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl transition ${
                       active
                         ? "bg-white/10 text-white"
-                        : "bg-[#f5f7f1] text-[#123c28]/60 group-hover:bg-white"
+                        : "bg-[#f5f7f1] text-[#123c28]/80 group-hover:bg-white group-hover:text-[#123c28]"
                     }`}
                   >
                     {item.icon}
@@ -192,16 +192,16 @@ export default function Sidebar() {
 
                   <div className="min-w-0 flex-1">
                     <p
-                      className={`truncate text-xs font-semibold ${
-                        active ? "text-white" : "text-[#123c28]/75"
+                      className={`truncate text-xs font-bold ${
+                        active ? "text-white" : "text-[#123c28]"
                       }`}
                     >
                       {item.label}
                     </p>
 
                     <p
-                      className={`mt-0.5 truncate text-[9px] ${
-                        active ? "text-white/40" : "text-[#123c28]/30"
+                      className={`mt-0.5 truncate text-[10px] font-medium ${
+                        active ? "text-emerald-100" : "text-[#123c28]/70"
                       }`}
                     >
                       {item.description}
@@ -209,7 +209,7 @@ export default function Sidebar() {
                   </div>
 
                   {active && (
-                    <ChevronRight className="h-3.5 w-3.5 text-white/55" />
+                    <ChevronRight className="h-3.5 w-3.5 text-white/85" />
                   )}
                 </Link>
               );
@@ -221,13 +221,13 @@ export default function Sidebar() {
             ADMIN
         ==================================================== */}
         {user?.role === "admin" && (
-          <div className="mt-7 border-t border-[#123c28]/8 pt-6">
+          <div className="mt-7 border-t border-[#123c28]/10 pt-6">
             <div className="mb-2 flex items-center justify-between px-3">
-              <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#123c28]/30">
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#123c28]/70">
                 Administration
               </p>
 
-              <span className="rounded-full bg-[#f0f3ea] px-2 py-1 text-[8px] font-bold uppercase tracking-[0.12em] text-[#123c28]/45">
+              <span className="rounded-full bg-[#e7ede1] px-2 py-1 text-[8px] font-bold uppercase tracking-[0.12em] text-[#123c28]">
                 Admin
               </span>
             </div>
@@ -243,7 +243,7 @@ export default function Sidebar() {
                     className={`group relative flex items-center gap-3 rounded-2xl px-3 py-3 transition-all ${
                       active
                         ? "bg-[#123c28] text-white shadow-[0_8px_20px_rgba(18,60,40,0.12)]"
-                        : "text-[#123c28]/65 hover:bg-[#f3f6ed] hover:text-[#123c28]"
+                        : "text-[#123c28] hover:bg-[#f3f6ed]"
                     }`}
                   >
                     {active && (
@@ -253,8 +253,8 @@ export default function Sidebar() {
                     <div
                       className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl ${
                         active
-                          ? "bg-white/10"
-                          : "bg-[#f5f7f1] group-hover:bg-white"
+                          ? "bg-white/10 text-white"
+                          : "bg-[#f5f7f1] text-[#123c28]/80 group-hover:bg-white group-hover:text-[#123c28]"
                       }`}
                     >
                       {item.icon}
@@ -262,16 +262,16 @@ export default function Sidebar() {
 
                     <div className="min-w-0 flex-1">
                       <p
-                        className={`truncate text-xs font-semibold ${
-                          active ? "text-white" : "text-[#123c28]/75"
+                        className={`truncate text-xs font-bold ${
+                          active ? "text-white" : "text-[#123c28]"
                         }`}
                       >
                         {item.label}
                       </p>
 
                       <p
-                        className={`mt-0.5 truncate text-[9px] ${
-                          active ? "text-white/40" : "text-[#123c28]/30"
+                        className={`mt-0.5 truncate text-[10px] font-medium ${
+                          active ? "text-emerald-100" : "text-[#123c28]/70"
                         }`}
                       >
                         {item.description}
@@ -279,7 +279,7 @@ export default function Sidebar() {
                     </div>
 
                     {active && (
-                      <ChevronRight className="h-3.5 w-3.5 text-white/55" />
+                      <ChevronRight className="h-3.5 w-3.5 text-white/85" />
                     )}
                   </Link>
                 );
@@ -291,8 +291,8 @@ export default function Sidebar() {
         {/* ===================================================
             SETTINGS
         ==================================================== */}
-        <div className="mt-7 border-t border-[#123c28]/8 pt-6">
-          <p className="mb-2 px-3 text-[9px] font-bold uppercase tracking-[0.22em] text-[#123c28]/30">
+        <div className="mt-7 border-t border-[#123c28]/10 pt-6">
+          <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.22em] text-[#123c28]/70">
             Preferences
           </p>
 
@@ -304,10 +304,10 @@ export default function Sidebar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-3 rounded-2xl px-3 py-3 text-xs font-medium transition ${
+                  className={`flex items-center gap-3 rounded-2xl px-3 py-3 text-xs font-semibold transition ${
                     active
                       ? "bg-[#f3f6ed] text-[#123c28]"
-                      : "text-[#123c28]/55 hover:bg-[#f7f8f4] hover:text-[#123c28]"
+                      : "text-[#123c28]/80 hover:bg-[#f7f8f4] hover:text-[#123c28]"
                   }`}
                 >
                   <div
@@ -339,24 +339,24 @@ export default function Sidebar() {
             </div>
 
             <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-semibold text-[#123c28]">
+              <p className="truncate text-xs font-bold text-[#123c28]">
                 {user?.username || "Pengguna"}
               </p>
 
               <div className="mt-1 flex items-center gap-1.5">
                 {user?.role === "admin" ? (
                   <>
-                    <ShieldCheck className="h-3 w-3 text-[#123c28]/50" />
+                    <ShieldCheck className="h-3 w-3 text-[#123c28]/75" />
 
-                    <span className="text-[9px] font-semibold text-[#123c28]/50">
+                    <span className="text-[10px] font-semibold text-[#123c28]/80">
                       Administrator
                     </span>
                   </>
                 ) : (
                   <>
-                    <Leaf className="h-3 w-3 text-[#123c28]/50" />
+                    <Leaf className="h-3 w-3 text-[#123c28]/75" />
 
-                    <span className="truncate text-[9px] font-semibold text-[#123c28]/50">
+                    <span className="truncate text-[10px] font-semibold text-[#123c28]/80">
                       {tierLabel}
                     </span>
                   </>
@@ -368,18 +368,18 @@ export default function Sidebar() {
           {/* account info */}
           <div className="mt-3 flex items-center justify-between rounded-xl bg-white px-3 py-2.5">
             <div>
-              <p className="text-[8px] uppercase tracking-[0.15em] text-[#123c28]/25">
+              <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#123c28]/70">
                 Account
               </p>
 
-              <p className="mt-0.5 text-[10px] font-semibold capitalize text-[#123c28]/65">
+              <p className="mt-0.5 text-[11px] font-bold capitalize text-[#123c28]">
                 {user?.role === "admin"
                   ? "Admin Access"
                   : `${user?.tier || "free"} Tier`}
               </p>
             </div>
 
-            <ArrowUpRight className="h-3.5 w-3.5 text-[#123c28]/25" />
+            <ArrowUpRight className="h-3.5 w-3.5 text-[#123c28]/50" />
           </div>
         </div>
 
@@ -387,7 +387,7 @@ export default function Sidebar() {
         <button
           type="button"
           onClick={handleLogout}
-          className="mt-2 flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-xs font-medium text-[#123c28]/45 transition hover:bg-[#faf5f4] hover:text-[#a3483c]"
+          className="mt-2 flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-xs font-semibold text-[#123c28]/80 transition hover:bg-red-50 hover:text-red-700"
         >
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#f7f8f4]">
             <LogOut className="h-4 w-4" />

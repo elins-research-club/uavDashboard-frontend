@@ -11,12 +11,3 @@ body {
   @apply transition-colors duration-300 ease-in-out;
 }
 
-/* * Ini adalah style untuk dark mode.
- * Ini akan otomatis aktif jika OS pengguna disetel ke Dark Mode,
- * yang akan membuat semua kelas 'dark:...' di komponen Anda berfungsi.
- */
-@media (prefers-color-scheme: dark) {
-  body {
-    @apply bg-gray-900 text-gray-50;
-  }
-}
