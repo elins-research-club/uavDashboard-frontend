@@ -17,8 +17,10 @@ import {
 import "leaflet/dist/leaflet.css";
 import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css";
 import "leaflet-defaulticon-compatibility";
+import "@tomickigrzegorz/leaflet-rotate";
+import "@tomickigrzegorz/leaflet-rotate/css";
 import L from "leaflet";
-import { Globe, Map as MapIcon } from "lucide-react";
+import { Globe, Map as MapIcon, Compass, RotateCcw, RotateCw } from "lucide-react";
 
 interface MapDisplayProps {
   mapId?: string;
@@ -32,6 +34,11 @@ interface MapDisplayProps {
 export interface MapHandle {
   zoomIn: () => void;
   zoomOut: () => void;
+  rotateLeft: () => void;
+  rotateRight: () => void;
+  resetNorth: () => void;
+  getBearing: () => number;
+  setBearing: (deg: number) => void;
 }
 
 interface BoundsResponse {
@@ -89,6 +96,10 @@ function MapViewController({
   if (typeof window !== "undefined" && map && !map.getPane("uavOverlayPane")) {
     const pane = map.createPane("uavOverlayPane");
     pane.style.zIndex = "450";
+    // Jika Leaflet rotate pane aktif, masukkan uavOverlayPane ke dalam rotatePane agar berotasi serentak
+    if ((map as any)._rotatePane && (map as any)._rotatePane !== pane.parentElement) {
+      (map as any)._rotatePane.appendChild(pane);
+    }
   }
 
   useEffect(() => {
@@ -215,14 +226,41 @@ function MapViewController({
   );
 }
 
-// Small bridge component: lives inside <MapContainer> so it can call useMap(),
-// then exposes zoomIn/zoomOut to the ref passed down from the outer forwardRef component.
-function ZoomBridge({ innerRef }: { innerRef: React.Ref<MapHandle> }) {
+// Bridge component to expose map instance to MapDisplay
+function MapInstanceBridge({
+  onMapReady,
+  innerRef,
+}: {
+  onMapReady: (map: L.Map) => void;
+  innerRef: React.Ref<MapHandle>;
+}) {
   const map = useMap();
+
+  useEffect(() => {
+    (window as any)._debugMap = map;
+    onMapReady(map);
+  }, [map, onMapReady]);
 
   useImperativeHandle(innerRef, () => ({
     zoomIn: () => map.zoomIn(),
     zoomOut: () => map.zoomOut(),
+    rotateLeft: () => {
+      const cur = (map as any).getBearing ? (map as any).getBearing() : 0;
+      (map as any).setBearing?.(cur - 45);
+    },
+    rotateRight: () => {
+      const cur = (map as any).getBearing ? (map as any).getBearing() : 0;
+      (map as any).setBearing?.(cur + 45);
+    },
+    resetNorth: () => {
+      (map as any).setBearing?.(0);
+    },
+    getBearing: () => {
+      return (map as any).getBearing ? (map as any).getBearing() : 0;
+    },
+    setBearing: (deg: number) => {
+      (map as any).setBearing?.(deg);
+    },
   }));
 
   return null;
@@ -233,8 +271,60 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     const [basemap, setBasemap] = useState<"satellite" | "street">("satellite");
     const [overlayOpacity, setOverlayOpacity] = useState<number>(0.95);
     const [currentMeta, setCurrentMeta] = useState<BoundsResponse | null>(null);
+    const [mapInstance, setMapInstance] = useState<L.Map | null>(null);
+    const [bearing, setBearing] = useState<number>(0);
 
     const activeBasemap = BASEMAPS[basemap];
+
+    // Listen to map rotation event
+    useEffect(() => {
+      if (!mapInstance) return;
+
+      const updateBearing = () => {
+        const b = (mapInstance as any).getBearing
+          ? (mapInstance as any).getBearing()
+          : 0;
+        const normalized = ((b % 360) + 360) % 360;
+        setBearing(Math.round(normalized));
+      };
+
+      updateBearing();
+      mapInstance.on("rotate" as any, updateBearing);
+
+      return () => {
+        mapInstance.off("rotate" as any, updateBearing);
+      };
+    }, [mapInstance]);
+
+    const handleResetNorth = () => {
+      (mapInstance as any)?.setBearing?.(0);
+    };
+
+    const handleRotateLeft = () => {
+      const cur = (mapInstance as any)?.getBearing
+        ? (mapInstance as any).getBearing()
+        : 0;
+      (mapInstance as any)?.setBearing?.(cur - 45);
+    };
+
+    const handleRotateRight = () => {
+      const cur = (mapInstance as any)?.getBearing
+        ? (mapInstance as any).getBearing()
+        : 0;
+      (mapInstance as any)?.setBearing?.(cur + 45);
+    };
+
+    // Get cardinal direction label in Indonesian
+    const getDirection = (deg: number) => {
+      if (deg >= 337.5 || deg < 22.5) return "U"; // Utara
+      if (deg >= 22.5 && deg < 67.5) return "TL"; // Timur Laut
+      if (deg >= 67.5 && deg < 112.5) return "T"; // Timur
+      if (deg >= 112.5 && deg < 157.5) return "TG"; // Tenggara
+      if (deg >= 157.5 && deg < 202.5) return "S"; // Selatan
+      if (deg >= 202.5 && deg < 247.5) return "BD"; // Barat Daya
+      if (deg >= 247.5 && deg < 292.5) return "B"; // Barat
+      return "BL"; // Barat Laut
+    };
 
     return (
       <div className="relative h-full w-full">
@@ -290,11 +380,87 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
           )}
         </div>
 
+        {/* Floating Interactive Compass Widget */}
+        <div className="absolute bottom-6 left-4 z-[1000] flex flex-col items-center gap-1.5 rounded-2xl border border-gray-200/80 bg-white/95 p-2 shadow-xl backdrop-blur-md">
+          {/* Compass Dial / Needle Button */}
+          <button
+            type="button"
+            onClick={handleResetNorth}
+            title="Klik untuk mereset orientasi ke Arah Utara (0°)"
+            className="group relative flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-gradient-to-b from-gray-50 to-gray-100 transition-all hover:scale-105 hover:border-gray-300 hover:bg-white hover:shadow-md active:scale-95"
+          >
+            {/* Rotating Compass Needle Container */}
+            <div
+              className="flex h-full w-full items-center justify-center transition-transform duration-200 ease-out"
+              style={{ transform: `rotate(${-bearing}deg)` }}
+            >
+              {/* Compass Needle Graphics */}
+              <div className="relative flex flex-col items-center h-8 w-2.5">
+                {/* North Tip (Red) */}
+                <div className="h-4 w-0 border-x-[5px] border-x-transparent border-b-[15px] border-b-red-600 drop-shadow-sm" />
+                {/* South Tip (Gray) */}
+                <div className="h-4 w-0 border-x-[5px] border-x-transparent border-t-[15px] border-t-gray-400 drop-shadow-sm" />
+                {/* Center Pivot Pin */}
+                <div className="absolute top-1/2 left-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white border border-gray-600 shadow-sm" />
+              </div>
+            </div>
+
+            {/* Permanent North label on needle top */}
+            <span
+              className="pointer-events-none absolute text-[8px] font-black text-red-600 transition-transform duration-200 ease-out"
+              style={{
+                transform: `rotate(${-bearing}deg) translateY(-14px)`,
+              }}
+            >
+              N
+            </span>
+          </button>
+
+          {/* Bearing & Heading Readout */}
+          <div className="flex items-center gap-1 text-[10px] font-bold text-gray-700">
+            <span>{bearing}°</span>
+            <span className="text-gray-300">|</span>
+            <span className="text-emerald-800 font-extrabold">
+              {getDirection(bearing)}
+            </span>
+          </div>
+
+          {/* Quick Rotation Buttons */}
+          <div className="flex items-center gap-1 pt-1 border-t border-gray-200/80">
+            <button
+              type="button"
+              onClick={handleRotateLeft}
+              title="Putar -45° (Berlawanan jarum jam)"
+              className="flex h-6 w-6 items-center justify-center rounded-lg bg-gray-100 text-gray-700 transition hover:bg-gray-200 active:scale-90"
+            >
+              <RotateCcw className="h-3 w-3" />
+            </button>
+            <button
+              type="button"
+              onClick={handleRotateRight}
+              title="Putar +45° (Searah jarum jam)"
+              className="flex h-6 w-6 items-center justify-center rounded-lg bg-gray-100 text-gray-700 transition hover:bg-gray-200 active:scale-90"
+            >
+              <RotateCw className="h-3 w-3" />
+            </button>
+          </div>
+
+          {/* Quick Hint */}
+          <span className="text-[8px] text-gray-600 font-medium tracking-tight text-center leading-tight">
+            Shift + Drag
+          </span>
+        </div>
+
         <MapContainer
           center={DEFAULT_POSITION}
           zoom={13}
           scrollWheelZoom={true}
           style={{ height: "100%", width: "100%" }}
+          {...({
+            rotate: true,
+            touchRotate: true,
+            shiftKeyRotate: true,
+          } as any)}
         >
           {/* Basemap Primary Layer (selalu di tilePane dengan zIndex 1) */}
           <TileLayer
@@ -327,8 +493,8 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             onBoundsLoaded={setCurrentMeta}
           />
 
-          {/* Exposes zoomIn/zoomOut to the outer ref (used by the toolbar in page.tsx) */}
-          <ZoomBridge innerRef={ref} />
+          {/* Exposes zoomIn/zoomOut and rotation controls to ref and handles instance */}
+          <MapInstanceBridge onMapReady={setMapInstance} innerRef={ref} />
         </MapContainer>
       </div>
     );

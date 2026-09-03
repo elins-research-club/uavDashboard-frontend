@@ -33,6 +33,7 @@ import {
   Leaf,
   Activity,
   ScanLine,
+  Compass,
 } from "lucide-react";
 
 import type { MapHandle } from "@/components/MapDisplay";
@@ -50,6 +51,7 @@ type MapDisplayProps = {
 };
 
 const Map = dynamic(() => import("@/components/MapDisplay"), {
+  ssr: false,
   loading: () => (
     <div className="flex h-full items-center justify-center bg-[#f7f8f4]">
       <div className="text-center">
@@ -58,7 +60,6 @@ const Map = dynamic(() => import("@/components/MapDisplay"), {
       </div>
     </div>
   ),
-  ssr: false,
 }) as unknown as React.ForwardRefExoticComponent<
   MapDisplayProps & React.RefAttributes<MapHandle>
 >;
@@ -478,6 +479,16 @@ export default function MapsPage() {
       icon: <ZoomOut className="h-4 w-4" />,
       label: "Zoom Out",
       onClick: handleZoomOut,
+    },
+    {
+      icon: <Compass className="h-4 w-4 text-emerald-800" />,
+      label: "Reset Arah Utara (Shift+Drag untuk rotasi bebas)",
+      onClick: () => {
+        if (mapRef.current?.resetNorth) {
+          mapRef.current.resetNorth();
+          showNotice("Orientasi peta dikembalikan menghadap Utara (0°).");
+        }
+      },
     },
     {
       icon: isFullscreen ? (
