@@ -369,11 +369,11 @@ export default function UploadPage() {
                     <FileText className="h-4 w-4 text-[#123c28]" />
                   </div>
                   <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#123c28]/75">
-                    METADATA
+                    INFORMASI PETA
                   </span>
                 </div>
                 <h2 className="mb-5 text-xl font-bold tracking-[-0.03em]">
-                  Detail Metadata Peta
+                  Detail Informasi Peta
                 </h2>
 
                 <div className="space-y-4">

@@ -79,6 +79,7 @@ interface MapData {
   file_format: string;
   locked_for_free: boolean;
   purchasable: boolean;
+  purchase_price?: number | null;
   created_at: string;
   geo_metadata?: GeoMetadata | null;
 }
@@ -137,7 +138,11 @@ export default function MapsPage() {
   const [editForm, setEditForm] = useState({
     title: "",
     location: "",
+    survey_date: "",
     description: "",
+    locked_for_free: false,
+    purchasable: false,
+    purchase_price: "" as string | number,
   });
 
   const [isSavingEdit, setIsSavingEdit] = useState(false);
@@ -145,6 +150,7 @@ export default function MapsPage() {
   const [editErrors, setEditErrors] = useState<{
     title?: string;
     location?: string;
+    survey_date?: string;
   }>({});
 
   /* Delete */
@@ -351,9 +357,13 @@ export default function MapsPage() {
     setEditingMap(map);
 
     setEditForm({
-      title: map.title,
-      location: map.location,
+      title: map.title || "",
+      location: map.location || "",
+      survey_date: map.survey_date ? map.survey_date.split("T")[0] : "",
       description: map.description || "",
+      locked_for_free: Boolean(map.locked_for_free),
+      purchasable: Boolean(map.purchasable),
+      purchase_price: map.purchase_price ?? "",
     });
 
     setEditErrors({});
@@ -370,6 +380,7 @@ export default function MapsPage() {
     const errors: {
       title?: string;
       location?: string;
+      survey_date?: string;
     } = {};
 
     if (!editForm.title.trim()) {
@@ -378,6 +389,10 @@ export default function MapsPage() {
 
     if (!editForm.location.trim()) {
       errors.location = "Lokasi wajib diisi.";
+    }
+
+    if (!editForm.survey_date) {
+      errors.survey_date = "Tanggal survey wajib diisi.";
     }
 
     if (Object.keys(errors).length > 0) {
@@ -391,7 +406,14 @@ export default function MapsPage() {
       await api.patch(`/maps/${editingMap.id}`, {
         title: editForm.title.trim(),
         location: editForm.location.trim(),
+        survey_date: editForm.survey_date,
         description: editForm.description.trim(),
+        locked_for_free: editForm.locked_for_free,
+        purchasable: editForm.purchasable,
+        purchase_price:
+          editForm.purchasable && editForm.purchase_price !== ""
+            ? Number(editForm.purchase_price)
+            : null,
       });
 
       showNotice("Peta berhasil diperbarui.");
@@ -1079,15 +1101,15 @@ export default function MapsPage() {
       ====================================================== */}
       {editingMap && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#123c28]/40 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md overflow-hidden rounded-[28px] border border-[#123c28]/15 bg-white shadow-2xl">
+          <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-[28px] border border-[#123c28]/15 bg-white shadow-2xl">
             <div className="flex items-center justify-between border-b border-[#123c28]/10 px-6 py-5">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#123c28]/75">
-                  EDIT DATA
+                  INFORMASI PETA
                 </p>
 
                 <h3 className="mt-1 text-lg font-bold tracking-tight text-[#123c28]">
-                  Edit Peta
+                  Edit Informasi Peta
                 </h3>
               </div>
 
@@ -1100,11 +1122,11 @@ export default function MapsPage() {
               </button>
             </div>
 
-            <div className="space-y-5 px-6 py-6">
+            <div className="space-y-4 overflow-y-auto px-6 py-5">
               {/* title */}
               <div>
-                <label className="mb-2 block text-[10px] font-bold uppercase tracking-[0.16em] text-[#123c28]/75">
-                  Nama Peta
+                <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-[#123c28]/75">
+                  Judul Peta
                 </label>
 
                 <input
@@ -1116,16 +1138,16 @@ export default function MapsPage() {
                       title: event.target.value,
                     })
                   }
-                  className={`h-12 w-full rounded-2xl border bg-[#fafbf8] px-4 text-sm font-medium text-[#123c28] outline-none transition placeholder:text-[#123c28]/45 focus:bg-white ${
+                  className={`h-11 w-full rounded-2xl border bg-[#fafbf8] px-4 text-sm font-medium text-[#123c28] outline-none transition placeholder:text-[#123c28]/45 focus:bg-white ${
                     editErrors.title
                       ? "border-red-400 focus:border-red-500"
                       : "border-[#123c28]/15 focus:border-[#123c28]/40"
                   }`}
-                  placeholder="Nama peta"
+                  placeholder="Contoh: Peta Orthomosaic Lahan Padi - Jul 2026"
                 />
 
                 {editErrors.title && (
-                  <p className="mt-2 text-xs font-semibold text-red-600">
+                  <p className="mt-1.5 text-xs font-semibold text-red-600">
                     {editErrors.title}
                   </p>
                 )}
@@ -1133,38 +1155,73 @@ export default function MapsPage() {
 
               {/* location */}
               <div>
-                <label className="mb-2 block text-[10px] font-bold uppercase tracking-[0.16em] text-[#123c28]/75">
-                  Lokasi
+                <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-[#123c28]/75">
+                  Lokasi / Wilayah
                 </label>
 
-                <input
-                  type="text"
-                  value={editForm.location}
-                  onChange={(event) =>
-                    setEditForm({
-                      ...editForm,
-                      location: event.target.value,
-                    })
-                  }
-                  className={`h-12 w-full rounded-2xl border bg-[#fafbf8] px-4 text-sm font-medium text-[#123c28] outline-none transition placeholder:text-[#123c28]/45 focus:bg-white ${
-                    editErrors.location
-                      ? "border-red-400 focus:border-red-500"
-                      : "border-[#123c28]/15 focus:border-[#123c28]/40"
-                  }`}
-                  placeholder="Lokasi"
-                />
+                <div className="relative">
+                  <MapPin className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#123c28]/40" />
+                  <input
+                    type="text"
+                    value={editForm.location}
+                    onChange={(event) =>
+                      setEditForm({
+                        ...editForm,
+                        location: event.target.value,
+                      })
+                    }
+                    className={`h-11 w-full rounded-2xl border bg-[#fafbf8] pl-10 pr-4 text-sm font-medium text-[#123c28] outline-none transition placeholder:text-[#123c28]/45 focus:bg-white ${
+                      editErrors.location
+                        ? "border-red-400 focus:border-red-500"
+                        : "border-[#123c28]/15 focus:border-[#123c28]/40"
+                    }`}
+                    placeholder="Contoh: Desa Sriharjo, Kec. Imogiri, Bantul"
+                  />
+                </div>
 
                 {editErrors.location && (
-                  <p className="mt-2 text-xs font-semibold text-red-600">
+                  <p className="mt-1.5 text-xs font-semibold text-red-600">
                     {editErrors.location}
+                  </p>
+                )}
+              </div>
+
+              {/* survey_date */}
+              <div>
+                <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-[#123c28]/75">
+                  Tanggal Survey Drone
+                </label>
+
+                <div className="relative">
+                  <Calendar className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#123c28]/40" />
+                  <input
+                    type="date"
+                    value={editForm.survey_date}
+                    onChange={(event) =>
+                      setEditForm({
+                        ...editForm,
+                        survey_date: event.target.value,
+                      })
+                    }
+                    className={`h-11 w-full rounded-2xl border bg-[#fafbf8] pl-10 pr-4 text-sm font-medium text-[#123c28] outline-none transition focus:bg-white ${
+                      editErrors.survey_date
+                        ? "border-red-400 focus:border-red-500"
+                        : "border-[#123c28]/15 focus:border-[#123c28]/40"
+                    }`}
+                  />
+                </div>
+
+                {editErrors.survey_date && (
+                  <p className="mt-1.5 text-xs font-semibold text-red-600">
+                    {editErrors.survey_date}
                   </p>
                 )}
               </div>
 
               {/* description */}
               <div>
-                <label className="mb-2 block text-[10px] font-bold uppercase tracking-[0.16em] text-[#123c28]/75">
-                  Deskripsi
+                <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-[#123c28]/75">
+                  Deskripsi Tambahan (Opsional)
                 </label>
 
                 <textarea
@@ -1175,10 +1232,68 @@ export default function MapsPage() {
                       description: event.target.value,
                     })
                   }
-                  rows={4}
-                  className="w-full resize-none rounded-2xl border border-[#123c28]/15 bg-[#fafbf8] px-4 py-3 text-sm font-medium text-[#123c28] outline-none transition placeholder:text-[#123c28]/45 focus:border-[#123c28]/40 focus:bg-white"
-                  placeholder="Tambahkan catatan atau deskripsi..."
+                  rows={3}
+                  className="w-full resize-none rounded-2xl border border-[#123c28]/15 bg-[#fafbf8] px-4 py-2.5 text-sm font-medium text-[#123c28] outline-none transition placeholder:text-[#123c28]/45 focus:border-[#123c28]/40 focus:bg-white"
+                  placeholder="Informasi ketinggian terbang, sensor kamera, dsb..."
                 />
+              </div>
+
+              {/* Access control & Monetization */}
+              <div className="pt-2">
+                <div className="mb-2.5 flex items-center gap-2">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#f3f6ed]">
+                    <Lock className="h-3.5 w-3.5 text-[#123c28]" />
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#123c28]/75">
+                    Aturan Akses & Monetisasi DaaS
+                  </span>
+                </div>
+
+                <div className="space-y-2.5">
+                  <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#123c28]/10 bg-[#fafbf8] p-3.5 transition-colors hover:border-[#123c28]/25 hover:bg-white">
+                    <input
+                      type="checkbox"
+                      checked={editForm.locked_for_free}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          locked_for_free: e.target.checked,
+                        })
+                      }
+                      className="mt-0.5 h-4 w-4 rounded border-[#123c28]/30 text-[#123c28] focus:ring-[#123c28]"
+                    />
+                    <div>
+                      <p className="text-xs font-bold text-[#123c28]">
+                        Kunci untuk Member Free
+                      </p>
+                      <p className="mt-0.5 text-[11px] font-medium text-[#123c28]/70">
+                        Hanya member berbayar (Tier Desa/Kecamatan) yang dapat mengakses data peta ini
+                      </p>
+                    </div>
+                  </label>
+
+                  <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#123c28]/10 bg-[#fafbf8] p-3.5 transition-colors hover:border-[#123c28]/25 hover:bg-white">
+                    <input
+                      type="checkbox"
+                      checked={editForm.purchasable}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          purchasable: e.target.checked,
+                        })
+                      }
+                      className="mt-0.5 h-4 w-4 rounded border-[#123c28]/30 text-[#123c28] focus:ring-[#123c28]"
+                    />
+                    <div>
+                      <p className="text-xs font-bold text-[#123c28]">
+                        Tersedia untuk Pembelian Satuan (Pay-per-view)
+                      </p>
+                      <p className="mt-0.5 text-[11px] font-medium text-[#123c28]/70">
+                        User dapat membeli akses peta ini secara terpisah tanpa langganan
+                      </p>
+                    </div>
+                  </label>
+                </div>
               </div>
             </div>
 
