@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 
 import type { MapHandle } from "@/components/MapDisplay";
+import type { GeoMetadata } from "@/types/map";
 
 /* =========================================================
    MAP DISPLAY
@@ -79,6 +80,7 @@ interface MapData {
   locked_for_free: boolean;
   purchasable: boolean;
   created_at: string;
+  geo_metadata?: GeoMetadata | null;
 }
 
 const formatSize = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(2)} MB`;
@@ -892,12 +894,12 @@ export default function MapsPage() {
       ====================================================== */}
       {metadataMap && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#123c28]/40 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md overflow-hidden rounded-[28px] border border-[#123c28]/15 bg-white shadow-2xl">
+          <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-[28px] border border-[#123c28]/15 bg-white shadow-2xl">
             {/* header */}
             <div className="flex items-center justify-between border-b border-[#123c28]/10 px-6 py-5">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#123c28]/75">
-                  FIELD DATA
+                  FIELD & GEOSPATIAL DATA
                 </p>
 
                 <h3 className="mt-1 text-lg font-bold tracking-tight text-[#123c28]">
@@ -914,44 +916,127 @@ export default function MapsPage() {
               </button>
             </div>
 
-            {/* content */}
-            <div className="space-y-1 px-6 py-5">
-              {[
-                ["Nama", metadataMap.title],
-                ["Lokasi", metadataMap.location],
-                ...(metadataMap.map_type
-                  ? [["Tipe", metadataMap.map_type]]
-                  : []),
-                [
-                  "Tanggal Survey",
-                  new Date(metadataMap.survey_date).toLocaleDateString("id-ID"),
-                ],
-                ["Format", `.${metadataMap.file_format?.toUpperCase()}`],
-                [
-                  "Ukuran File",
-                  `${(metadataMap.file_size / 1024 / 1024).toFixed(2)} MB`,
-                ],
-                [
-                  "Dibuat",
-                  new Date(metadataMap.created_at).toLocaleDateString("id-ID"),
-                ],
-              ].map(([label, value]) => (
-                <div
-                  key={label}
-                  className="flex items-center justify-between gap-5 rounded-xl px-3 py-3 hover:bg-[#f7f8f4]"
-                >
-                  <span className="text-xs font-medium text-[#123c28]/75">
-                    {label}
-                  </span>
-
-                  <span className="max-w-[60%] truncate text-right text-xs font-bold text-[#123c28]">
-                    {value}
-                  </span>
+            {/* content scrollable */}
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+              {/* Basic info section */}
+              <div>
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#123c28]/70">
+                  Informasi Umum
+                </p>
+                <div className="space-y-1 rounded-2xl border border-[#123c28]/10 bg-[#fafbf8] p-3">
+                  {[
+                    ["Nama", metadataMap.title],
+                    ["Lokasi", metadataMap.location],
+                    ["Tanggal Survey", new Date(metadataMap.survey_date).toLocaleDateString("id-ID")],
+                    ["Format File", `.${metadataMap.file_format?.toUpperCase()}`],
+                    ["Ukuran File", `${(metadataMap.file_size / 1024 / 1024).toFixed(2)} MB`],
+                    ["Dibuat", new Date(metadataMap.created_at).toLocaleDateString("id-ID")],
+                  ].map(([label, value]) => (
+                    <div
+                      key={label}
+                      className="flex items-center justify-between gap-4 rounded-xl px-3 py-2 text-xs hover:bg-white"
+                    >
+                      <span className="font-medium text-[#123c28]/70">{label}</span>
+                      <span className="max-w-[65%] truncate text-right font-bold text-[#123c28]">{value}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
 
+              {/* Geospatial / TIFF metadata section */}
+              {metadataMap.geo_metadata ? (
+                <div>
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#123c28]/70">
+                      Metadata Geospasial & Raster
+                    </p>
+                    <span className="rounded-full bg-[#eef3e8] px-2.5 py-0.5 text-[9px] font-bold text-[#123c28]">
+                      GeoTIFF Valid
+                    </span>
+                  </div>
+
+                  <div className="space-y-1 rounded-2xl border border-[#123c28]/10 bg-[#fafbf8] p-3">
+                    <div className="flex items-center justify-between gap-4 rounded-xl px-3 py-2 text-xs hover:bg-white">
+                      <span className="font-medium text-[#123c28]/70">Sistem Koordinat (CRS)</span>
+                      <span className="max-w-[65%] truncate text-right font-bold text-[#123c28]">
+                        {metadataMap.geo_metadata.crs || "N/A"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-4 rounded-xl px-3 py-2 text-xs hover:bg-white">
+                      <span className="font-medium text-[#123c28]/70">Dimensi Citra</span>
+                      <span className="font-bold text-[#123c28]">
+                        {metadataMap.geo_metadata.width?.toLocaleString()} × {metadataMap.geo_metadata.height?.toLocaleString()} piksel
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-4 rounded-xl px-3 py-2 text-xs hover:bg-white">
+                      <span className="font-medium text-[#123c28]/70">Saluran (Bands)</span>
+                      <span className="font-bold text-[#123c28]">
+                        {metadataMap.geo_metadata.bands} Saluran ({metadataMap.geo_metadata.dtypes?.join(", ") || "uint8"})
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-4 rounded-xl px-3 py-2 text-xs hover:bg-white">
+                      <span className="font-medium text-[#123c28]/70">Driver Raster</span>
+                      <span className="font-bold text-[#123c28]">
+                        {metadataMap.geo_metadata.driver || "GTiff"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-4 rounded-xl px-3 py-2 text-xs hover:bg-white">
+                      <span className="font-medium text-[#123c28]/70">Format Tiling</span>
+                      <span className="font-bold text-[#123c28]">
+                        {metadataMap.geo_metadata.is_tiled ? "Tiled (Cloud-Optimized)" : "Strip / Standar"}
+                      </span>
+                    </div>
+
+                    {metadataMap.geo_metadata.nodata !== undefined && metadataMap.geo_metadata.nodata !== null && (
+                      <div className="flex items-center justify-between gap-4 rounded-xl px-3 py-2 text-xs hover:bg-white">
+                        <span className="font-medium text-[#123c28]/70">Nilai NoData</span>
+                        <span className="font-bold text-[#123c28]">{metadataMap.geo_metadata.nodata}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Bounding Box WGS84 */}
+                  {metadataMap.geo_metadata.bounds_wgs84 && (
+                    <div className="mt-3 rounded-2xl border border-[#123c28]/10 bg-[#f7f8f4] p-3.5">
+                      <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.15em] text-[#123c28]/75">
+                        Cakupan Wilayah (WGS 84 Bounds)
+                      </p>
+                      <div className="grid grid-cols-2 gap-2 text-[11px]">
+                        <div className="rounded-xl border border-[#123c28]/5 bg-white p-2">
+                          <span className="block text-[9px] font-semibold text-[#123c28]/60">Bujur Barat (Min Lon)</span>
+                          <span className="font-bold text-[#123c28]">{metadataMap.geo_metadata.bounds_wgs84.min_lon}°</span>
+                        </div>
+                        <div className="rounded-xl border border-[#123c28]/5 bg-white p-2">
+                          <span className="block text-[9px] font-semibold text-[#123c28]/60">Bujur Timur (Max Lon)</span>
+                          <span className="font-bold text-[#123c28]">{metadataMap.geo_metadata.bounds_wgs84.max_lon}°</span>
+                        </div>
+                        <div className="rounded-xl border border-[#123c28]/5 bg-white p-2">
+                          <span className="block text-[9px] font-semibold text-[#123c28]/60">Lintang Selatan (Min Lat)</span>
+                          <span className="font-bold text-[#123c28]">{metadataMap.geo_metadata.bounds_wgs84.min_lat}°</span>
+                        </div>
+                        <div className="rounded-xl border border-[#123c28]/5 bg-white p-2">
+                          <span className="block text-[9px] font-semibold text-[#123c28]/60">Lintang Utara (Max Lat)</span>
+                          <span className="font-bold text-[#123c28]">{metadataMap.geo_metadata.bounds_wgs84.max_lat}°</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-[#123c28]/15 bg-[#fafbf8] p-4 text-center">
+                  <p className="text-xs font-semibold text-[#123c28]/60">
+                    Metadata geospasial tidak tersemat pada berkas ini.
+                  </p>
+                </div>
+              )}
+
+              {/* Description */}
               {metadataMap.description && (
-                <div className="mt-2 rounded-2xl bg-[#f7f8f4] p-4 border border-[#123c28]/10">
+                <div className="rounded-2xl border border-[#123c28]/10 bg-[#f7f8f4] p-4">
                   <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#123c28]/75">
                     Deskripsi
                   </p>
