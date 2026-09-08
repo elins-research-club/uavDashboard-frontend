@@ -175,7 +175,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     const setupBasemap = useCallback(() => {
       const map = mapRef.current;
 
-      if (!map) return;
+      if (!map || !map.isStyleLoaded()) return;
 
       const active = BASEMAPS[basemap];
 
@@ -255,7 +255,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     const setupTerrain = useCallback(() => {
       const map = mapRef.current;
 
-      if (!map) return;
+      if (!map || !map.isStyleLoaded()) return;
 
       const terrainSourceId = "terrain-dem";
 
@@ -311,7 +311,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       (meta: BoundsResponse) => {
         const map = mapRef.current;
 
-        if (!map || !mapId) return;
+        if (!map || !map.isStyleLoaded() || !mapId) return;
 
         const baseUrl =
           process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
@@ -1074,7 +1074,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         ================================================== */}
 
         {currentMeta && (
-          <div className="pointer-events-none absolute bottom-6 right-4 z-[1000] max-w-xs rounded-2xl border border-white/80 bg-white/95 px-3 py-2.5 shadow-xl backdrop-blur-md">
+          <div className="pointer-events-none absolute bottom-14 right-4 z-[1000] max-w-xs rounded-2xl border border-white/80 bg-white/95 px-3 py-2.5 shadow-xl backdrop-blur-md">
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-[#91b928]" />
 
