@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 import { useRouter } from "next/navigation";
 import { useUserRole } from "@/context/UserRoleContext";
 import api from "@/lib/api";
@@ -35,25 +35,41 @@ interface Plan {
 // ─── Available Permissions ────────────────────────────────────────────────────
 
 const ALL_PERMISSIONS = [
-  { key: "all", label: "Full Access (Super Admin)", color: "red" },
-  { key: "manage_users", label: "Kelola Pengguna", color: "purple" },
-  { key: "manage_maps", label: "Kelola Peta", color: "blue" },
-  { key: "manage_pricing", label: "Kelola Harga Paket", color: "orange" },
-  { key: "upload_map", label: "Upload Peta", color: "green" },
-  { key: "view_map", label: "Lihat Peta", color: "gray" },
-  { key: "download_map", label: "Download Peta", color: "teal" },
+  { key: "all", label: "Full Access (Super Admin)" },
+  { key: "manage_users", label: "Kelola Pengguna" },
+  { key: "manage_maps", label: "Kelola Peta" },
+  { key: "manage_pricing", label: "Kelola Harga Paket" },
+  { key: "upload_map", label: "Upload Peta" },
+  { key: "view_map", label: "Lihat Peta" },
+  { key: "download_map", label: "Download Peta" },
 ];
 
-const TIER_COLORS: Record<string, string> = {
-  free: "bg-gray-100 text-gray-700 border-gray-200",
-  desa: "bg-blue-100 text-blue-700 border-blue-200",
-  kecamatan: "bg-purple-100 text-purple-700 border-purple-200",
+// Solid tier colors — consistent with the platform's green/lime/amber palette.
+const TIER_STYLES: Record<
+  string,
+  { bg: string; text: string; border: string }
+> = {
+  free: {
+    bg: "bg-[#eef1ea]",
+    text: "text-[#4b5d52]",
+    border: "border-[#123c28]/15",
+  },
+  desa: {
+    bg: "bg-[#dfeeb1]",
+    text: "text-[#4a5f0e]",
+    border: "border-[#91b928]/50",
+  },
+  kecamatan: {
+    bg: "bg-[#fbe6bd]",
+    text: "text-[#8a5a06]",
+    border: "border-[#f0ad25]/50",
+  },
 };
 
-const TIER_ICONS: Record<string, JSX.Element> = {
-  free: <Layers className="w-5 h-5" />,
-  desa: <Users className="w-5 h-5" />,
-  kecamatan: <Crown className="w-5 h-5" />,
+const TIER_ICONS: Record<string, ReactElement> = {
+  free: <Layers className="h-4 w-4" />,
+  desa: <Users className="h-4 w-4" />,
+  kecamatan: <Crown className="h-4 w-4" />,
 };
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -68,14 +84,21 @@ export default function AdminPage() {
   const [editingRole, setEditingRole] = useState<string | null>(null);
   const [editedPermissions, setEditedPermissions] = useState<string[]>([]);
   const [roleLoading, setRoleLoading] = useState(false);
-  const [roleSaveMsg, setRoleSaveMsg] = useState<{ id: string; type: "success" | "error"; text: string } | null>(null);
+  const [roleSaveMsg, setRoleSaveMsg] = useState<{
+    id: string;
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   // Plans state
   const [plans, setPlans] = useState<Plan[]>([]);
   const [editingPlan, setEditingPlan] = useState<string | null>(null);
   const [editedPrice, setEditedPrice] = useState<string>("0");
   const [editedFeatures, setEditedFeatures] = useState<string>("");
-  const [planSaveMsg, setPlanSaveMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [planSaveMsg, setPlanSaveMsg] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   // ─── Auth Guard ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -87,7 +110,10 @@ export default function AdminPage() {
   // ─── Fetch Data ────────────────────────────────────────────────────────────
   useEffect(() => {
     setRoleLoading(true);
-    api.get("/admin/roles").then(({ data }) => setRoles(data)).finally(() => setRoleLoading(false));
+    api
+      .get("/admin/roles")
+      .then(({ data }) => setRoles(data))
+      .finally(() => setRoleLoading(false));
     api.get("/admin/plans").then(({ data }) => setPlans(data));
   }, []);
 
@@ -103,19 +129,31 @@ export default function AdminPage() {
       return;
     }
     setEditedPermissions((prev) =>
-      prev.includes(perm) ? prev.filter((p) => p !== perm) : [...prev.filter((p) => p !== "all"), perm]
+      prev.includes(perm)
+        ? prev.filter((p) => p !== perm)
+        : [...prev.filter((p) => p !== "all"), perm]
     );
   };
 
   const saveRole = async (roleId: string) => {
     try {
-      const { data } = await api.put(`/admin/roles/${roleId}`, { permissions: editedPermissions });
+      const { data } = await api.put(`/admin/roles/${roleId}`, {
+        permissions: editedPermissions,
+      });
       setRoles((prev) => prev.map((r) => (r.id === roleId ? data : r)));
       setEditingRole(null);
-      setRoleSaveMsg({ id: roleId, type: "success", text: "Role berhasil diperbarui!" });
+      setRoleSaveMsg({
+        id: roleId,
+        type: "success",
+        text: "Role berhasil diperbarui!",
+      });
       setTimeout(() => setRoleSaveMsg(null), 3000);
     } catch {
-      setRoleSaveMsg({ id: roleId, type: "error", text: "Gagal menyimpan role." });
+      setRoleSaveMsg({
+        id: roleId,
+        type: "error",
+        text: "Gagal menyimpan role.",
+      });
     }
   };
 
@@ -128,11 +166,20 @@ export default function AdminPage() {
 
   const savePlan = async (planId: string) => {
     try {
-      const features = editedFeatures.split("\n").map((f) => f.trim()).filter(Boolean);
-      const { data } = await api.put(`/admin/plans/${planId}`, { price: Number(editedPrice) || 0, features });
+      const features = editedFeatures
+        .split("\n")
+        .map((f) => f.trim())
+        .filter(Boolean);
+      const { data } = await api.put(`/admin/plans/${planId}`, {
+        price: Number(editedPrice) || 0,
+        features,
+      });
       setPlans((prev) => prev.map((p) => (p.id === planId ? data : p)));
       setEditingPlan(null);
-      setPlanSaveMsg({ type: "success", text: "Harga paket berhasil diperbarui!" });
+      setPlanSaveMsg({
+        type: "success",
+        text: "Harga paket berhasil diperbarui!",
+      });
       setTimeout(() => setPlanSaveMsg(null), 3000);
     } catch {
       setPlanSaveMsg({ type: "error", text: "Gagal menyimpan harga." });
@@ -140,41 +187,52 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center gap-2 mb-1">
-            <ShieldCheck className="w-5 h-5 text-gray-700" />
-            <h1 className="text-2xl font-semibold text-gray-900">Admin Panel</h1>
+    <main className="min-h-screen bg-white text-[#123c28]">
+      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+        {/* =====================================================
+            TOP HEADER
+        ====================================================== */}
+        <header className="mb-8">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-[#91b928]" />
+            <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#123c28]">
+              UAV DaaS PLATFORM
+            </span>
           </div>
-          <p className="text-sm text-gray-500">
-            Kelola Role &amp; Hak Akses (RBAC) dan Harga Paket Langganan
-          </p>
-        </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 mb-6 bg-white border border-gray-200 rounded-lg p-1 w-fit">
+          <h1 className="text-3xl font-bold tracking-[-0.04em] text-[#123c28] sm:text-4xl">
+            Admin <span className="text-[#1a5134]">Panel</span>
+          </h1>
+
+          <p className="mt-3 text-sm font-medium text-[#4b5d52]">
+            Kelola Role &amp; Hak Akses (RBAC) dan Harga Paket Langganan.
+          </p>
+        </header>
+
+        {/* =====================================================
+            TABS
+        ====================================================== */}
+        <div className="mb-6 inline-flex w-fit gap-1 rounded-full border border-[#123c28]/15 bg-[#f7f8f4] p-1">
           <button
             onClick={() => setActiveTab("roles")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition-colors ${
               activeTab === "roles"
-                ? "bg-gray-900 text-white"
-                : "text-gray-600 hover:bg-gray-100"
+                ? "bg-[#123c28] text-white"
+                : "text-[#4b5d52] hover:text-[#123c28]"
             }`}
           >
-            <ShieldCheck className="w-4 h-4" />
+            <ShieldCheck className="h-4 w-4" />
             Manajemen Role (RBAC)
           </button>
           <button
             onClick={() => setActiveTab("pricing")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition-colors ${
               activeTab === "pricing"
-                ? "bg-gray-900 text-white"
-                : "text-gray-600 hover:bg-gray-100"
+                ? "bg-[#123c28] text-white"
+                : "text-[#4b5d52] hover:text-[#123c28]"
             }`}
           >
-            <CreditCard className="w-4 h-4" />
+            <CreditCard className="h-4 w-4" />
             Harga Subscription
           </button>
         </div>
@@ -183,23 +241,26 @@ export default function AdminPage() {
         {activeTab === "roles" && (
           <div className="space-y-4">
             {roleLoading ? (
-              <div className="flex items-center gap-2 py-10 justify-center text-gray-500">
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900" />
-                <span className="text-sm">Memuat data role...</span>
+              <div className="flex items-center justify-center gap-2.5 py-12 text-[#4b5d52]">
+                <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-[#123c28]" />
+                <span className="text-sm font-semibold">
+                  Memuat data role...
+                </span>
               </div>
             ) : (
               roles.map((role) => (
-                <div
+                <section
                   key={role.id}
-                  className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm"
+                  className="rounded-[28px] border border-[#123c28]/15 bg-white p-6"
                 >
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="mb-5 flex items-center justify-between">
                     <div>
-                      <h3 className="text-base font-semibold text-gray-900 capitalize">
+                      <h3 className="text-base font-bold capitalize text-[#123c28]">
                         {role.name}
                       </h3>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        {role.permissions.length === 1 && role.permissions[0] === "all"
+                      <p className="mt-0.5 text-xs font-semibold text-[#4b5d52]">
+                        {role.permissions.length === 1 &&
+                        role.permissions[0] === "all"
                           ? "Full access ke semua fitur"
                           : `${role.permissions.length} permission aktif`}
                       </p>
@@ -209,25 +270,25 @@ export default function AdminPage() {
                         <>
                           <button
                             onClick={() => saveRole(role.id)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors"
+                            className="flex items-center gap-1.5 rounded-full bg-[#123c28] px-3.5 py-1.5 text-xs font-bold text-white transition hover:bg-[#1a5134]"
                           >
-                            <Save className="w-3.5 h-3.5" />
+                            <Save className="h-3.5 w-3.5" />
                             Simpan
                           </button>
                           <button
                             onClick={() => setEditingRole(null)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-lg hover:bg-gray-200 transition-colors"
+                            className="flex items-center gap-1.5 rounded-full border border-[#123c28]/15 bg-[#f5f7f1] px-3.5 py-1.5 text-xs font-bold text-[#4b5d52] transition hover:bg-[#eef1ea]"
                           >
-                            <X className="w-3.5 h-3.5" />
+                            <X className="h-3.5 w-3.5" />
                             Batal
                           </button>
                         </>
                       ) : (
                         <button
                           onClick={() => startEditRole(role)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-200 transition-colors"
+                          className="flex items-center gap-1.5 rounded-full border border-[#123c28]/15 bg-[#f5f7f1] px-3.5 py-1.5 text-xs font-bold text-[#123c28] transition hover:bg-[#eef1ea]"
                         >
-                          <Edit3 className="w-3.5 h-3.5" />
+                          <Edit3 className="h-3.5 w-3.5" />
                           Edit Permission
                         </button>
                       )}
@@ -235,7 +296,7 @@ export default function AdminPage() {
                   </div>
 
                   {/* Permission Checkboxes */}
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
                     {ALL_PERMISSIONS.map((perm) => {
                       const isChecked =
                         editingRole === role.id
@@ -244,18 +305,26 @@ export default function AdminPage() {
                       return (
                         <label
                           key={perm.key}
-                          className={`flex items-center gap-2.5 p-2.5 rounded-lg border text-sm cursor-pointer transition-all ${
+                          className={`flex items-center gap-2.5 rounded-xl border p-2.5 text-sm transition-all ${
                             isChecked
-                              ? "bg-blue-50 border-blue-300 text-blue-800"
-                              : "bg-gray-50 border-gray-200 text-gray-500"
-                          } ${editingRole !== role.id ? "pointer-events-none" : "hover:border-blue-400"}`}
+                              ? "border-[#91b928]/50 bg-[#eef3e8] text-[#123c28]"
+                              : "border-[#123c28]/12 bg-[#fafbf8] text-[#4b5d52]"
+                          } ${
+                            editingRole !== role.id
+                              ? "pointer-events-none"
+                              : "cursor-pointer hover:border-[#123c28]/30"
+                          }`}
                         >
                           <div
-                            className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
-                              isChecked ? "bg-blue-600 border-blue-600" : "border-gray-300 bg-white"
+                            className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border ${
+                              isChecked
+                                ? "border-[#123c28] bg-[#123c28]"
+                                : "border-[#123c28]/25 bg-white"
                             }`}
                           >
-                            {isChecked && <Check className="w-3 h-3 text-white" />}
+                            {isChecked && (
+                              <Check className="h-3 w-3 text-white" />
+                            )}
                           </div>
                           {editingRole === role.id && (
                             <input
@@ -265,7 +334,7 @@ export default function AdminPage() {
                               onChange={() => togglePermission(perm.key)}
                             />
                           )}
-                          <span className="font-medium">{perm.label}</span>
+                          <span className="font-semibold">{perm.label}</span>
                         </label>
                       );
                     })}
@@ -274,14 +343,16 @@ export default function AdminPage() {
                   {/* Save message */}
                   {roleSaveMsg?.id === role.id && (
                     <p
-                      className={`text-xs mt-3 font-medium ${
-                        roleSaveMsg.type === "success" ? "text-green-600" : "text-red-600"
+                      className={`mt-3 text-xs font-bold ${
+                        roleSaveMsg.type === "success"
+                          ? "text-[#4a5f0e]"
+                          : "text-red-600"
                       }`}
                     >
                       {roleSaveMsg.text}
                     </p>
                   )}
-                </div>
+                </section>
               ))
             )}
           </div>
@@ -292,117 +363,134 @@ export default function AdminPage() {
           <div>
             {planSaveMsg && (
               <div
-                className={`mb-4 p-3 rounded-lg flex items-center gap-2 text-sm font-medium ${
+                className={`mb-4 flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm font-bold ${
                   planSaveMsg.type === "success"
-                    ? "bg-green-50 text-green-700 border border-green-200"
-                    : "bg-red-50 text-red-700 border border-red-200"
+                    ? "border-[#91b928]/40 bg-[#f3f8e2] text-[#4a5f0e]"
+                    : "border-red-200 bg-red-50 text-red-700"
                 }`}
               >
                 {planSaveMsg.type === "success" ? (
-                  <Check className="w-4 h-4" />
+                  <Check className="h-4 w-4" />
                 ) : (
-                  <AlertTriangle className="w-4 h-4" />
+                  <AlertTriangle className="h-4 w-4" />
                 )}
                 {planSaveMsg.text}
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              {plans.map((plan) => (
-                <div
-                  key={plan.id}
-                  className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex flex-col"
-                >
-                  {/* Plan Header */}
-                  <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm font-semibold mb-4 w-fit ${TIER_COLORS[plan.tier] || "bg-gray-100 text-gray-700 border-gray-200"}`}>
-                    {TIER_ICONS[plan.tier] || <Layers className="w-4 h-4" />}
-                    <span className="capitalize">{plan.tier}</span>
-                  </div>
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+              {plans.map((plan) => {
+                const style = TIER_STYLES[plan.tier] || TIER_STYLES.free;
+                return (
+                  <div
+                    key={plan.id}
+                    className="flex flex-col rounded-[28px] border border-[#123c28]/15 bg-white p-6"
+                  >
+                    {/* Plan Header */}
+                    <div
+                      className={`mb-4 inline-flex w-fit items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-bold ${style.bg} ${style.text} ${style.border}`}
+                    >
+                      {TIER_ICONS[plan.tier] || <Layers className="h-4 w-4" />}
+                      <span className="capitalize">{plan.tier}</span>
+                    </div>
 
-                  {/* Price Edit */}
-                  <div className="mb-4">
-                    <p className="text-xs text-gray-500 mb-1 font-medium">Harga / Bulan</p>
-                    {editingPlan === plan.id ? (
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-medium text-gray-600">Rp</span>
-                        <input
-                          type="number"
-                          value={editedPrice}
-                          onChange={(e) => setEditedPrice(e.target.value)}
-                          className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-base font-bold text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    {/* Price Edit */}
+                    <div className="mb-4">
+                      <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#4b5d52]">
+                        Harga / Bulan
+                      </p>
+                      {editingPlan === plan.id ? (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-bold text-[#4b5d52]">
+                            Rp
+                          </span>
+                          <input
+                            type="number"
+                            value={editedPrice}
+                            onChange={(e) => setEditedPrice(e.target.value)}
+                            className="flex-1 rounded-xl border border-[#123c28]/20 bg-white px-3 py-1.5 text-base font-bold text-[#123c28] outline-none focus:border-transparent focus:ring-2 focus:ring-[#123c28]"
+                          />
+                        </div>
+                      ) : (
+                        <p className="text-2xl font-bold tracking-[-0.02em] text-[#123c28]">
+                          {plan.price === 0
+                            ? "Gratis"
+                            : `Rp ${plan.price.toLocaleString("id-ID")}`}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Features Edit */}
+                    <div className="mb-4 flex-1">
+                      <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[#4b5d52]">
+                        Fitur Termasuk
+                      </p>
+                      {editingPlan === plan.id ? (
+                        <textarea
+                          value={editedFeatures}
+                          onChange={(e) => setEditedFeatures(e.target.value)}
+                          rows={4}
+                          placeholder="Satu fitur per baris..."
+                          className="w-full resize-none rounded-xl border border-[#123c28]/20 bg-white px-3 py-2 text-sm font-medium text-[#123c28] outline-none focus:border-transparent focus:ring-2 focus:ring-[#123c28]"
                         />
+                      ) : (
+                        <ul className="space-y-1.5">
+                          {plan.features.map((feat, i) => (
+                            <li
+                              key={i}
+                              className="flex items-center gap-2 text-sm font-medium text-[#123c28]"
+                            >
+                              <Check className="h-3.5 w-3.5 flex-shrink-0 text-[#1a5134]" />
+                              {feat}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+
+                    {/* Action Buttons */}
+                    {editingPlan === plan.id ? (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => savePlan(plan.id)}
+                          className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-[#123c28] py-2 text-sm font-bold text-white transition hover:bg-[#1a5134]"
+                        >
+                          <Save className="h-3.5 w-3.5" />
+                          Simpan
+                        </button>
+                        <button
+                          onClick={() => setEditingPlan(null)}
+                          className="rounded-full border border-[#123c28]/15 bg-[#f5f7f1] px-3 py-2 text-[#4b5d52] transition hover:bg-[#eef1ea]"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
                       </div>
                     ) : (
-                      <p className="text-2xl font-bold text-gray-900">
-                        {plan.price === 0
-                          ? "Gratis"
-                          : `Rp ${plan.price.toLocaleString("id-ID")}`}
-                      </p>
+                      <button
+                        onClick={() => startEditPlan(plan)}
+                        className="flex items-center justify-center gap-1.5 rounded-full border border-[#123c28]/15 bg-[#f5f7f1] py-2 text-sm font-bold text-[#123c28] transition hover:bg-[#eef1ea]"
+                      >
+                        <Edit3 className="h-3.5 w-3.5" />
+                        Edit Harga &amp; Fitur
+                      </button>
                     )}
                   </div>
-
-                  {/* Features Edit */}
-                  <div className="flex-1 mb-4">
-                    <p className="text-xs text-gray-500 mb-2 font-medium">Fitur Termasuk</p>
-                    {editingPlan === plan.id ? (
-                      <textarea
-                        value={editedFeatures}
-                        onChange={(e) => setEditedFeatures(e.target.value)}
-                        rows={4}
-                        placeholder="Satu fitur per baris..."
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
-                      />
-                    ) : (
-                      <ul className="space-y-1.5">
-                        {plan.features.map((feat, i) => (
-                          <li key={i} className="flex items-center gap-2 text-sm text-gray-700">
-                            <Check className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
-                            {feat}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-
-                  {/* Action Buttons */}
-                  {editingPlan === plan.id ? (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => savePlan(plan.id)}
-                        className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
-                      >
-                        <Save className="w-3.5 h-3.5" />
-                        Simpan
-                      </button>
-                      <button
-                        onClick={() => setEditingPlan(null)}
-                        className="px-3 py-2 bg-gray-100 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => startEditPlan(plan)}
-                      className="flex items-center justify-center gap-1.5 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
-                    >
-                      <Edit3 className="w-3.5 h-3.5" />
-                      Edit Harga &amp; Fitur
-                    </button>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Simulasi Subscription Info */}
-            <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
-              <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+            <div className="mt-6 flex items-start gap-3 rounded-[24px] border border-[#f0ad25]/40 bg-[#fdf1dd] p-5">
+              <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#8a5a06]" />
               <div>
-                <p className="text-sm font-semibold text-amber-800">Mode Simulasi Aktif</p>
-                <p className="text-xs text-amber-700 mt-0.5">
-                  Platform ini berjalan dalam mode simulasi tanpa payment gateway. Perubahan harga
-                  di sini akan tersimpan ke database dan mempengaruhi tampilan halaman Langganan.
-                  Untuk mengubah tier seorang user, gunakan menu{" "}
+                <p className="text-sm font-bold text-[#8a5a06]">
+                  Mode Simulasi Aktif
+                </p>
+                <p className="mt-0.5 text-xs font-medium leading-relaxed text-[#8a5a06]">
+                  Platform ini berjalan dalam mode simulasi tanpa payment
+                  gateway. Perubahan harga di sini akan tersimpan ke database
+                  dan mempengaruhi tampilan halaman Langganan. Untuk mengubah
+                  tier seorang user, gunakan menu{" "}
                   <strong>Manajemen User</strong> di sidebar.
                 </p>
               </div>
@@ -410,6 +498,6 @@ export default function AdminPage() {
           </div>
         )}
       </div>
-    </div>
+    </main>
   );
 }

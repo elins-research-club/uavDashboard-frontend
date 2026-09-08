@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, Users, Crown, Layers, CreditCard } from "lucide-react";
+import { ShieldCheck, Users, CreditCard, Activity } from "lucide-react";
 import api from "@/lib/api";
 import { useUserRole } from "@/context/UserRoleContext";
 
@@ -19,11 +19,15 @@ type UserRecord = {
 };
 
 const TIER_OPTIONS = ["free", "desa", "kecamatan"];
-const TIER_COLORS: Record<string, string> = {
-  free: "bg-gray-100 text-gray-600",
-  desa: "bg-blue-100 text-blue-700",
-  kecamatan: "bg-purple-100 text-purple-700",
+
+// Solid tier colors — consistent with the platform's green/lime/amber palette.
+const TIER_STYLES: Record<string, { bg: string; text: string }> = {
+  free: { bg: "bg-[#eef1ea]", text: "text-[#4b5d52]" },
+  desa: { bg: "bg-[#dfeeb1]", text: "text-[#4a5f0e]" },
+  kecamatan: { bg: "bg-[#fbe6bd]", text: "text-[#8a5a06]" },
 };
+
+const AVATAR_PALETTE = ["#123c28", "#1a5134", "#4a5f0e", "#8a5a06"];
 
 export default function UsersPage() {
   const router = useRouter();
@@ -77,7 +81,14 @@ export default function UsersPage() {
       setUsers((cur) =>
         cur.map((u) =>
           u.id === id
-            ? { ...u, subscription: { ...(u.subscription || {}), tier, status: "active" } }
+            ? {
+                ...u,
+                subscription: {
+                  ...(u.subscription || {}),
+                  tier,
+                  status: "active",
+                },
+              }
             : u
         )
       );
@@ -94,157 +105,231 @@ export default function UsersPage() {
 
   if (user?.role !== "admin") return null;
 
+  const avatarColor = (username: string) => {
+    const sum = username
+      .split("")
+      .reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+    return AVATAR_PALETTE[sum % AVATAR_PALETTE.length];
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2.5 bg-blue-50 rounded-lg border border-blue-100">
-            <Users className="w-5 h-5 text-blue-600" />
-          </div>
+    <main className="min-h-screen bg-white text-[#123c28]">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        {/* =====================================================
+            TOP HEADER
+        ====================================================== */}
+        <header className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Manajemen User</h1>
-            <p className="text-sm text-gray-500">
+            <div className="mb-3 flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-[#91b928]" />
+              <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#123c28]">
+                UAV DaaS PLATFORM
+              </span>
+            </div>
+
+            <h1 className="text-3xl font-bold tracking-[-0.04em] text-[#123c28] sm:text-4xl">
+              Manajemen <span className="text-[#1a5134]">User</span>
+            </h1>
+
+            <p className="mt-3 text-sm font-medium text-[#4b5d52]">
               Kelola role akses dan tier subscription setiap pengguna.
             </p>
+          </div>
+
+          <div className="rounded-full border border-[#123c28]/15 bg-[#f5f7f1] px-4 py-2.5">
+            <div className="flex items-center gap-2">
+              <Users className="h-3.5 w-3.5 text-[#123c28]" />
+              <span className="text-[11px] font-bold text-[#123c28]">
+                {users.length} Pengguna Terdaftar
+              </span>
+            </div>
+          </div>
+        </header>
+
+        {/* =====================================================
+            QUICK STATUS
+        ====================================================== */}
+        <div className="mb-6 flex flex-wrap items-center gap-2">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#123c28]/15 bg-[#f7f8f4] px-3.5 py-2 text-[11px] font-semibold text-[#123c28]">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            Kontrol akses role admin/member
+          </div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#123c28]/15 bg-[#f7f8f4] px-3.5 py-2 text-[11px] font-semibold text-[#123c28]">
+            <CreditCard className="h-3.5 w-3.5" />
+            Simulasi tier subscription
           </div>
         </div>
 
         {/* Message */}
         {message && (
           <div
-            className={`mb-4 px-4 py-3 rounded-lg text-sm font-medium border ${
+            className={`mb-6 rounded-2xl border px-5 py-3.5 text-sm font-semibold ${
               msgType === "success"
-                ? "bg-green-50 text-green-700 border-green-200"
-                : "bg-red-50 text-red-600 border-red-200"
+                ? "border-[#91b928]/40 bg-[#f3f8e2] text-[#4a5f0e]"
+                : "border-red-200 bg-red-50 text-red-700"
             }`}
           >
             {message}
           </div>
         )}
 
-        {/* Table */}
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+        {/* =====================================================
+            TABLE
+        ====================================================== */}
+        <section className="overflow-hidden rounded-[28px] border border-[#123c28]/15 bg-white">
           {loading ? (
-            <div className="flex items-center justify-center gap-2 p-10 text-gray-500">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-700" />
-              <span className="text-sm">Memuat daftar user...</span>
+            <div className="flex items-center justify-center gap-2.5 p-12 text-[#4b5d52]">
+              <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-[#123c28]" />
+              <span className="text-sm font-semibold">
+                Memuat daftar user...
+              </span>
             </div>
           ) : users.length === 0 ? (
-            <p className="text-center py-10 text-sm text-gray-400">
-              Tidak ada user terdaftar.
-            </p>
+            <div className="px-6 py-14 text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#f3f6ed]">
+                <Users className="h-5 w-5 text-[#123c28]/60" />
+              </div>
+              <p className="mt-4 text-sm font-semibold text-[#4b5d52]">
+                Tidak ada user terdaftar.
+              </p>
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left">
-                <thead className="bg-gray-50 border-b border-gray-200">
+                <thead className="border-b border-[#123c28]/12 bg-[#fafbf8]">
                   <tr>
-                    <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#4b5d52]">
                       User
                     </th>
-                    <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#4b5d52]">
                       Email
                     </th>
-                    <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#4b5d52]">
                       Terdaftar
                     </th>
-                    <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#4b5d52]">
                       <div className="flex items-center gap-1.5">
-                        <ShieldCheck className="w-3.5 h-3.5" />
+                        <ShieldCheck className="h-3.5 w-3.5" />
                         Role
                       </div>
                     </th>
-                    <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#4b5d52]">
                       <div className="flex items-center gap-1.5">
-                        <CreditCard className="w-3.5 h-3.5" />
+                        <CreditCard className="h-3.5 w-3.5" />
                         Tier Subscription
                       </div>
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {users.map((item) => (
-                    <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                      {/* Avatar + Name */}
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
-                            {item.username.slice(0, 2).toUpperCase()}
+                <tbody className="divide-y divide-[#123c28]/8">
+                  {users.map((item) => {
+                    const tierKey = item.subscription?.tier || "free";
+                    const tierStyle = TIER_STYLES[tierKey] || TIER_STYLES.free;
+
+                    return (
+                      <tr
+                        key={item.id}
+                        className="transition-colors hover:bg-[#fafbf8]"
+                      >
+                        {/* Avatar + Name */}
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
+                              style={{
+                                backgroundColor: avatarColor(item.username),
+                              }}
+                            >
+                              {item.username.slice(0, 2).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold text-[#123c28]">
+                                {item.username}
+                              </p>
+                              {item.id === user?.id && (
+                                <span className="text-[11px] font-semibold text-[#1a5134]">
+                                  (Anda)
+                                </span>
+                              )}
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">{item.username}</p>
-                            {item.id === user?.id && (
-                              <span className="text-xs text-blue-500 font-medium">(Anda)</span>
-                            )}
-                          </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* Email */}
-                      <td className="px-6 py-4 text-sm text-gray-600">{item.email}</td>
+                        {/* Email */}
+                        <td className="px-6 py-4 text-sm font-medium text-[#4b5d52]">
+                          {item.email}
+                        </td>
 
-                      {/* Date */}
-                      <td className="px-6 py-4 text-sm text-gray-500">
-                        {new Date(item.created_at).toLocaleDateString("id-ID", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })}
-                      </td>
-
-                      {/* Role Dropdown */}
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          {item.role === "admin" && (
-                            <ShieldCheck className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                          )}
-                          <select
-                            value={item.role}
-                            disabled={updatingId === item.id || item.id === user?.id}
-                            onChange={(e) =>
-                              updateRole(item.id, e.target.value as UserRecord["role"])
+                        {/* Date */}
+                        <td className="px-6 py-4 text-sm font-medium text-[#4b5d52]">
+                          {new Date(item.created_at).toLocaleDateString(
+                            "id-ID",
+                            {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
                             }
-                            className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-700 disabled:bg-gray-100 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          >
-                            <option value="member">Member</option>
-                            <option value="admin">Admin</option>
-                          </select>
-                        </div>
-                      </td>
+                          )}
+                        </td>
 
-                      {/* Tier Dropdown (simulasi) */}
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                              TIER_COLORS[item.subscription?.tier || "free"] ||
-                              "bg-gray-100 text-gray-600"
-                            }`}
-                          >
-                            {(item.subscription?.tier || "free").toUpperCase()}
-                          </span>
-                          <select
-                            value={item.subscription?.tier || "free"}
-                            disabled={updatingId === item.id + "-tier"}
-                            onChange={(e) => updateTier(item.id, e.target.value)}
-                            className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-700 disabled:bg-gray-100 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-purple-500"
-                          >
-                            {TIER_OPTIONS.map((t) => (
-                              <option key={t} value={t}>
-                                {t.charAt(0).toUpperCase() + t.slice(1)}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        {/* Role Dropdown */}
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            {item.role === "admin" && (
+                              <ShieldCheck className="h-4 w-4 flex-shrink-0 text-[#1a5134]" />
+                            )}
+                            <select
+                              value={item.role}
+                              disabled={
+                                updatingId === item.id || item.id === user?.id
+                              }
+                              onChange={(e) =>
+                                updateRole(
+                                  item.id,
+                                  e.target.value as UserRecord["role"]
+                                )
+                              }
+                              className="rounded-lg border border-[#123c28]/15 bg-white px-3 py-1.5 text-sm font-medium text-[#123c28] focus:outline-none focus:ring-2 focus:ring-[#123c28] disabled:cursor-not-allowed disabled:bg-[#f5f7f1] disabled:text-[#4b5d52]"
+                            >
+                              <option value="member">Member</option>
+                              <option value="admin">Admin</option>
+                            </select>
+                          </div>
+                        </td>
+
+                        {/* Tier Dropdown (simulasi) */}
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] ${tierStyle.bg} ${tierStyle.text}`}
+                            >
+                              {tierKey.toUpperCase()}
+                            </span>
+                            <select
+                              value={tierKey}
+                              disabled={updatingId === item.id + "-tier"}
+                              onChange={(e) =>
+                                updateTier(item.id, e.target.value)
+                              }
+                              className="rounded-lg border border-[#123c28]/15 bg-white px-3 py-1.5 text-sm font-medium text-[#123c28] focus:outline-none focus:ring-2 focus:ring-[#123c28] disabled:cursor-not-allowed disabled:bg-[#f5f7f1] disabled:text-[#4b5d52]"
+                            >
+                              {TIER_OPTIONS.map((t) => (
+                                <option key={t} value={t}>
+                                  {t.charAt(0).toUpperCase() + t.slice(1)}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           )}
-        </div>
+        </section>
       </div>
-    </div>
+    </main>
   );
 }
