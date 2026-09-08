@@ -30,7 +30,6 @@ import {
   Database,
   MapPin,
   Leaf,
-  Activity,
   ScanLine,
   Compass,
 } from "lucide-react";
@@ -322,9 +321,8 @@ export default function MapsPage() {
       const a = document.createElement("a");
 
       a.href = downloadUrl;
-      a.download = `${selectedMapRaw.title}.${
-        selectedMapRaw.file_format || "tif"
-      }`;
+      a.download = `${selectedMapRaw.title}.${selectedMapRaw.file_format || "tif"
+        }`;
 
       document.body.appendChild(a);
       a.click();
@@ -507,25 +505,6 @@ export default function MapsPage() {
                 Peta & Analisis
                 <span className="text-[#1a5134]"> Geospasial</span>
               </h1>
-
-              <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-[#123c28]/80">
-                Kelola, visualisasikan dan analisis data pemetaan lahan
-                pertanian Anda.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#123c28]/15 bg-[#f7f8f4] px-3.5 py-2.5 text-[11px] font-bold text-[#123c28]">
-                <Activity className="h-3.5 w-3.5 text-[#123c28]" />
-                {maps.length} peta tersimpan
-              </div>
-
-              {selectedMap && (
-                <div className="inline-flex items-center gap-2 rounded-full bg-[#123c28] px-3.5 py-2.5 text-[10px] font-semibold text-white">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#d6f347]" />
-                  Layer aktif
-                </div>
-              )}
             </div>
           </div>
         </header>
@@ -540,11 +519,10 @@ export default function MapsPage() {
               <button
                 type="button"
                 onClick={() => setIsLayerPanelOpen((value) => !value)}
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-[11px] font-bold transition ${
-                  isLayerPanelOpen
+                className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-[11px] font-bold transition ${isLayerPanelOpen
                     ? "bg-[#123c28] text-white"
                     : "bg-[#f3f6ed] text-[#123c28] hover:bg-[#e7ede1]"
-                }`}
+                  }`}
               >
                 <Layers className="h-4 w-4" />
                 Layer Peta
@@ -557,11 +535,10 @@ export default function MapsPage() {
                 type="button"
                 onClick={handleExport}
                 disabled={isExporting}
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-[11px] font-bold transition ${
-                  !isAdmin && user?.tier === "free"
+                className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-[11px] font-bold transition ${!isAdmin && user?.tier === "free"
                     ? "cursor-not-allowed bg-[#f4f5f2] text-[#123c28]/50"
                     : "bg-[#123c28] text-white hover:bg-[#1a5134]"
-                }`}
+                  }`}
               >
                 {!isAdmin && user?.tier === "free" ? (
                   <Lock className="h-3.5 w-3.5" />
@@ -608,9 +585,14 @@ export default function MapsPage() {
                       DATA LAYERS
                     </p>
 
-                    <h2 className="mt-1 text-sm font-bold text-[#123c28]">
-                      Layer Peta
-                    </h2>
+                    <div className="mt-1 flex items-center gap-2">
+                      <h2 className="text-sm font-bold text-[#123c28]">
+                        Layer Peta
+                      </h2>
+                      <span className="rounded-full border border-[#123c28]/15 bg-[#f7f8f4] px-2.5 py-0.5 text-[10px] font-bold text-[#123c28]">
+                        {maps.length} peta tersimpan
+                      </span>
+                    </div>
                   </div>
 
                   <button
@@ -690,11 +672,10 @@ export default function MapsPage() {
                             }
                           }
                         }}
-                        className={`group cursor-pointer rounded-2xl border p-3 transition ${
-                          active
+                        className={`group cursor-pointer rounded-2xl border p-3 transition ${active
                             ? "border-[#123c28]/30 bg-[#f3f6ed] shadow-sm"
                             : "border-[#123c28]/10 bg-white hover:border-[#123c28]/25 hover:bg-[#fafbf8]"
-                        } ${layer.locked ? "opacity-75" : ""}`}
+                          } ${layer.locked ? "opacity-75" : ""}`}
                       >
                         <div className="flex items-start gap-3">
                           <span
@@ -774,9 +755,8 @@ export default function MapsPage() {
               MAP
           ================================================== */}
           <div
-            className={`${
-              isLayerPanelOpen ? "col-span-12 lg:col-span-8" : "col-span-12"
-            }`}
+            className={`${isLayerPanelOpen ? "col-span-12 lg:col-span-8" : "col-span-12"
+              }`}
           >
             <div className="overflow-hidden rounded-[26px] border border-[#123c28]/15 bg-white shadow-sm">
               {/* Map top information */}
@@ -824,7 +804,7 @@ export default function MapsPage() {
                       mapId={selectedMap?.id}
                       token={
                         typeof window !== "undefined"
-                           ? localStorage.getItem("token") || undefined
+                          ? localStorage.getItem("token") || undefined
                           : undefined
                       }
                       mapFormat={selectedMap?.format}
@@ -886,11 +866,10 @@ export default function MapsPage() {
       ====================================================== */}
       {notice && (
         <div
-          className={`fixed bottom-6 right-6 z-[9998] flex max-w-sm items-center gap-3 rounded-2xl px-4 py-3.5 text-xs font-medium shadow-2xl ${
-            notice.type === "success"
+          className={`fixed bottom-6 right-6 z-[9998] flex max-w-sm items-center gap-3 rounded-2xl px-4 py-3.5 text-xs font-medium shadow-2xl ${notice.type === "success"
               ? "bg-[#123c28] text-white"
               : "bg-[#a3483c] text-white"
-          }`}
+            }`}
         >
           {notice.type === "success" ? (
             <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
@@ -1042,11 +1021,10 @@ export default function MapsPage() {
                       title: event.target.value,
                     })
                   }
-                  className={`h-12 w-full rounded-2xl border bg-[#fafbf8] px-4 text-sm font-medium text-[#123c28] outline-none transition placeholder:text-[#123c28]/45 focus:bg-white ${
-                    editErrors.title
+                  className={`h-12 w-full rounded-2xl border bg-[#fafbf8] px-4 text-sm font-medium text-[#123c28] outline-none transition placeholder:text-[#123c28]/45 focus:bg-white ${editErrors.title
                       ? "border-red-400 focus:border-red-500"
                       : "border-[#123c28]/15 focus:border-[#123c28]/40"
-                  }`}
+                    }`}
                   placeholder="Nama peta"
                 />
 
@@ -1072,11 +1050,10 @@ export default function MapsPage() {
                       location: event.target.value,
                     })
                   }
-                  className={`h-12 w-full rounded-2xl border bg-[#fafbf8] px-4 text-sm font-medium text-[#123c28] outline-none transition placeholder:text-[#123c28]/45 focus:bg-white ${
-                    editErrors.location
+                  className={`h-12 w-full rounded-2xl border bg-[#fafbf8] px-4 text-sm font-medium text-[#123c28] outline-none transition placeholder:text-[#123c28]/45 focus:bg-white ${editErrors.location
                       ? "border-red-400 focus:border-red-500"
                       : "border-[#123c28]/15 focus:border-[#123c28]/40"
-                  }`}
+                    }`}
                   placeholder="Lokasi"
                 />
 
