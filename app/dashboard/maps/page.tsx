@@ -25,11 +25,8 @@ import {
   AlertTriangle,
   CheckCircle2,
   ArrowUpRight,
-  ArrowRight,
   Calendar,
-  Database,
   MapPin,
-  Leaf,
   ScanLine,
   Compass,
   Lock,
@@ -52,10 +49,12 @@ type MapDisplayProps = {
 
 const Map = dynamic(() => import("@/components/MapDisplay"), {
   ssr: false,
+
   loading: () => (
     <div className="flex h-full items-center justify-center bg-[#f7f8f4]">
       <div className="text-center">
         <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-[#123c28]/10 border-t-[#123c28]" />
+
         <p className="text-xs font-medium text-[#123c28]/45">Memuat peta...</p>
       </div>
     </div>
@@ -84,6 +83,10 @@ interface MapData {
   geo_metadata?: GeoMetadata | null;
 }
 
+/* =========================================================
+   HELPERS
+========================================================= */
+
 const formatSize = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(2)} MB`;
 
 /* =========================================================
@@ -94,13 +97,16 @@ export default function MapsPage() {
   const { user } = useUserRole();
 
   const [maps, setMaps] = useState<MapData[]>([]);
+
   const [selectedLayer, setSelectedLayer] = useState("");
+
   const [isLayerPanelOpen, setIsLayerPanelOpen] = useState(true);
 
   const [loading, setLoading] = useState(true);
+
   const [error, setError] = useState("");
 
-  /* Upgrade modal */
+  /* Premium modal */
   const [toastMessage, setToastMessage] = useState("");
 
   /* Action notice */
@@ -112,7 +118,10 @@ export default function MapsPage() {
   const noticeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showNotice = (text: string, type: "success" | "error" = "success") => {
-    setNotice({ type, text });
+    setNotice({
+      type,
+      text,
+    });
 
     if (noticeTimeout.current) {
       clearTimeout(noticeTimeout.current);
@@ -127,6 +136,7 @@ export default function MapsPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
+
   const mapRef = useRef<MapHandle>(null);
 
   /* Metadata */
@@ -158,10 +168,12 @@ export default function MapsPage() {
 
   const [isDeleting, setIsDeleting] = useState(false);
 
-  /* Export */
-  const [isExporting, setIsExporting] = useState(false);
+  /* Download analysis */
+  const [isDownloadingAnalysis, setIsDownloadingAnalysis] = useState(false);
 
-  const triggerToast = (message: string) => setToastMessage(message);
+  const triggerToast = (message: string) => {
+    setToastMessage(message);
+  };
 
   /* =========================================================
      FETCH MAPS
@@ -266,7 +278,9 @@ export default function MapsPage() {
   };
 
   const handleFullscreen = async () => {
-    if (!mapContainerRef.current) return;
+    if (!mapContainerRef.current) {
+      return;
+    }
 
     try {
       if (!document.fullscreenElement) {
@@ -279,71 +293,235 @@ export default function MapsPage() {
     }
   };
 
+  /* =========================================================
+     SHARE
+  ========================================================== */
+
   const handleShare = async () => {
-    if (!selectedMap) {
+    if (!selectedMapRaw) {
       showNotice("Pilih peta terlebih dahulu untuk dibagikan.", "error");
       return;
     }
 
-    const url = `${window.location.origin}${window.location.pathname}?map=${selectedMap.id}`;
+    const shareUrl = `${window.location.origin}${
+      window.location.pathname
+    }?map=${encodeURIComponent(selectedMapRaw.id)}`;
+
+    const shareTitle = selectedMapRaw.title || "Peta Geospasial";
 
     try {
-      if (navigator.share) {
+      /*
+       * Native Share API
+       */
+      if (
+        typeof navigator !== "undefined" &&
+        typeof navigator.share === "function"
+      ) {
         await navigator.share({
-          title: selectedMap.name,
-          url,
+          title: shareTitle,
+          text: `Lihat peta ${shareTitle}`,
+          url: shareUrl,
         });
-      } else {
-        await navigator.clipboard.writeText(url);
 
-        showNotice("Tautan peta berhasil disalin.");
+        showNotice("Peta berhasil dibagikan.");
+
+        return;
       }
-    } catch {
-      // user cancelled native share
+
+      /*
+       * Clipboard API
+       */
+      if (typeof navigator !== "undefined" && navigator.clipboard) {
+        await navigator.clipboard.writeText(shareUrl);
+
+        showNotice("Tautan peta berhasil disalin ke clipboard.");
+
+        return;
+      }
+
+      /*
+       * Fallback lama
+       */
+      const textArea = document.createElement("textarea");
+
+      textArea.value = shareUrl;
+
+      textArea.style.position = "fixed";
+
+      textArea.style.left = "-9999px";
+
+      textArea.style.top = "0";
+
+      document.body.appendChild(textArea);
+
+      textArea.focus();
+      textArea.select();
+
+      const copied = document.execCommand("copy");
+
+      textArea.remove();
+
+      if (copied) {
+        showNotice("Tautan peta berhasil disalin.");
+      } else {
+        showNotice("Tidak dapat menyalin tautan peta.", "error");
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
+
+      console.error("Share error:", error);
+
+      showNotice("Gagal membagikan peta.", "error");
     }
   };
 
-  const handleExport = async () => {
+  /* =========================================================
+     DOWNLOAD ANALYSIS
+  ========================================================== */
+
+  const handleDownloadAnalysis = async () => {
+    /*
+     * Free user restriction
+     */
     if (!isAdmin && user?.tier === "free") {
-      triggerToast(
-        "Fitur Export Resolusi Tinggi hanya tersedia untuk paket Desa & Kecamatan."
-      );
+      triggerToast("Download Analisa tersedia untuk paket Desa & Kecamatan.");
+
       return;
     }
 
-    if (!selectedMap || !selectedMapRaw) {
-      showNotice("Pilih peta yang ingin diexport.", "error");
+    /*
+     * No selected map
+     */
+    if (!selectedMapRaw) {
+      showNotice("Pilih peta yang ingin dianalisis.", "error");
+
       return;
     }
 
-    setIsExporting(true);
+    setIsDownloadingAnalysis(true);
 
     try {
-      const response = await api.get(`/maps/${selectedMapRaw.id}/export`, {
-        responseType: "blob",
-      });
+      const response = await api.get(
+        `/maps/${selectedMapRaw.id}/analysis/download`,
+        {
+          responseType: "blob",
 
-      const blob = new Blob([response.data]);
+          headers: {
+            Accept: "application/pdf, application/octet-stream",
+          },
+        }
+      );
+
+      const blob =
+        response.data instanceof Blob
+          ? response.data
+          : new Blob([response.data]);
+
+      /*
+       * Detect JSON error returned
+       * as blob.
+       */
+      const contentType = response.headers?.["content-type"] || blob.type || "";
+
+      if (contentType.includes("application/json")) {
+        const text = await blob.text();
+
+        let message = "Gagal membuat hasil analisa.";
+
+        try {
+          const json = JSON.parse(text);
+
+          message = json?.detail || json?.message || message;
+        } catch {
+          if (text) {
+            message = text;
+          }
+        }
+
+        throw new Error(message);
+      }
+
+      /*
+       * Default file name
+       */
+      let filename = `Analisa_${selectedMapRaw.title || "Peta"}.pdf`;
+
+      /*
+       * Read filename from
+       * Content-Disposition
+       */
+      const contentDisposition = response.headers?.["content-disposition"];
+
+      if (contentDisposition) {
+        const encodedMatch = contentDisposition.match(
+          /filename\*\s*=\s*UTF-8''([^;]+)/i
+        );
+
+        const normalMatch = contentDisposition.match(
+          /filename\s*=\s*"([^"]+)"/i
+        );
+
+        const unquotedMatch = contentDisposition.match(
+          /filename\s*=\s*([^;]+)/i
+        );
+
+        if (encodedMatch?.[1]) {
+          filename = decodeURIComponent(encodedMatch[1]);
+        } else if (normalMatch?.[1]) {
+          filename = normalMatch[1];
+        } else if (unquotedMatch?.[1]) {
+          filename = unquotedMatch[1].trim();
+        }
+      }
+
+      /*
+       * Ensure extension.
+       */
+      if (!filename.toLowerCase().endsWith(".pdf")) {
+        filename = `${filename}.pdf`;
+      }
+
+      /*
+       * Browser download.
+       */
       const downloadUrl = window.URL.createObjectURL(blob);
 
-      const a = document.createElement("a");
+      const anchor = document.createElement("a");
 
-      a.href = downloadUrl;
-      a.download = `${selectedMapRaw.title}.${
-        selectedMapRaw.file_format || "tif"
-      }`;
+      anchor.href = downloadUrl;
 
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+      anchor.download = filename;
 
-      window.URL.revokeObjectURL(downloadUrl);
+      anchor.style.display = "none";
 
-      showNotice("Export berhasil diunduh.");
-    } catch {
-      showNotice("Gagal mengexport peta. Silakan coba lagi.", "error");
+      document.body.appendChild(anchor);
+
+      anchor.click();
+
+      anchor.remove();
+
+      /*
+       * Cleanup.
+       */
+      window.setTimeout(() => {
+        window.URL.revokeObjectURL(downloadUrl);
+      }, 1000);
+
+      showNotice(`Hasil analisa berhasil diunduh: ${filename}`);
+    } catch (downloadError) {
+      console.error("Download analysis error:", downloadError);
+
+      let message = "Gagal mengunduh hasil analisa.";
+
+      if (downloadError instanceof Error) {
+        message = downloadError.message;
+      }
+
+      showNotice(message, "error");
     } finally {
-      setIsExporting(false);
+      setIsDownloadingAnalysis(false);
     }
   };
 
@@ -375,7 +553,9 @@ export default function MapsPage() {
   };
 
   const submitEdit = async () => {
-    if (!editingMap) return;
+    if (!editingMap) {
+      return;
+    }
 
     const errors: {
       title?: string;
@@ -405,11 +585,17 @@ export default function MapsPage() {
     try {
       await api.patch(`/maps/${editingMap.id}`, {
         title: editForm.title.trim(),
+
         location: editForm.location.trim(),
+
         survey_date: editForm.survey_date,
+
         description: editForm.description.trim(),
+
         locked_for_free: editForm.locked_for_free,
+
         purchasable: editForm.purchasable,
+
         purchase_price:
           editForm.purchasable && editForm.purchase_price !== ""
             ? Number(editForm.purchase_price)
@@ -419,6 +605,7 @@ export default function MapsPage() {
       showNotice("Peta berhasil diperbarui.");
 
       closeEditModal();
+
       fetchMaps();
     } catch {
       showNotice("Gagal memperbarui peta.", "error");
@@ -440,7 +627,9 @@ export default function MapsPage() {
   const closeDeleteConfirm = () => setDeletingMap(null);
 
   const confirmDelete = async () => {
-    if (!deletingMap) return;
+    if (!deletingMap) {
+      return;
+    }
 
     setIsDeleting(true);
 
@@ -454,6 +643,7 @@ export default function MapsPage() {
       }
 
       closeDeleteConfirm();
+
       fetchMaps();
     } catch {
       showNotice("Gagal menghapus peta.", "error");
@@ -469,37 +659,62 @@ export default function MapsPage() {
   const mapTools = [
     {
       icon: <ZoomIn className="h-4 w-4" />,
+
       label: "Zoom In",
+
       onClick: handleZoomIn,
+
+      disabled: !selectedMapRaw,
     },
+
     {
       icon: <ZoomOut className="h-4 w-4" />,
+
       label: "Zoom Out",
+
       onClick: handleZoomOut,
+
+      disabled: !selectedMapRaw,
     },
+
     {
       icon: <Compass className="h-4 w-4 text-emerald-800" />,
-      label: "Reset Arah Utara (Shift+Drag untuk rotasi bebas)",
+
+      label: "Reset Arah Utara",
+
       onClick: () => {
         if (mapRef.current?.resetNorth) {
           mapRef.current.resetNorth();
+
           showNotice("Orientasi peta dikembalikan menghadap Utara (0°).");
         }
       },
+
+      disabled: !selectedMapRaw,
     },
+
     {
       icon: isFullscreen ? (
         <Minimize2 className="h-4 w-4" />
       ) : (
         <Maximize2 className="h-4 w-4" />
       ),
+
       label: isFullscreen ? "Keluar Layar Penuh" : "Full Screen",
+
       onClick: handleFullscreen,
+
+      disabled: false,
     },
+
     {
       icon: <Share2 className="h-4 w-4" />,
+
       label: "Share",
+
       onClick: handleShare,
+
+      disabled: !selectedMapRaw,
     },
   ];
 
@@ -513,6 +728,7 @@ export default function MapsPage() {
         {/* ===================================================
             PAGE HEADER
         ==================================================== */}
+
         <header className="mb-7">
           <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
             <div>
@@ -537,9 +753,11 @@ export default function MapsPage() {
         {/* ===================================================
             TOOLBAR
         ==================================================== */}
+
         <section className="mb-4 rounded-[24px] border border-[#123c28]/15 bg-white p-3 shadow-sm">
           <div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-center">
             {/* Left tools */}
+
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
@@ -556,11 +774,12 @@ export default function MapsPage() {
             </div>
 
             {/* Right tools */}
+
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                onClick={handleExport}
-                disabled={isExporting}
+                onClick={handleDownloadAnalysis}
+                disabled={isDownloadingAnalysis}
                 className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-[11px] font-bold transition ${
                   !isAdmin && user?.tier === "free"
                     ? "cursor-not-allowed bg-[#f4f5f2] text-[#123c28]/50"
@@ -569,24 +788,28 @@ export default function MapsPage() {
               >
                 {!isAdmin && user?.tier === "free" ? (
                   <Lock className="h-3.5 w-3.5" />
-                ) : isExporting ? (
+                ) : isDownloadingAnalysis ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
                   <Download className="h-3.5 w-3.5" />
                 )}
-                Export
+
+                {isDownloadingAnalysis
+                  ? "Menyiapkan Analisa..."
+                  : "Download Analisa"}
               </button>
 
               <div className="hidden h-7 w-px bg-[#123c28]/15 sm:block" />
 
-              <div className="flex items-center gap-1 rounded-full bg-[#f7f8f4] p-1 border border-[#123c28]/10">
+              <div className="flex items-center gap-1 rounded-full border border-[#123c28]/10 bg-[#f7f8f4] p-1">
                 {mapTools.map((tool, index) => (
                   <button
                     key={index}
                     type="button"
                     onClick={tool.onClick}
+                    disabled={tool.disabled}
                     title={tool.label}
-                    className="flex h-8 w-8 items-center justify-center rounded-full text-[#123c28]/80 transition hover:bg-white hover:text-[#123c28]"
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-[#123c28]/80 transition hover:bg-white hover:text-[#123c28] disabled:cursor-not-allowed disabled:opacity-30"
                   >
                     {tool.icon}
                   </button>
@@ -599,10 +822,12 @@ export default function MapsPage() {
         {/* ===================================================
             MAIN WORKSPACE
         ==================================================== */}
+
         <div className="grid grid-cols-12 gap-4">
           {/* =================================================
               LAYER PANEL
           ================================================== */}
+
           {isLayerPanelOpen && (
             <aside className="col-span-12 lg:col-span-4">
               <div className="rounded-[26px] border border-[#123c28]/15 bg-white p-4 shadow-sm">
@@ -616,6 +841,7 @@ export default function MapsPage() {
                       <h2 className="text-sm font-bold text-[#123c28]">
                         Layer Peta
                       </h2>
+
                       <span className="rounded-full border border-[#123c28]/15 bg-[#f7f8f4] px-2.5 py-0.5 text-[10px] font-bold text-[#123c28]">
                         {maps.length} peta tersimpan
                       </span>
@@ -631,6 +857,7 @@ export default function MapsPage() {
                 </div>
 
                 {/* Loading */}
+
                 {loading && (
                   <div className="rounded-2xl bg-[#f7f8f4] px-4 py-8 text-center">
                     <div className="mx-auto mb-3 h-6 w-6 animate-spin rounded-full border-2 border-[#123c28]/20 border-t-[#123c28]" />
@@ -642,6 +869,7 @@ export default function MapsPage() {
                 )}
 
                 {/* Error */}
+
                 {!loading && error && (
                   <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-xs font-medium text-red-700">
                     {error}
@@ -649,6 +877,7 @@ export default function MapsPage() {
                 )}
 
                 {/* Empty */}
+
                 {!loading && !error && mapLayers.length === 0 && (
                   <div className="rounded-2xl border border-dashed border-[#123c28]/20 bg-[#fafbf8] px-4 py-9 text-center">
                     <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-sm">
@@ -666,7 +895,8 @@ export default function MapsPage() {
                 )}
 
                 {/* Layers */}
-                <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
+
+                <div className="max-h-[500px] space-y-2 overflow-y-auto pr-1">
                   {mapLayers.map((layer) => {
                     const raw = maps.find((map) => map.id === layer.id)!;
 
@@ -726,11 +956,13 @@ export default function MapsPage() {
 
                             <div className="mt-2 flex items-center gap-1.5 text-[10px] font-semibold text-[#123c28]/75">
                               <Calendar className="h-3 w-3 text-[#123c28]/70" />
+
                               {layer.date}
                             </div>
 
                             <div className="mt-1 flex items-center gap-1.5 text-[10px] font-medium text-[#123c28]/85">
                               <MapPin className="h-3 w-3 text-[#123c28]/70" />
+
                               <span className="truncate">{layer.location}</span>
                             </div>
                           </div>
@@ -765,7 +997,8 @@ export default function MapsPage() {
                 </div>
 
                 {/* Info */}
-                <div className="mt-4 rounded-2xl bg-[#f7f8f4] p-3.5 border border-[#123c28]/10">
+
+                <div className="mt-4 rounded-2xl border border-[#123c28]/10 bg-[#f7f8f4] p-3.5">
                   <div className="flex items-start gap-2.5">
                     <Info className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-[#123c28]/75" />
 
@@ -782,6 +1015,7 @@ export default function MapsPage() {
           {/* =================================================
               MAP
           ================================================== */}
+
           <div
             className={`${
               isLayerPanelOpen ? "col-span-12 lg:col-span-8" : "col-span-12"
@@ -789,6 +1023,7 @@ export default function MapsPage() {
           >
             <div className="overflow-hidden rounded-[26px] border border-[#123c28]/15 bg-white shadow-sm">
               {/* Map top information */}
+
               <div className="flex flex-col justify-between gap-3 border-b border-[#123c28]/10 bg-white px-4 py-3 sm:flex-row sm:items-center">
                 <div className="flex min-w-0 items-center gap-3">
                   <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-[#f3f6ed]">
@@ -822,6 +1057,7 @@ export default function MapsPage() {
               </div>
 
               {/* Map */}
+
               <div
                 ref={mapContainerRef}
                 className="relative h-[520px] w-full bg-[#f1f3ed] sm:h-[600px]"
@@ -850,6 +1086,7 @@ export default function MapsPage() {
                 )}
 
                 {/* Floating map badge */}
+
                 <div className="pointer-events-none absolute left-4 top-4 z-[400] hidden rounded-full border border-white/80 bg-white/95 px-3 py-2 shadow-lg backdrop-blur sm:block">
                   <div className="flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-[#91b928]" />
@@ -862,6 +1099,7 @@ export default function MapsPage() {
               </div>
 
               {/* Map footer */}
+
               <div className="flex flex-col justify-between gap-3 border-t border-[#123c28]/10 bg-[#fafbf8] px-4 py-3 sm:flex-row sm:items-center">
                 <div className="flex items-center gap-4 text-[10px] font-semibold text-[#123c28]/75">
                   <span>{maps.length} peta tersimpan</span>
@@ -893,6 +1131,7 @@ export default function MapsPage() {
       {/* =====================================================
           NOTICE TOAST
       ====================================================== */}
+
       {notice && (
         <div
           className={`fixed bottom-6 right-6 z-[9998] flex max-w-sm items-center gap-3 rounded-2xl px-4 py-3.5 text-xs font-medium shadow-2xl ${
@@ -914,10 +1153,12 @@ export default function MapsPage() {
       {/* =====================================================
           METADATA MODAL
       ====================================================== */}
+
       {metadataMap && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#123c28]/40 p-4 backdrop-blur-sm">
           <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-[28px] border border-[#123c28]/15 bg-white shadow-2xl">
             {/* header */}
+
             <div className="flex items-center justify-between border-b border-[#123c28]/10 px-6 py-5">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#123c28]/75">
@@ -938,40 +1179,63 @@ export default function MapsPage() {
               </button>
             </div>
 
-            {/* content scrollable */}
-            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-              {/* Basic info section */}
+            {/* content */}
+
+            <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
+              {/* Basic */}
+
               <div>
                 <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#123c28]/70">
                   Informasi Umum
                 </p>
+
                 <div className="space-y-1 rounded-2xl border border-[#123c28]/10 bg-[#fafbf8] p-3">
                   {[
                     ["Nama", metadataMap.title],
                     ["Lokasi", metadataMap.location],
-                    ["Tanggal Survey", new Date(metadataMap.survey_date).toLocaleDateString("id-ID")],
-                    ["Format File", `.${metadataMap.file_format?.toUpperCase()}`],
-                    ["Ukuran File", `${(metadataMap.file_size / 1024 / 1024).toFixed(2)} MB`],
-                    ["Dibuat", new Date(metadataMap.created_at).toLocaleDateString("id-ID")],
+                    [
+                      "Tanggal Survey",
+                      new Date(metadataMap.survey_date).toLocaleDateString(
+                        "id-ID"
+                      ),
+                    ],
+                    [
+                      "Format File",
+                      `.${metadataMap.file_format?.toUpperCase()}`,
+                    ],
+                    ["Ukuran File", formatSize(metadataMap.file_size)],
+                    [
+                      "Dibuat",
+                      new Date(metadataMap.created_at).toLocaleDateString(
+                        "id-ID"
+                      ),
+                    ],
                   ].map(([label, value]) => (
                     <div
                       key={label}
                       className="flex items-center justify-between gap-4 rounded-xl px-3 py-2 text-xs hover:bg-white"
                     >
-                      <span className="font-medium text-[#123c28]/70">{label}</span>
-                      <span className="max-w-[65%] truncate text-right font-bold text-[#123c28]">{value}</span>
+                      <span className="font-medium text-[#123c28]/70">
+                        {label}
+                      </span>
+
+                      <span className="max-w-[65%] truncate text-right font-bold text-[#123c28]">
+                        {value}
+                      </span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Geospatial / TIFF metadata section */}
+              {/* Geo metadata */}
+
               {metadataMap.geo_metadata ? (
                 <div>
                   <div className="mb-2 flex items-center justify-between">
                     <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#123c28]/70">
                       Metadata Geospasial & Raster
                     </p>
+
                     <span className="rounded-full bg-[#eef3e8] px-2.5 py-0.5 text-[9px] font-bold text-[#123c28]">
                       GeoTIFF Valid
                     </span>
@@ -979,70 +1243,122 @@ export default function MapsPage() {
 
                   <div className="space-y-1 rounded-2xl border border-[#123c28]/10 bg-[#fafbf8] p-3">
                     <div className="flex items-center justify-between gap-4 rounded-xl px-3 py-2 text-xs hover:bg-white">
-                      <span className="font-medium text-[#123c28]/70">Sistem Koordinat (CRS)</span>
+                      <span className="font-medium text-[#123c28]/70">
+                        Sistem Koordinat (CRS)
+                      </span>
+
                       <span className="max-w-[65%] truncate text-right font-bold text-[#123c28]">
                         {metadataMap.geo_metadata.crs || "N/A"}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between gap-4 rounded-xl px-3 py-2 text-xs hover:bg-white">
-                      <span className="font-medium text-[#123c28]/70">Dimensi Citra</span>
+                      <span className="font-medium text-[#123c28]/70">
+                        Dimensi Citra
+                      </span>
+
                       <span className="font-bold text-[#123c28]">
-                        {metadataMap.geo_metadata.width?.toLocaleString()} × {metadataMap.geo_metadata.height?.toLocaleString()} piksel
+                        {metadataMap.geo_metadata.width?.toLocaleString()} ×{" "}
+                        {metadataMap.geo_metadata.height?.toLocaleString()}{" "}
+                        piksel
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between gap-4 rounded-xl px-3 py-2 text-xs hover:bg-white">
-                      <span className="font-medium text-[#123c28]/70">Saluran (Bands)</span>
+                      <span className="font-medium text-[#123c28]/70">
+                        Saluran (Bands)
+                      </span>
+
                       <span className="font-bold text-[#123c28]">
-                        {metadataMap.geo_metadata.bands} Saluran ({metadataMap.geo_metadata.dtypes?.join(", ") || "uint8"})
+                        {metadataMap.geo_metadata.bands} Saluran (
+                        {metadataMap.geo_metadata.dtypes?.join(", ") || "uint8"}
+                        )
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between gap-4 rounded-xl px-3 py-2 text-xs hover:bg-white">
-                      <span className="font-medium text-[#123c28]/70">Driver Raster</span>
+                      <span className="font-medium text-[#123c28]/70">
+                        Driver Raster
+                      </span>
+
                       <span className="font-bold text-[#123c28]">
                         {metadataMap.geo_metadata.driver || "GTiff"}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between gap-4 rounded-xl px-3 py-2 text-xs hover:bg-white">
-                      <span className="font-medium text-[#123c28]/70">Format Tiling</span>
+                      <span className="font-medium text-[#123c28]/70">
+                        Format Tiling
+                      </span>
+
                       <span className="font-bold text-[#123c28]">
-                        {metadataMap.geo_metadata.is_tiled ? "Tiled (Cloud-Optimized)" : "Strip / Standar"}
+                        {metadataMap.geo_metadata.is_tiled
+                          ? "Tiled (Cloud-Optimized)"
+                          : "Strip / Standar"}
                       </span>
                     </div>
 
-                    {metadataMap.geo_metadata.nodata !== undefined && metadataMap.geo_metadata.nodata !== null && (
-                      <div className="flex items-center justify-between gap-4 rounded-xl px-3 py-2 text-xs hover:bg-white">
-                        <span className="font-medium text-[#123c28]/70">Nilai NoData</span>
-                        <span className="font-bold text-[#123c28]">{metadataMap.geo_metadata.nodata}</span>
-                      </div>
-                    )}
+                    {metadataMap.geo_metadata.nodata !== undefined &&
+                      metadataMap.geo_metadata.nodata !== null && (
+                        <div className="flex items-center justify-between gap-4 rounded-xl px-3 py-2 text-xs hover:bg-white">
+                          <span className="font-medium text-[#123c28]/70">
+                            Nilai NoData
+                          </span>
+
+                          <span className="font-bold text-[#123c28]">
+                            {metadataMap.geo_metadata.nodata}
+                          </span>
+                        </div>
+                      )}
                   </div>
 
-                  {/* Bounding Box WGS84 */}
+                  {/* Bounding */}
+
                   {metadataMap.geo_metadata.bounds_wgs84 && (
                     <div className="mt-3 rounded-2xl border border-[#123c28]/10 bg-[#f7f8f4] p-3.5">
                       <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.15em] text-[#123c28]/75">
                         Cakupan Wilayah (WGS 84 Bounds)
                       </p>
+
                       <div className="grid grid-cols-2 gap-2 text-[11px]">
                         <div className="rounded-xl border border-[#123c28]/5 bg-white p-2">
-                          <span className="block text-[9px] font-semibold text-[#123c28]/60">Bujur Barat (Min Lon)</span>
-                          <span className="font-bold text-[#123c28]">{metadataMap.geo_metadata.bounds_wgs84.min_lon}°</span>
+                          <span className="block text-[9px] font-semibold text-[#123c28]/60">
+                            Bujur Barat (Min Lon)
+                          </span>
+
+                          <span className="font-bold text-[#123c28]">
+                            {metadataMap.geo_metadata.bounds_wgs84.min_lon}°
+                          </span>
                         </div>
+
                         <div className="rounded-xl border border-[#123c28]/5 bg-white p-2">
-                          <span className="block text-[9px] font-semibold text-[#123c28]/60">Bujur Timur (Max Lon)</span>
-                          <span className="font-bold text-[#123c28]">{metadataMap.geo_metadata.bounds_wgs84.max_lon}°</span>
+                          <span className="block text-[9px] font-semibold text-[#123c28]/60">
+                            Bujur Timur (Max Lon)
+                          </span>
+
+                          <span className="font-bold text-[#123c28]">
+                            {metadataMap.geo_metadata.bounds_wgs84.max_lon}°
+                          </span>
                         </div>
+
                         <div className="rounded-xl border border-[#123c28]/5 bg-white p-2">
-                          <span className="block text-[9px] font-semibold text-[#123c28]/60">Lintang Selatan (Min Lat)</span>
-                          <span className="font-bold text-[#123c28]">{metadataMap.geo_metadata.bounds_wgs84.min_lat}°</span>
+                          <span className="block text-[9px] font-semibold text-[#123c28]/60">
+                            Lintang Selatan (Min Lat)
+                          </span>
+
+                          <span className="font-bold text-[#123c28]">
+                            {metadataMap.geo_metadata.bounds_wgs84.min_lat}°
+                          </span>
                         </div>
+
                         <div className="rounded-xl border border-[#123c28]/5 bg-white p-2">
-                          <span className="block text-[9px] font-semibold text-[#123c28]/60">Lintang Utara (Max Lat)</span>
-                          <span className="font-bold text-[#123c28]">{metadataMap.geo_metadata.bounds_wgs84.max_lat}°</span>
+                          <span className="block text-[9px] font-semibold text-[#123c28]/60">
+                            Lintang Utara (Max Lat)
+                          </span>
+
+                          <span className="font-bold text-[#123c28]">
+                            {metadataMap.geo_metadata.bounds_wgs84.max_lat}°
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -1057,6 +1373,7 @@ export default function MapsPage() {
               )}
 
               {/* Description */}
+
               {metadataMap.description && (
                 <div className="rounded-2xl border border-[#123c28]/10 bg-[#f7f8f4] p-4">
                   <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#123c28]/75">
@@ -1071,11 +1388,13 @@ export default function MapsPage() {
             </div>
 
             {/* footer */}
+
             <div className="flex gap-3 border-t border-[#123c28]/10 bg-[#fafbf8] px-6 py-4">
               <button
                 type="button"
                 onClick={() => {
                   openEditModal(metadataMap);
+
                   setMetadataMap(null);
                 }}
                 className="flex flex-1 items-center justify-center gap-2 rounded-full bg-[#123c28] py-3 text-xs font-semibold text-white transition hover:bg-[#1a5134]"
@@ -1099,6 +1418,7 @@ export default function MapsPage() {
       {/* =====================================================
           EDIT MODAL
       ====================================================== */}
+
       {editingMap && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#123c28]/40 p-4 backdrop-blur-sm">
           <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-[28px] border border-[#123c28]/15 bg-white shadow-2xl">
@@ -1124,6 +1444,7 @@ export default function MapsPage() {
 
             <div className="space-y-4 overflow-y-auto px-6 py-5">
               {/* title */}
+
               <div>
                 <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-[#123c28]/75">
                   Judul Peta
@@ -1154,6 +1475,7 @@ export default function MapsPage() {
               </div>
 
               {/* location */}
+
               <div>
                 <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-[#123c28]/75">
                   Lokasi / Wilayah
@@ -1161,6 +1483,7 @@ export default function MapsPage() {
 
                 <div className="relative">
                   <MapPin className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#123c28]/40" />
+
                   <input
                     type="text"
                     value={editForm.location}
@@ -1186,7 +1509,8 @@ export default function MapsPage() {
                 )}
               </div>
 
-              {/* survey_date */}
+              {/* survey date */}
+
               <div>
                 <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-[#123c28]/75">
                   Tanggal Survey Drone
@@ -1194,6 +1518,7 @@ export default function MapsPage() {
 
                 <div className="relative">
                   <Calendar className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#123c28]/40" />
+
                   <input
                     type="date"
                     value={editForm.survey_date}
@@ -1219,6 +1544,7 @@ export default function MapsPage() {
               </div>
 
               {/* description */}
+
               <div>
                 <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-[#123c28]/75">
                   Deskripsi Tambahan (Opsional)
@@ -1238,12 +1564,14 @@ export default function MapsPage() {
                 />
               </div>
 
-              {/* Access control & Monetization */}
+              {/* access */}
+
               <div className="pt-2">
                 <div className="mb-2.5 flex items-center gap-2">
                   <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#f3f6ed]">
                     <Lock className="h-3.5 w-3.5 text-[#123c28]" />
                   </div>
+
                   <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#123c28]/75">
                     Aturan Akses & Monetisasi DaaS
                   </span>
@@ -1254,20 +1582,23 @@ export default function MapsPage() {
                     <input
                       type="checkbox"
                       checked={editForm.locked_for_free}
-                      onChange={(e) =>
+                      onChange={(event) =>
                         setEditForm({
                           ...editForm,
-                          locked_for_free: e.target.checked,
+                          locked_for_free: event.target.checked,
                         })
                       }
                       className="mt-0.5 h-4 w-4 rounded border-[#123c28]/30 text-[#123c28] focus:ring-[#123c28]"
                     />
+
                     <div>
                       <p className="text-xs font-bold text-[#123c28]">
                         Kunci untuk Member Free
                       </p>
+
                       <p className="mt-0.5 text-[11px] font-medium text-[#123c28]/70">
-                        Hanya member berbayar (Tier Desa/Kecamatan) yang dapat mengakses data peta ini
+                        Hanya member berbayar (Tier Desa/Kecamatan) yang dapat
+                        mengakses data peta ini
                       </p>
                     </div>
                   </label>
@@ -1276,20 +1607,23 @@ export default function MapsPage() {
                     <input
                       type="checkbox"
                       checked={editForm.purchasable}
-                      onChange={(e) =>
+                      onChange={(event) =>
                         setEditForm({
                           ...editForm,
-                          purchasable: e.target.checked,
+                          purchasable: event.target.checked,
                         })
                       }
                       className="mt-0.5 h-4 w-4 rounded border-[#123c28]/30 text-[#123c28] focus:ring-[#123c28]"
                     />
+
                     <div>
                       <p className="text-xs font-bold text-[#123c28]">
-                        Tersedia untuk Pembelian Satuan (Pay-per-view)
+                        Tersedia untuk Pembelian Satuan
                       </p>
+
                       <p className="mt-0.5 text-[11px] font-medium text-[#123c28]/70">
-                        User dapat membeli akses peta ini secara terpisah tanpa langganan
+                        User dapat membeli akses peta ini secara terpisah tanpa
+                        langganan
                       </p>
                     </div>
                   </label>
@@ -1326,6 +1660,7 @@ export default function MapsPage() {
       {/* =====================================================
           DELETE MODAL
       ====================================================== */}
+
       {deletingMap && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#123c28]/40 p-4 backdrop-blur-sm">
           <div className="w-full max-w-sm overflow-hidden rounded-[28px] border border-[#123c28]/15 bg-white shadow-2xl">
@@ -1382,12 +1717,15 @@ export default function MapsPage() {
       {/* =====================================================
           PREMIUM MODAL
       ====================================================== */}
+
       {toastMessage && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#123c28]/40 p-4 backdrop-blur-sm">
           <div className="w-full max-w-md overflow-hidden rounded-[28px] border border-[#123c28]/15 bg-white shadow-2xl">
             {/* header */}
+
             <div className="relative overflow-hidden bg-[#123c28] px-7 py-8 text-center text-white">
               <div className="absolute -right-10 -top-16 h-36 w-36 rounded-full border border-white/10" />
+
               <div className="absolute -left-12 bottom-[-70px] h-40 w-40 rounded-full border border-white/5" />
 
               <button
@@ -1416,6 +1754,7 @@ export default function MapsPage() {
             </div>
 
             {/* body */}
+
             <div className="px-7 py-7 text-center">
               <p className="text-sm font-medium leading-6 text-[#123c28]">
                 {toastMessage}
