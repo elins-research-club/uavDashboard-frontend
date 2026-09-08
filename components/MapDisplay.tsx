@@ -292,23 +292,37 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       });
 
       /*
-       * Add basemap layer
+       * Add basemap layer — always BELOW the UAV overlay layers.
+       *
+       * We pass beforeId = the first existing UAV layer so the basemap
+       * is inserted beneath it. If no UAV layer exists yet, beforeId is
+       * undefined and the layer is simply appended (correct initial state).
        */
 
-      map.addLayer({
-        id: BASEMAP_RASTER_LAYER_ID,
+      const firstUavLayer =
+        map.getLayer(UAV_RASTER_LAYER_ID)
+          ? UAV_RASTER_LAYER_ID
+          : map.getLayer(UAV_IMAGE_LAYER_ID)
+            ? UAV_IMAGE_LAYER_ID
+            : undefined;
 
-        type: "raster",
+      map.addLayer(
+        {
+          id: BASEMAP_RASTER_LAYER_ID,
 
-        source: BASEMAP_RASTER_SOURCE_ID,
+          type: "raster",
 
-        paint: {
-          "raster-opacity": 1,
+          source: BASEMAP_RASTER_SOURCE_ID,
+
+          paint: {
+            "raster-opacity": 1,
+          },
         },
-      });
+        firstUavLayer
+      );
 
       /*
-       * Satellite labels
+       * Satellite labels — also kept below UAV layers.
        */
 
       if (map.getLayer(SATELLITE_LABEL_LAYER_ID)) {
@@ -330,17 +344,20 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
           maxzoom: active.maxzoom,
         });
 
-        map.addLayer({
-          id: SATELLITE_LABEL_LAYER_ID,
+        map.addLayer(
+          {
+            id: SATELLITE_LABEL_LAYER_ID,
 
-          type: "raster",
+            type: "raster",
 
-          source: SATELLITE_LABEL_SOURCE_ID,
+            source: SATELLITE_LABEL_SOURCE_ID,
 
-          paint: {
-            "raster-opacity": 0.9,
+            paint: {
+              "raster-opacity": 0.9,
+            },
           },
-        });
+          firstUavLayer
+        );
       }
     }, []);
 
