@@ -17,7 +17,6 @@ import {
   Minimize2,
   Settings,
   Info,
-  Lock,
   X,
   Crown,
   Pencil,
@@ -236,23 +235,6 @@ export default function MapsPage() {
 
   const selectedMapRaw = maps.find((map) => map.id === selectedLayer) || null;
 
-  const analysisTools = [
-    {
-      id: "ndvi",
-      label: "NDVI",
-      locked: false,
-    },
-    {
-      id: "npk",
-      label: "NPK",
-      locked: !isAdmin && user?.tier === "free",
-    },
-    {
-      id: "hyper",
-      label: "Hiperspektral",
-      locked: !isAdmin && (user?.tier === "free" || user?.tier === "desa"),
-    },
-  ];
 
   /* =========================================================
      MAP ACTIONS
@@ -567,35 +549,6 @@ export default function MapsPage() {
                 <Layers className="h-4 w-4" />
                 Layer Peta
               </button>
-
-              <div className="hidden h-7 w-px bg-[#123c28]/15 sm:block" />
-
-              <div className="flex items-center gap-1 rounded-full bg-[#f7f8f4] p-1 border border-[#123c28]/10">
-                {analysisTools.map((tool) => (
-                  <button
-                    key={tool.id}
-                    type="button"
-                    onClick={() => {
-                      if (tool.locked) {
-                        triggerToast(
-                          `Akses Premium: Upgrade paket Anda untuk membuka ${tool.label}`
-                        );
-                      } else {
-                        showNotice(`${tool.label} layer diaktifkan`);
-                      }
-                    }}
-                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-[10px] font-bold transition ${
-                      tool.locked
-                        ? "cursor-not-allowed text-[#123c28]/45"
-                        : "bg-white text-[#123c28] shadow-sm hover:bg-[#dff66f]/30"
-                    }`}
-                  >
-                    {tool.locked && <Lock className="h-3 w-3" />}
-
-                    {tool.label}
-                  </button>
-                ))}
-              </div>
             </div>
 
             {/* Right tools */}
