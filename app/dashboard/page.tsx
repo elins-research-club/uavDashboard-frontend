@@ -29,7 +29,7 @@ type MapRecord = {
   title: string;
   location: string;
   survey_date: string;
-  map_type: string;
+  map_type?: string;
   description?: string;
   file_size: number;
   locked_for_free: boolean;
@@ -324,9 +324,11 @@ export default function DashboardHomePage() {
                           {layer.title}
                         </h3>
 
-                        <span className="rounded-full bg-[#eef3e8] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-[#123c28]">
-                          {layer.map_type}
-                        </span>
+                        {layer.map_type && (
+                          <span className="rounded-full bg-[#eef3e8] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-[#123c28]">
+                            {layer.map_type}
+                          </span>
+                        )}
                       </div>
 
                       <p className="mt-2 max-w-2xl truncate text-xs font-medium text-[#123c28]/80 sm:text-sm">

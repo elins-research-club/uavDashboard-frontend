@@ -427,29 +427,6 @@ export default function UploadPage() {
                     </div>
                   </div>
 
-                  {/* Type Selection */}
-                  <div>
-                    <label className="mb-2 block text-xs font-bold text-[#123c28]/80">
-                      Tipe / Analisis Peta
-                    </label>
-                    <select
-                      name="map_type"
-                      defaultValue="NDVI"
-                      className="w-full rounded-xl border border-[#123c28]/15 bg-[#fafbf8] px-3 py-2.5 text-sm font-medium text-[#123c28] transition focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#123c28]"
-                    >
-                      <option value="NDVI">NDVI (Kesehatan Vegetasi)</option>
-                      <option value="Soil Analysis">
-                        Soil Analysis (Kesuburan/NPK)
-                      </option>
-                      <option value="Topography">
-                        Topography (Kontur & Elevasi)
-                      </option>
-                      <option value="Fertility">
-                        Fertility (Indeks Kesuburan)
-                      </option>
-                    </select>
-                  </div>
-
                   {/* Description */}
                   <div>
                     <label className="mb-2 block text-xs font-bold text-[#123c28]/80">

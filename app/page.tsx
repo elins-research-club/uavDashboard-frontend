@@ -373,7 +373,7 @@ export default function UAVLandingPage() {
       {/* =========================================================
           HERO
       ========================================================== */}
-      <section id="beranda" className="px-2 pb-3 pt-2 sm:px-4 sm:pt-4">
+      <section id="beranda" className="px-2 pb-3 pt-20 sm:px-4 sm:pt-24">
         <div className="relative mx-auto min-h-[760px] max-w-7xl overflow-hidden rounded-[30px] border border-white/10 sm:min-h-[710px] sm:rounded-[38px]">
           <img
             src={imageUrls.hero}

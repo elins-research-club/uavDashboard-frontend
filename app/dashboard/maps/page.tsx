@@ -73,7 +73,7 @@ interface MapData {
   title: string;
   location: string;
   survey_date: string;
-  map_type: string;
+  map_type?: string;
   description?: string;
   file_size: number;
   file_format: string;
@@ -136,7 +136,6 @@ export default function MapsPage() {
   const [editForm, setEditForm] = useState({
     title: "",
     location: "",
-    map_type: "",
     description: "",
   });
 
@@ -227,12 +226,7 @@ export default function MapsPage() {
     name: map.title,
     location: map.location,
     date: new Date(map.survey_date).toLocaleDateString("id-ID"),
-    color:
-      map.map_type === "NDVI"
-        ? "bg-[#91b928]"
-        : map.map_type === "NPK"
-        ? "bg-[#3e7658]"
-        : "bg-[#728797]",
+    color: "bg-[#3e7658]",
     locked: map.locked_for_free && !isAdmin && user?.tier === "free",
     format: map.file_format,
     size: (map.file_size / 1024 / 1024).toFixed(2),
@@ -376,7 +370,6 @@ export default function MapsPage() {
     setEditForm({
       title: map.title,
       location: map.location,
-      map_type: map.map_type,
       description: map.description || "",
     });
 
@@ -415,7 +408,6 @@ export default function MapsPage() {
       await api.patch(`/maps/${editingMap.id}`, {
         title: editForm.title.trim(),
         location: editForm.location.trim(),
-        map_type: editForm.map_type,
         description: editForm.description.trim(),
       });
 
@@ -989,7 +981,7 @@ export default function MapsPage() {
               {[
                 ["Nama", metadataMap.title],
                 ["Lokasi", metadataMap.location],
-                ["Tipe", metadataMap.map_type],
+                ...(metadataMap.map_type ? [["Tipe", metadataMap.map_type]] : []),
                 [
                   "Tanggal Survey",
                   new Date(metadataMap.survey_date).toLocaleDateString("id-ID"),
@@ -1140,30 +1132,6 @@ export default function MapsPage() {
                     {editErrors.location}
                   </p>
                 )}
-              </div>
-
-              {/* type */}
-              <div>
-                <label className="mb-2 block text-[10px] font-bold uppercase tracking-[0.16em] text-[#123c28]/75">
-                  Tipe Peta
-                </label>
-
-                <select
-                  value={editForm.map_type}
-                  onChange={(event) =>
-                    setEditForm({
-                      ...editForm,
-                      map_type: event.target.value,
-                    })
-                  }
-                  className="h-12 w-full rounded-2xl border border-[#123c28]/15 bg-[#fafbf8] px-4 text-sm font-semibold text-[#123c28] outline-none transition focus:border-[#123c28]/40 focus:bg-white"
-                >
-                  <option value="NDVI">NDVI</option>
-                  <option value="RGB">RGB</option>
-                  <option value="NPK">NPK</option>
-                  <option value="HYPERSPECTRAL">Hiperspektral</option>
-                  <option value="OTHER">Lainnya</option>
-                </select>
               </div>
 
               {/* description */}
