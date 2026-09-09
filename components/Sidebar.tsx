@@ -14,7 +14,7 @@ import {
   HelpCircle,
   Users,
   ShieldCheck,
-  Activity,
+  Drone,
   Leaf,
   PanelLeftClose,
   PanelLeftOpen,
@@ -203,7 +203,7 @@ export default function Sidebar() {
         "
             >
               {/* Logo normal */}
-              <Map
+              <Drone
                 size={17}
                 strokeWidth={1.9}
                 className="
@@ -263,7 +263,7 @@ export default function Sidebar() {
             rounded-lg bg-[#123c28]
           "
               >
-                <Map size={16} strokeWidth={2} className="text-white" />
+                <Drone size={16} strokeWidth={2} className="text-white" />
               </div>
 
               <div className="leading-none">
@@ -302,16 +302,6 @@ export default function Sidebar() {
           MAIN CONTENT
       ====================================================== */}
       <div className="flex-1 overflow-y-auto px-2 py-4">
-        {collapsed && (
-          <div className="mb-5 flex justify-center">
-            <div title="Platform aktif" className="relative flex h-2.5 w-2.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#91b928]/30" />
-
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#91b928]" />
-            </div>
-          </div>
-        )}
-
         {/* =====================================================
             WORKSPACE
         ====================================================== */}

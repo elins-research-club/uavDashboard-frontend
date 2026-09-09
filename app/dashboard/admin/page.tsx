@@ -188,7 +188,7 @@ export default function AdminPage() {
 
   return (
     <main className="min-h-screen bg-white text-[#123c28]">
-      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         {/* =====================================================
             TOP HEADER
         ====================================================== */}
