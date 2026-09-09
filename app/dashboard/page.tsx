@@ -169,42 +169,118 @@ export default function DashboardHomePage() {
             </div>
           ))}
         </section>
-
         {/* =====================================================
-            UPGRADE / PLAN CARD
-        ====================================================== */}
-        <section className="mb-6 overflow-hidden rounded-[28px] bg-[#123c28] text-white">
-          <div className="relative p-6 sm:p-8">
-            {/* decorative circles */}
-            <div className="absolute -right-16 -top-20 h-52 w-52 rounded-full border border-white/10" />
-            <div className="absolute -right-2 top-6 h-32 w-32 rounded-full border border-white/5" />
+    UPGRADE / PLAN CARD
+===================================================== */}
+        <section className="mb-6 overflow-hidden rounded-[28px]">
+          <div className="relative min-h-[260px] overflow-hidden">
+            {/* Background drone */}
+            <img
+              src="https://images.unsplash.com/photo-1650227128597-dbac6c5bd1b6?auto=format&fit=crop&w=1800&q=85"
+              alt="Agricultural drone"
+              className="
+        absolute inset-0
+        h-full w-full
+        object-cover
+        object-center
+      "
+            />
 
-            <div className="relative flex flex-col justify-between gap-7 lg:flex-row lg:items-center">
-              <div className="max-w-2xl">
-                <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white">
-                  <Award className="h-3.5 w-3.5" />
-                  Subscription
+            {/* Very subtle green overlay */}
+            <div className="absolute inset-0 bg-[#123c28]/25" />
+
+            {/* Slight gradient for text readability */}
+            <div
+              className="
+        absolute inset-0
+        bg-gradient-to-r
+        from-black/45
+        via-black/20
+        to-transparent
+      "
+            />
+
+            {/* Content */}
+            <div className="relative z-10 p-6 sm:p-8">
+              <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
+                {/* Left */}
+                <div className="max-w-2xl">
+                  <div
+                    className="
+              mb-5 inline-flex items-center gap-2
+              rounded-full
+              bg-white/15
+              px-3 py-1.5
+              text-[10px]
+              font-bold
+              uppercase
+              tracking-[0.18em]
+              text-white
+              backdrop-blur-sm
+            "
+                  >
+                    <Leaf className="h-3.5 w-3.5 text-[#dfeeb1]" />
+                    Subscription
+                  </div>
+
+                  <h2
+                    className="
+              max-w-xl
+              text-2xl
+              font-bold
+              tracking-[-0.035em]
+              text-white
+              sm:text-3xl
+            "
+                  >
+                    Tingkatkan pengalaman
+                    <br className="hidden sm:block" />
+                    dengan paket premium.
+                  </h2>
+
+                  <p
+                    className="
+              mt-3
+              max-w-xl
+              text-sm
+              font-medium
+              leading-6
+              text-white/80
+            "
+                  >
+                    Dapatkan kapasitas lebih besar, analisis yang lebih lengkap,
+                    dan akses fitur premium untuk kebutuhan pertanian berbasis
+                    data.
+                  </p>
                 </div>
 
-                <h2 className="text-2xl font-bold tracking-[-0.035em] sm:text-3xl">
-                  Tingkatkan pengalaman
-                  <br className="hidden sm:block" /> dengan paket premium.
-                </h2>
-
-                <p className="mt-3 max-w-xl text-sm font-medium leading-6 text-emerald-100">
-                  Dapatkan kapasitas lebih besar, analisis yang lebih lengkap,
-                  dan akses fitur premium untuk kebutuhan pertanian berbasis
-                  data.
-                </p>
+                {/* Right */}
+                <Link
+                  href="/dashboard/subscription"
+                  className="
+            inline-flex
+            flex-shrink-0
+            items-center
+            justify-center
+            gap-2
+            rounded-full
+            bg-white
+            px-6
+            py-3.5
+            text-sm
+            font-bold
+            text-[#123c28]
+            transition-all
+            duration-200
+            hover:-translate-y-0.5
+            hover:bg-[#f5f7f1]
+            hover:shadow-lg
+          "
+                >
+                  Lihat Paket
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
               </div>
-
-              <Link
-                href="/dashboard/subscription"
-                className="inline-flex flex-shrink-0 items-center justify-center gap-2 rounded-full bg-white px-6 py-3.5 text-sm font-bold text-[#123c28] transition hover:bg-white/95"
-              >
-                Lihat Paket
-                <ArrowRight className="h-4 w-4" />
-              </Link>
             </div>
           </div>
         </section>

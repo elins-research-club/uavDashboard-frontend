@@ -302,21 +302,6 @@ export default function Sidebar() {
           MAIN CONTENT
       ====================================================== */}
       <div className="flex-1 overflow-y-auto px-2 py-4">
-        {/* System Status */}
-        {!collapsed && (
-          <div className="mb-5 px-2">
-            <div className="flex items-center gap-2 text-[11px] text-[#6b7280]">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#91b928]/40" />
-
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-[#91b928]" />
-              </span>
-
-              <span className="font-medium">Platform aktif</span>
-            </div>
-          </div>
-        )}
-
         {collapsed && (
           <div className="mb-5 flex justify-center">
             <div title="Platform aktif" className="relative flex h-2.5 w-2.5">
