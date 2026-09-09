@@ -1014,7 +1014,7 @@ export default function UAVLandingPage() {
               <h2 className="mt-6 text-4xl font-semibold tracking-[-0.04em] sm:text-6xl">
                 Engineering
                 <br />
-                agriculture's
+                agriculture&apos;s
                 <br />
                 next layer.
               </h2>

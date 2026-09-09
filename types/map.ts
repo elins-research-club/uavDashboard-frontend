@@ -33,3 +33,26 @@ export interface ErrorDetailObject {
   message?: string;
   details?: RejectedErrorDetails;
 }
+
+export interface MapLayerItem {
+  id: string;
+  map_id: string;
+  layer_type: "ortho" | "spectral" | "ndvi" | "vari" | "nitrogen" | "phosphorus" | "kalium" | "dsm" | string;
+  name: string;
+  file_url: string;
+  pmtiles_url?: string | null;
+  file_size: number;
+  is_base_layer: boolean;
+  is_visible: boolean;
+  default_opacity: number;
+  display_order: number;
+  color_map?: string | null;
+  min_value?: number | null;
+  max_value?: number | null;
+  unit?: string | null;
+  geo_metadata?: GeoMetadata | null;
+  conversion_status: "pending" | "processing" | "completed" | "failed" | string;
+  conversion_error?: string | null;
+  created_at: string;
+}
+

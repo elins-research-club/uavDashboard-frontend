@@ -11,6 +11,7 @@ import React, {
 
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import * as pmtiles from "pmtiles";
 
 import {
   Globe,
@@ -20,6 +21,21 @@ import {
   Mountain,
   Layers3,
 } from "lucide-react";
+
+import LayerControlPanel from "@/components/LayerControlPanel";
+import type { MapLayerItem } from "@/types/map";
+
+// Registrasi protokol PMTiles ke MapLibre GL jika belum terdaftar
+let pmtilesRegistered = false;
+if (typeof window !== "undefined" && !pmtilesRegistered) {
+  try {
+    const protocol = new pmtiles.Protocol();
+    maplibregl.addProtocol("pmtiles", protocol.tile);
+    pmtilesRegistered = true;
+  } catch {
+    // Protocol already added
+  }
+}
 
 /* =========================================================
    TYPES
@@ -148,6 +164,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
     const [currentMeta, setCurrentMeta] = useState<BoundsResponse | null>(null);
 
+    const [mapLayers, setMapLayers] = useState<MapLayerItem[]>([]);
+    const mapLayersRef = useRef<MapLayerItem[]>([]);
+
     const [bearing, setBearing] = useState(0);
 
     const [pitch, setPitch] = useState(45);
@@ -229,6 +248,18 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
       if (!map) return;
 
+      /*
+       * Remove previous multi-layer & single-layer UAV layers
+       */
+      if (mapLayersRef.current) {
+        mapLayersRef.current.forEach((l) => {
+          const lid = `layer-render-${l.id}`;
+          const sid = `layer-source-${l.id}`;
+          if (map.getLayer(lid)) map.removeLayer(lid);
+          if (map.getSource(sid)) map.removeSource(sid);
+        });
+      }
+
       if (map.getLayer(UAV_RASTER_LAYER_ID)) {
         map.removeLayer(UAV_RASTER_LAYER_ID);
       }
@@ -293,18 +324,24 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
       /*
        * Add basemap layer — always BELOW the UAV overlay layers.
-       *
-       * beforeId = UAV layer yang pertama ditemukan, agar basemap
-       * disisipkan di bawahnya. Kalau belum ada UAV layer, beforeId
-       * undefined → append ke paling bawah (state awal yang benar).
        */
-
-      const firstUavLayer =
-        map.getLayer(UAV_RASTER_LAYER_ID)
+      let firstUavLayer: string | undefined = undefined;
+      if (mapLayersRef.current && mapLayersRef.current.length > 0) {
+        for (const l of mapLayersRef.current) {
+          const target = `layer-render-${l.id}`;
+          if (map.getLayer(target)) {
+            firstUavLayer = target;
+            break;
+          }
+        }
+      }
+      if (!firstUavLayer) {
+        firstUavLayer = map.getLayer(UAV_RASTER_LAYER_ID)
           ? UAV_RASTER_LAYER_ID
           : map.getLayer(UAV_IMAGE_LAYER_ID)
             ? UAV_IMAGE_LAYER_ID
             : undefined;
+      }
 
       map.addLayer(
         {
@@ -422,7 +459,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     ===================================================== */
 
     const setupUavLayer = useCallback(
-      (meta: BoundsResponse) => {
+      (meta: BoundsResponse, layersToRender?: MapLayerItem[]) => {
         const map = mapRef.current;
 
         const activeMapId = mapIdRef.current;
@@ -437,13 +474,62 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         /*
          * Remove old UAV layers.
          */
-
         removeUavLayers();
 
-        /*
-         * GEO-TIFF TILE MODE
-         */
+        const currentLayers = layersToRender ?? mapLayersRef.current;
 
+        /*
+         * 1. MULTI-LAYER MODE (PMTiles / Dynamic Tile per layer)
+         */
+        if (currentLayers && currentLayers.length > 0) {
+          currentLayers.forEach((layer) => {
+            const sourceId = `layer-source-${layer.id}`;
+            const layerId = `layer-render-${layer.id}`;
+
+            if (!map.getSource(sourceId)) {
+              if (layer.pmtiles_url) {
+                // Streaming langsung lewat PMTiles HTTP Range Request
+                const apiOrigin = baseUrl.replace(/\/api\/?$/, "");
+                const pmtilesUrl = `${apiOrigin}${layer.pmtiles_url}`;
+                map.addSource(sourceId, {
+                  type: "raster",
+                  url: `pmtiles://${pmtilesUrl}`,
+                  tileSize: 256,
+                });
+              } else {
+                // Fallback dynamic XYZ raster tile
+                map.addSource(sourceId, {
+                  type: "raster",
+                  tiles: [
+                    `${baseUrl}/maps/${activeMapId}/layers/${layer.id}/tiles/{z}/{x}/{y}.png`,
+                  ],
+                  tileSize: 256,
+                  maxzoom: 22,
+                });
+              }
+            }
+
+            if (!map.getLayer(layerId)) {
+              map.addLayer({
+                id: layerId,
+                type: "raster",
+                source: sourceId,
+                layout: {
+                  visibility: layer.is_visible ? "visible" : "none",
+                },
+                paint: {
+                  "raster-opacity": layer.default_opacity,
+                  "raster-resampling": "linear",
+                },
+              });
+            }
+          });
+          return;
+        }
+
+        /*
+         * 2. FALLBACK SINGLE TILE MODE
+         */
         if (meta.has_tiles) {
           map.addSource(UAV_RASTER_SOURCE_ID, {
             type: "raster",
@@ -473,9 +559,8 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         }
 
         /*
-         * SINGLE IMAGE MODE
+         * 3. SINGLE IMAGE PREVIEW MODE
          */
-
         if (meta.bounds) {
           const [[south, west], [north, east]] = meta.bounds;
 
@@ -556,10 +641,23 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         currentMetaRef.current = data;
 
         /*
-         * Setup UAV data
+         * Fetch Multi-Layers if available
          */
-
-        setupUavLayer(data);
+        try {
+          const layersRes = await fetch(`${baseUrl}/maps/${activeMapId}/layers`, {
+            headers,
+          });
+          if (layersRes.ok) {
+            const lData: MapLayerItem[] = await layersRes.json();
+            setMapLayers(lData);
+            mapLayersRef.current = lData;
+            setupUavLayer(data, lData);
+          } else {
+            setupUavLayer(data);
+          }
+        } catch {
+          setupUavLayer(data);
+        }
 
         /*
          * Fit bounds
@@ -1241,6 +1339,107 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             Ctrl / Shift untuk tilt
           </span>
         </div>
+
+        {/* =================================================
+            MULTI-LAYER CONTROL PANEL (Agri Watch Net Logic)
+        ================================================== */}
+        <LayerControlPanel
+          mapId={mapId}
+          token={token}
+          layers={mapLayers}
+          onToggleVisibility={(layerId, visible) => {
+            const map = mapRef.current;
+            const targetId = `layer-render-${layerId}`;
+            if (map && map.getLayer(targetId)) {
+              map.setLayoutProperty(
+                targetId,
+                "visibility",
+                visible ? "visible" : "none"
+              );
+            }
+            setMapLayers((prev) =>
+              prev.map((l) =>
+                l.id === layerId ? { ...l, is_visible: visible } : l
+              )
+            );
+            if (mapLayersRef.current) {
+              mapLayersRef.current = mapLayersRef.current.map((l) =>
+                l.id === layerId ? { ...l, is_visible: visible } : l
+              );
+            }
+          }}
+          onChangeOpacity={(layerId, opacity) => {
+            const map = mapRef.current;
+            const targetId = `layer-render-${layerId}`;
+            if (map && map.getLayer(targetId)) {
+              map.setPaintProperty(targetId, "raster-opacity", opacity);
+            }
+            setMapLayers((prev) =>
+              prev.map((l) =>
+                l.id === layerId ? { ...l, default_opacity: opacity } : l
+              )
+            );
+            if (mapLayersRef.current) {
+              mapLayersRef.current = mapLayersRef.current.map((l) =>
+                l.id === layerId ? { ...l, default_opacity: opacity } : l
+              );
+            }
+          }}
+          onLayerUploaded={async () => {
+            const activeMapId = mapIdRef.current;
+            const activeToken = tokenRef.current;
+            if (!activeMapId) return;
+            const baseUrl =
+              process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+            const headers: Record<string, string> = {};
+            if (activeToken) headers.Authorization = `Bearer ${activeToken}`;
+            try {
+              const res = await fetch(`${baseUrl}/maps/${activeMapId}/layers`, {
+                headers,
+              });
+              if (res.ok) {
+                const data: MapLayerItem[] = await res.json();
+                setMapLayers(data);
+                mapLayersRef.current = data;
+                if (currentMetaRef.current) {
+                  setupUavLayer(currentMetaRef.current, data);
+                }
+              }
+            } catch (err) {
+              console.error("Gagal refresh layers:", err);
+            }
+          }}
+          onDeleteLayer={async (layerId) => {
+            const activeMapId = mapIdRef.current;
+            const activeToken = tokenRef.current;
+            if (!activeMapId) return;
+            const baseUrl =
+              process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+            const headers: Record<string, string> = {};
+            if (activeToken) headers.Authorization = `Bearer ${activeToken}`;
+            try {
+              const res = await fetch(
+                `${baseUrl}/maps/${activeMapId}/layers/${layerId}`,
+                { method: "DELETE", headers }
+              );
+              if (res.ok) {
+                const map = mapRef.current;
+                if (map) {
+                  const lid = `layer-render-${layerId}`;
+                  const sid = `layer-source-${layerId}`;
+                  if (map.getLayer(lid)) map.removeLayer(lid);
+                  if (map.getSource(sid)) map.removeSource(sid);
+                }
+                setMapLayers((prev) => prev.filter((l) => l.id !== layerId));
+                mapLayersRef.current = mapLayersRef.current.filter(
+                  (l) => l.id !== layerId
+                );
+              }
+            } catch (err) {
+              console.error("Gagal menghapus layer:", err);
+            }
+          }}
+        />
 
         {/* =================================================
             ACTIVE DATA BADGE

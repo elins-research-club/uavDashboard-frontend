@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   Mail,
   Lock,
@@ -93,7 +94,7 @@ export default function LoginPage() {
       =============================== */}
       <header className="fixed inset-x-0 top-0 z-50 px-3 pt-3">
         <nav className="mx-auto flex h-14 max-w-6xl items-center justify-between rounded-full border border-black/10 bg-white/95 px-3 shadow-xl backdrop-blur-xl">
-          <a href="/" className="flex items-center gap-2.5 pl-1">
+          <Link href="/" className="flex items-center gap-2.5 pl-1">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-black">
               <Map className="h-4 w-4 text-white" />
             </div>
@@ -107,7 +108,7 @@ export default function LoginPage() {
                 DAAS PLATFORM
               </p>
             </div>
-          </a>
+          </Link>
 
           <div className="flex items-center gap-2">
             <span className="hidden text-[10px] text-black/40 sm:block">

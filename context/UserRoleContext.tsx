@@ -8,8 +8,17 @@ export function UserRoleProvider({ children }) {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem('user');
-    if (stored) setUser(JSON.parse(stored));
+    try {
+      const stored = localStorage.getItem('user');
+      if (stored && stored !== 'undefined' && stored !== 'null' && stored.trim() !== '') {
+        setUser(JSON.parse(stored));
+      }
+    } catch (e) {
+      console.warn('Gagal membaca data user dari localStorage:', e);
+      try {
+        localStorage.removeItem('user');
+      } catch {}
+    }
   }, []);
 
   const loginAs = (role, name = 'USERNAME', tier = null) => {

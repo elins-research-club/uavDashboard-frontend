@@ -218,8 +218,6 @@ export default function MapsPage() {
         clearTimeout(noticeTimeout.current);
       }
     };
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /* =========================================================
@@ -1680,7 +1678,7 @@ export default function MapsPage() {
               <p className="mt-3 text-xs font-medium leading-6 text-[#123c28]/75">
                 Peta{" "}
                 <span className="font-bold text-[#123c28]">
-                  "{deletingMap.title}"
+                  &quot;{deletingMap.title}&quot;
                 </span>{" "}
                 akan dihapus secara permanen.
               </p>
