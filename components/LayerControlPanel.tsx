@@ -113,7 +113,7 @@ export default function LayerControlPanel({
           }`}
         >
           <Layers className="h-4 w-4" />
-          <span>Tumpukan Layer</span>
+          <span>Tumpukan Layer Data</span>
           <span
             className={`flex h-5 items-center justify-center rounded-full px-1.5 text-[10px] font-black ${
               isOpen
@@ -181,12 +181,13 @@ export default function LayerControlPanel({
             {/* LAYER LIST */}
             <div className="mt-3 max-h-72 space-y-2.5 overflow-y-auto pr-0.5">
               {layers.map((layer, idx) => {
-                const cfg =
-                  LAYER_TYPE_CONFIG[layer.layer_type.toLowerCase()] || {
-                    label: layer.name,
-                    badgeClass: "bg-slate-50 text-slate-700 border-slate-200",
-                    gradient: "from-slate-600 to-slate-400",
-                  };
+                const cfg = LAYER_TYPE_CONFIG[
+                  layer.layer_type.toLowerCase()
+                ] || {
+                  label: layer.name,
+                  badgeClass: "bg-slate-50 text-slate-700 border-slate-200",
+                  gradient: "from-slate-600 to-slate-400",
+                };
 
                 const isPmtiles = Boolean(layer.pmtiles_url);
                 const isProcessing = layer.conversion_status === "processing";
@@ -208,9 +209,7 @@ export default function LayerControlPanel({
                           onClick={() =>
                             onToggleVisibility(layer.id, !layer.is_visible)
                           }
-                          title={
-                            layer.is_visible ? "Sembunyikan" : "Tampilkan"
-                          }
+                          title={layer.is_visible ? "Sembunyikan" : "Tampilkan"}
                           className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg border transition ${
                             layer.is_visible
                               ? "border-emerald-200 bg-emerald-50 text-emerald-700"
@@ -298,7 +297,10 @@ export default function LayerControlPanel({
                             step="0.05"
                             value={layer.default_opacity}
                             onChange={(e) =>
-                              onChangeOpacity(layer.id, parseFloat(e.target.value))
+                              onChangeOpacity(
+                                layer.id,
+                                parseFloat(e.target.value)
+                              )
                             }
                             className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 accent-[#123c28]"
                           />
@@ -314,9 +316,7 @@ export default function LayerControlPanel({
                               layer.max_value !== undefined && (
                                 <div className="mt-0.5 flex justify-between text-[8px] text-gray-400">
                                   <span>{layer.min_value?.toFixed(2)}</span>
-                                  <span>
-                                    {layer.unit || "Indeks Nilai"}
-                                  </span>
+                                  <span>{layer.unit || "Indeks Nilai"}</span>
                                   <span>{layer.max_value?.toFixed(2)}</span>
                                 </div>
                               )}
@@ -332,7 +332,10 @@ export default function LayerControlPanel({
             {/* FOOTER INFO */}
             <div className="mt-2.5 border-t border-gray-100 pt-2 text-center text-[10px] text-gray-400">
               Kelola & unggah dataset baru melalui menu{" "}
-              <span className="font-semibold text-emerald-800">Upload Peta</span>.
+              <span className="font-semibold text-emerald-800">
+                Upload Peta
+              </span>
+              .
             </div>
           </div>
         )}

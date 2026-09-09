@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useUserRole } from "@/context/UserRoleContext";
 import api from "@/lib/api";
@@ -15,7 +15,6 @@ import {
   ZoomOut,
   Maximize2,
   Minimize2,
-  Settings,
   Info,
   X,
   Crown,
@@ -28,7 +27,6 @@ import {
   Calendar,
   MapPin,
   ScanLine,
-  Compass,
   Lock,
 } from "lucide-react";
 
@@ -96,20 +94,22 @@ const formatSize = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(2)} MB`;
 export default function MapsPage() {
   const { user } = useUserRole();
 
+  /* =========================================================
+     STATE
+  ========================================================== */
+
   const [maps, setMaps] = useState<MapData[]>([]);
-
   const [selectedLayer, setSelectedLayer] = useState("");
-
+  const [searchQuery, setSearchQuery] = useState("");
   const [isLayerPanelOpen, setIsLayerPanelOpen] = useState(true);
 
   const [loading, setLoading] = useState(true);
-
   const [error, setError] = useState("");
 
   /* Premium modal */
   const [toastMessage, setToastMessage] = useState("");
 
-  /* Action notice */
+  /* Notice */
   const [notice, setNotice] = useState<{
     type: "success" | "error";
     text: string;
@@ -117,26 +117,10 @@ export default function MapsPage() {
 
   const noticeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const showNotice = (text: string, type: "success" | "error" = "success") => {
-    setNotice({
-      type,
-      text,
-    });
-
-    if (noticeTimeout.current) {
-      clearTimeout(noticeTimeout.current);
-    }
-
-    noticeTimeout.current = setTimeout(() => {
-      setNotice(null);
-    }, 3000);
-  };
-
   /* Fullscreen */
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
-
   const mapRef = useRef<MapHandle>(null);
 
   /* Metadata */
@@ -165,11 +149,29 @@ export default function MapsPage() {
 
   /* Delete */
   const [deletingMap, setDeletingMap] = useState<MapData | null>(null);
-
   const [isDeleting, setIsDeleting] = useState(false);
 
   /* Download analysis */
   const [isDownloadingAnalysis, setIsDownloadingAnalysis] = useState(false);
+
+  /* =========================================================
+     NOTICE
+  ========================================================== */
+
+  const showNotice = (text: string, type: "success" | "error" = "success") => {
+    setNotice({
+      type,
+      text,
+    });
+
+    if (noticeTimeout.current) {
+      clearTimeout(noticeTimeout.current);
+    }
+
+    noticeTimeout.current = setTimeout(() => {
+      setNotice(null);
+    }, 3000);
+  };
 
   const triggerToast = (message: string) => {
     setToastMessage(message);
@@ -191,7 +193,7 @@ export default function MapsPage() {
         setMaps(mapList);
 
         setSelectedLayer((previous) =>
-          mapList.find((map) => map.id === previous)
+          mapList.some((map) => map.id === previous)
             ? previous
             : mapList[0]?.id || ""
         );
@@ -207,7 +209,9 @@ export default function MapsPage() {
           setError(requestError.response?.data?.detail || "Gagal memuat peta.");
         }
       )
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setLoading(false);
+      });
   };
 
   useEffect(() => {
@@ -225,15 +229,19 @@ export default function MapsPage() {
   ========================================================== */
 
   useEffect(() => {
-    const handler = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    const handler = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
 
     document.addEventListener("fullscreenchange", handler);
 
-    return () => document.removeEventListener("fullscreenchange", handler);
+    return () => {
+      document.removeEventListener("fullscreenchange", handler);
+    };
   }, []);
 
   /* =========================================================
-     USER / LAYERS
+     DATA
   ========================================================== */
 
   const isAdmin = user?.role === "admin";
@@ -248,6 +256,24 @@ export default function MapsPage() {
     format: map.file_format,
     size: (map.file_size / 1024 / 1024).toFixed(2),
   }));
+
+  /* =========================================================
+     SEARCH
+  ========================================================== */
+
+  const filteredMapLayers = mapLayers.filter((layer) => {
+    const query = searchQuery.trim().toLowerCase();
+
+    if (!query) {
+      return true;
+    }
+
+    return (
+      layer.name.toLowerCase().includes(query) ||
+      layer.location.toLowerCase().includes(query) ||
+      layer.format.toLowerCase().includes(query)
+    );
+  });
 
   const selectedMap = mapLayers.find((layer) => layer.id === selectedLayer);
 
@@ -298,6 +324,7 @@ export default function MapsPage() {
   const handleShare = async () => {
     if (!selectedMapRaw) {
       showNotice("Pilih peta terlebih dahulu untuk dibagikan.", "error");
+
       return;
     }
 
@@ -308,9 +335,6 @@ export default function MapsPage() {
     const shareTitle = selectedMapRaw.title || "Peta Geospasial";
 
     try {
-      /*
-       * Native Share API
-       */
       if (
         typeof navigator !== "undefined" &&
         typeof navigator.share === "function"
@@ -326,9 +350,6 @@ export default function MapsPage() {
         return;
       }
 
-      /*
-       * Clipboard API
-       */
       if (typeof navigator !== "undefined" && navigator.clipboard) {
         await navigator.clipboard.writeText(shareUrl);
 
@@ -337,17 +358,11 @@ export default function MapsPage() {
         return;
       }
 
-      /*
-       * Fallback lama
-       */
       const textArea = document.createElement("textarea");
 
       textArea.value = shareUrl;
-
       textArea.style.position = "fixed";
-
       textArea.style.left = "-9999px";
-
       textArea.style.top = "0";
 
       document.body.appendChild(textArea);
@@ -364,12 +379,15 @@ export default function MapsPage() {
       } else {
         showNotice("Tidak dapat menyalin tautan peta.", "error");
       }
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") {
+    } catch (shareError) {
+      if (
+        shareError instanceof DOMException &&
+        shareError.name === "AbortError"
+      ) {
         return;
       }
 
-      console.error("Share error:", error);
+      console.error("Share error:", shareError);
 
       showNotice("Gagal membagikan peta.", "error");
     }
@@ -380,18 +398,12 @@ export default function MapsPage() {
   ========================================================== */
 
   const handleDownloadAnalysis = async () => {
-    /*
-     * Free user restriction
-     */
     if (!isAdmin && user?.tier === "free") {
       triggerToast("Download Analisa tersedia untuk paket Desa & Kecamatan.");
 
       return;
     }
 
-    /*
-     * No selected map
-     */
     if (!selectedMapRaw) {
       showNotice("Pilih peta yang ingin dianalisis.", "error");
 
@@ -417,10 +429,6 @@ export default function MapsPage() {
           ? response.data
           : new Blob([response.data]);
 
-      /*
-       * Detect JSON error returned
-       * as blob.
-       */
       const contentType = response.headers?.["content-type"] || blob.type || "";
 
       if (contentType.includes("application/json")) {
@@ -441,15 +449,8 @@ export default function MapsPage() {
         throw new Error(message);
       }
 
-      /*
-       * Default file name
-       */
       let filename = `Analisa_${selectedMapRaw.title || "Peta"}.pdf`;
 
-      /*
-       * Read filename from
-       * Content-Disposition
-       */
       const contentDisposition = response.headers?.["content-disposition"];
 
       if (contentDisposition) {
@@ -474,24 +475,16 @@ export default function MapsPage() {
         }
       }
 
-      /*
-       * Ensure extension.
-       */
       if (!filename.toLowerCase().endsWith(".pdf")) {
         filename = `${filename}.pdf`;
       }
 
-      /*
-       * Browser download.
-       */
       const downloadUrl = window.URL.createObjectURL(blob);
 
       const anchor = document.createElement("a");
 
       anchor.href = downloadUrl;
-
       anchor.download = filename;
-
       anchor.style.display = "none";
 
       document.body.appendChild(anchor);
@@ -500,9 +493,6 @@ export default function MapsPage() {
 
       anchor.remove();
 
-      /*
-       * Cleanup.
-       */
       window.setTimeout(() => {
         window.URL.revokeObjectURL(downloadUrl);
       }, 1000);
@@ -583,17 +573,11 @@ export default function MapsPage() {
     try {
       await api.patch(`/maps/${editingMap.id}`, {
         title: editForm.title.trim(),
-
         location: editForm.location.trim(),
-
         survey_date: editForm.survey_date,
-
         description: editForm.description.trim(),
-
         locked_for_free: editForm.locked_for_free,
-
         purchasable: editForm.purchasable,
-
         purchase_price:
           editForm.purchasable && editForm.purchase_price !== ""
             ? Number(editForm.purchase_price)
@@ -651,72 +635,6 @@ export default function MapsPage() {
   };
 
   /* =========================================================
-     TOOLBAR
-  ========================================================== */
-
-  const mapTools = [
-    {
-      icon: <ZoomIn className="h-4 w-4" />,
-
-      label: "Zoom In",
-
-      onClick: handleZoomIn,
-
-      disabled: !selectedMapRaw,
-    },
-
-    {
-      icon: <ZoomOut className="h-4 w-4" />,
-
-      label: "Zoom Out",
-
-      onClick: handleZoomOut,
-
-      disabled: !selectedMapRaw,
-    },
-
-    {
-      icon: <Compass className="h-4 w-4 text-emerald-800" />,
-
-      label: "Reset Arah Utara",
-
-      onClick: () => {
-        if (mapRef.current?.resetNorth) {
-          mapRef.current.resetNorth();
-
-          showNotice("Orientasi peta dikembalikan menghadap Utara (0°).");
-        }
-      },
-
-      disabled: !selectedMapRaw,
-    },
-
-    {
-      icon: isFullscreen ? (
-        <Minimize2 className="h-4 w-4" />
-      ) : (
-        <Maximize2 className="h-4 w-4" />
-      ),
-
-      label: isFullscreen ? "Keluar Layar Penuh" : "Full Screen",
-
-      onClick: handleFullscreen,
-
-      disabled: false,
-    },
-
-    {
-      icon: <Share2 className="h-4 w-4" />,
-
-      label: "Share",
-
-      onClick: handleShare,
-
-      disabled: !selectedMapRaw,
-    },
-  ];
-
-  /* =========================================================
      RENDER
   ========================================================== */
 
@@ -724,178 +642,230 @@ export default function MapsPage() {
     <div className="min-h-full bg-white px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         {/* ===================================================
-            PAGE HEADER
-        ==================================================== */}
-
-        <header className="mb-7">
-          <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
-            <div>
-              <div className="mb-3 flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#f3f6ed]">
+    PAGE HEADER
+==================================================== */}
+        <header className="mb-5">
+          <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+            {/* TITLE */}
+            <div className="min-w-0">
+              <div className="mb-2 flex items-center gap-2">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#f3f6ed]">
                   <MapIcon className="h-4 w-4 text-[#123c28]" />
                 </span>
 
-                <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#123c28]/80">
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#123c28]/70">
                   GEOSPATIAL WORKSPACE
                 </span>
               </div>
 
-              <h1 className="text-3xl font-bold tracking-[-0.045em] text-[#123c28] sm:text-4xl">
+              <h1 className="text-2xl font-bold tracking-[-0.04em] text-[#123c28] sm:text-3xl">
                 Peta & Analisis
                 <span className="text-[#1a5134]"> Geospasial</span>
               </h1>
+
+              <p className="mt-1 text-xs font-medium text-[#123c28]/55">
+                Kelola layer, eksplorasi data, dan analisis hasil survey UAV.
+              </p>
+            </div>
+
+            {/* SEARCH + LAYER TOGGLE */}
+            <div className="flex w-full items-center gap-2 xl:w-auto">
+              {/* SEARCH */}
+              <div className="min-w-0 flex-1 xl:w-[460px]">
+                <div className="relative">
+                  <MapIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#123c28]/35" />
+
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder="Cari peta anda..."
+                    className="
+              h-10 w-full rounded-full
+              border border-[#123c28]/10
+              bg-[#fafbf8]
+              pl-10 pr-10
+              text-[11px]
+              font-medium
+              text-[#123c28]
+              outline-none
+              transition
+              placeholder:text-[#123c28]/40
+              focus:border-[#123c28]/25
+              focus:bg-white
+              focus:ring-2
+              focus:ring-[#123c28]/5
+            "
+                  />
+
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery("")}
+                      aria-label="Hapus pencarian"
+                      className="
+                absolute right-2 top-1/2
+                flex h-7 w-7
+                -translate-y-1/2
+                items-center justify-center
+                rounded-full
+                text-[#123c28]/45
+                transition
+                hover:bg-[#f3f6ed]
+                hover:text-[#123c28]
+              "
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* LAYER TOGGLE */}
+              <button
+                type="button"
+                onClick={() => setIsLayerPanelOpen((value) => !value)}
+                className="
+          inline-flex
+          h-10
+          shrink-0
+          items-center
+          gap-2
+          rounded-full
+          border
+          border-[#123c28]/10
+          bg-white
+          px-4
+          text-[10px]
+          font-bold
+          text-[#123c28]
+          transition
+          hover:bg-[#f3f6ed]
+        "
+              >
+                <Layers className="h-3.5 w-3.5" />
+
+                {isLayerPanelOpen
+                  ? "Sembunyikan Layer Peta"
+                  : "Tampilkan Layer peta"}
+              </button>
             </div>
           </div>
         </header>
 
         {/* ===================================================
-            TOOLBAR
+            SEARCH RESULT INFO
         ==================================================== */}
+        {searchQuery && (
+          <div className="mb-3 flex items-center justify-between px-1">
+            <p className="text-[10px] font-medium text-[#123c28]/55">
+              Menampilkan{" "}
+              <span className="font-bold text-[#123c28]">
+                {filteredMapLayers.length}
+              </span>{" "}
+              dari{" "}
+              <span className="font-bold text-[#123c28]">{maps.length}</span>{" "}
+              peta
+            </p>
 
-        <section className="mb-4 rounded-[24px] border border-[#123c28]/15 bg-white p-3 shadow-sm">
-          <div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-center">
-            {/* Left tools */}
-
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setIsLayerPanelOpen((value) => !value)}
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-[11px] font-bold transition ${
-                  isLayerPanelOpen
-                    ? "bg-[#123c28] text-white"
-                    : "bg-[#f3f6ed] text-[#123c28] hover:bg-[#e7ede1]"
-                }`}
-              >
-                <Layers className="h-4 w-4" />
-                Layer Peta
-              </button>
-            </div>
-
-            {/* Right tools */}
-
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={handleDownloadAnalysis}
-                disabled={isDownloadingAnalysis}
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-[11px] font-bold transition ${
-                  !isAdmin && user?.tier === "free"
-                    ? "cursor-not-allowed bg-[#f4f5f2] text-[#123c28]/50"
-                    : "bg-[#123c28] text-white hover:bg-[#1a5134]"
-                }`}
-              >
-                {!isAdmin && user?.tier === "free" ? (
-                  <Lock className="h-3.5 w-3.5" />
-                ) : isDownloadingAnalysis ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Download className="h-3.5 w-3.5" />
-                )}
-
-                {isDownloadingAnalysis
-                  ? "Menyiapkan Analisa..."
-                  : "Download Analisa"}
-              </button>
-
-              <div className="hidden h-7 w-px bg-[#123c28]/15 sm:block" />
-
-              <div className="flex items-center gap-1 rounded-full border border-[#123c28]/10 bg-[#f7f8f4] p-1">
-                {mapTools.map((tool, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    onClick={tool.onClick}
-                    disabled={tool.disabled}
-                    title={tool.label}
-                    className="flex h-8 w-8 items-center justify-center rounded-full text-[#123c28]/80 transition hover:bg-white hover:text-[#123c28] disabled:cursor-not-allowed disabled:opacity-30"
-                  >
-                    {tool.icon}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="text-[10px] font-bold text-[#123c28] hover:underline"
+            >
+              Hapus pencarian
+            </button>
           </div>
-        </section>
+        )}
 
         {/* ===================================================
             MAIN WORKSPACE
         ==================================================== */}
-
         <div className="grid grid-cols-12 gap-4">
           {/* =================================================
               LAYER PANEL
           ================================================== */}
-
           {isLayerPanelOpen && (
-            <aside className="col-span-12 lg:col-span-4">
-              <div className="rounded-[26px] border border-[#123c28]/15 bg-white p-4 shadow-sm">
-                <div className="mb-5 flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#123c28]/75">
-                      DATA LAYERS
-                    </p>
+            <aside className="col-span-12 lg:col-span-3">
+              <div className="overflow-hidden rounded-[22px] border border-[#123c28]/10 bg-white shadow-sm">
+                {/* =================================================
+    PANEL HEADER
+================================================= */}
+                <div className="border-b border-[#123c28]/10 px-4 py-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#123c28]/55">
+                        MAP LAYERS
+                      </p>
 
-                    <div className="mt-1 flex items-center gap-2">
-                      <h2 className="text-sm font-bold text-[#123c28]">
-                        Layer Peta
+                      <h2 className="mt-1 text-sm font-bold text-[#123c28]">
+                        Pilih Peta Anda
                       </h2>
-
-                      <span className="rounded-full border border-[#123c28]/15 bg-[#f7f8f4] px-2.5 py-0.5 text-[10px] font-bold text-[#123c28]">
-                        {maps.length} peta tersimpan
-                      </span>
                     </div>
-                  </div>
 
-                  <button
-                    type="button"
-                    className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f5f7f1] text-[#123c28]/80 transition hover:bg-[#e7ede1]"
-                  >
-                    <Settings className="h-3.5 w-3.5" />
-                  </button>
+                    <span className="shrink-0 text-[10px] font-semibold text-[#123c28]/50">
+                      {searchQuery
+                        ? `${filteredMapLayers.length} / ${maps.length}`
+                        : `${maps.length} Peta`}
+                    </span>
+                  </div>
                 </div>
 
-                {/* Loading */}
+                {/* LAYERS */}
+                <div className="max-h-[620px] space-y-2 overflow-y-auto p-3">
+                  {/* LOADING */}
+                  {loading && (
+                    <div className="rounded-2xl bg-[#f7f8f4] px-4 py-8 text-center">
+                      <div className="mx-auto mb-3 h-6 w-6 animate-spin rounded-full border-2 border-[#123c28]/20 border-t-[#123c28]" />
 
-                {loading && (
-                  <div className="rounded-2xl bg-[#f7f8f4] px-4 py-8 text-center">
-                    <div className="mx-auto mb-3 h-6 w-6 animate-spin rounded-full border-2 border-[#123c28]/20 border-t-[#123c28]" />
-
-                    <p className="text-xs font-semibold text-[#123c28]/80">
-                      Memuat data peta...
-                    </p>
-                  </div>
-                )}
-
-                {/* Error */}
-
-                {!loading && error && (
-                  <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-xs font-medium text-red-700">
-                    {error}
-                  </div>
-                )}
-
-                {/* Empty */}
-
-                {!loading && !error && mapLayers.length === 0 && (
-                  <div className="rounded-2xl border border-dashed border-[#123c28]/20 bg-[#fafbf8] px-4 py-9 text-center">
-                    <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-sm">
-                      <MapIcon className="h-5 w-5 text-[#123c28]/60" />
+                      <p className="text-xs font-semibold text-[#123c28]/70">
+                        Memuat data peta...
+                      </p>
                     </div>
+                  )}
 
-                    <p className="mt-4 text-xs font-bold text-[#123c28]">
-                      Belum ada peta
-                    </p>
+                  {/* ERROR */}
+                  {!loading && error && (
+                    <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-xs font-medium text-red-700">
+                      {error}
+                    </div>
+                  )}
 
-                    <p className="mt-1 text-[11px] font-medium leading-5 text-[#123c28]/75">
-                      Upload peta pertama Anda untuk mulai melakukan analisis.
-                    </p>
-                  </div>
-                )}
+                  {/* EMPTY */}
+                  {!loading && !error && maps.length === 0 && (
+                    <div className="rounded-2xl border border-dashed border-[#123c28]/15 bg-[#fafbf8] px-4 py-8 text-center">
+                      <MapIcon className="mx-auto h-5 w-5 text-[#123c28]/45" />
 
-                {/* Layers */}
+                      <p className="mt-3 text-xs font-bold text-[#123c28]">
+                        Belum ada peta
+                      </p>
 
-                <div className="max-h-[500px] space-y-2 overflow-y-auto pr-1">
-                  {mapLayers.map((layer) => {
+                      <p className="mt-1 text-[10px] font-medium leading-5 text-[#123c28]/60">
+                        Upload peta pertama Anda untuk mulai melakukan analisis.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* SEARCH EMPTY */}
+                  {!loading &&
+                    !error &&
+                    maps.length > 0 &&
+                    filteredMapLayers.length === 0 && (
+                      <div className="rounded-2xl border border-dashed border-[#123c28]/15 bg-[#fafbf8] px-4 py-8 text-center">
+                        <MapIcon className="mx-auto h-5 w-5 text-[#123c28]/40" />
+
+                        <p className="mt-3 text-xs font-bold text-[#123c28]">
+                          Peta tidak ditemukan
+                        </p>
+
+                        <p className="mt-1 text-[10px] font-medium leading-5 text-[#123c28]/60">
+                          Coba gunakan kata kunci lain untuk pencarian.
+                        </p>
+                      </div>
+                    )}
+
+                  {/* LAYER LIST */}
+                  {filteredMapLayers.map((layer) => {
                     const raw = maps.find((map) => map.id === layer.id)!;
 
                     const active = selectedLayer === layer.id;
@@ -927,50 +897,75 @@ export default function MapsPage() {
                             }
                           }
                         }}
-                        className={`group cursor-pointer rounded-2xl border p-3 transition ${
-                          active
-                            ? "border-[#123c28]/30 bg-[#f3f6ed] shadow-sm"
-                            : "border-[#123c28]/10 bg-white hover:border-[#123c28]/25 hover:bg-[#fafbf8]"
-                        } ${layer.locked ? "opacity-75" : ""}`}
+                        className={`
+                            group
+                            rounded-2xl
+                            border
+                            p-3
+                            transition
+                            ${
+                              active
+                                ? "border-[#123c28]/25 bg-[#f3f6ed]"
+                                : "border-[#123c28]/10 bg-white hover:border-[#123c28]/20 hover:bg-[#fafbf8]"
+                            }
+                            ${
+                              layer.locked
+                                ? "cursor-not-allowed opacity-70"
+                                : "cursor-pointer"
+                            }
+                          `}
                       >
-                        <div className="flex items-start gap-3">
+                        <div className="flex items-start gap-2.5">
                           <span
-                            className={`mt-1 h-2.5 w-2.5 flex-shrink-0 rounded-full ${layer.color}`}
+                            className={`
+                                mt-1
+                                h-2 w-2
+                                shrink-0
+                                rounded-full
+                                ${layer.color}
+                              `}
                           />
 
                           <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <h3 className="truncate text-xs font-bold text-[#123c28]">
+                            <div className="flex items-center gap-1.5">
+                              <h3 className="truncate text-[11px] font-bold text-[#123c28]">
                                 {layer.name}
                               </h3>
 
                               {layer.locked && (
-                                <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-[#fff5df] px-1.5 py-1 text-[8px] font-bold uppercase tracking-wide text-[#b27518]">
+                                <span className="inline-flex shrink-0 items-center gap-1 text-[8px] font-bold text-[#b27518]">
                                   <Lock className="h-2.5 w-2.5" />
                                   Pro
                                 </span>
                               )}
                             </div>
 
-                            <div className="mt-2 flex items-center gap-1.5 text-[10px] font-semibold text-[#123c28]/75">
-                              <Calendar className="h-3 w-3 text-[#123c28]/70" />
-
+                            <div className="mt-2 flex items-center gap-1.5 text-[9px] font-semibold text-[#123c28]/65">
+                              <Calendar className="h-3 w-3" />
                               {layer.date}
                             </div>
 
-                            <div className="mt-1 flex items-center gap-1.5 text-[10px] font-medium text-[#123c28]/85">
-                              <MapPin className="h-3 w-3 text-[#123c28]/70" />
+                            <div className="mt-1 flex items-center gap-1.5 text-[9px] font-medium text-[#123c28]/65">
+                              <MapPin className="h-3 w-3" />
 
                               <span className="truncate">{layer.location}</span>
                             </div>
                           </div>
 
                           {(isAdmin || !layer.locked) && (
-                            <div className="flex flex-shrink-0 items-center gap-0.5 opacity-0 transition group-hover:opacity-100">
+                            <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
                               <button
                                 type="button"
                                 onClick={(event) => openEditModal(raw, event)}
-                                className="flex h-7 w-7 items-center justify-center rounded-lg text-[#123c28]/60 transition hover:bg-white hover:text-[#123c28]"
+                                className="
+                                    flex h-7 w-7
+                                    items-center justify-center
+                                    rounded-lg
+                                    text-[#123c28]/55
+                                    transition
+                                    hover:bg-white
+                                    hover:text-[#123c28]
+                                  "
                                 title="Edit peta"
                               >
                                 <Pencil className="h-3.5 w-3.5" />
@@ -981,7 +976,15 @@ export default function MapsPage() {
                                 onClick={(event) =>
                                   openDeleteConfirm(raw, event)
                                 }
-                                className="flex h-7 w-7 items-center justify-center rounded-lg text-[#123c28]/60 transition hover:bg-red-50 hover:text-red-600"
+                                className="
+                                    flex h-7 w-7
+                                    items-center justify-center
+                                    rounded-lg
+                                    text-[#123c28]/55
+                                    transition
+                                    hover:bg-red-50
+                                    hover:text-red-600
+                                  "
                                 title="Hapus peta"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -993,19 +996,6 @@ export default function MapsPage() {
                     );
                   })}
                 </div>
-
-                {/* Info */}
-
-                <div className="mt-4 rounded-2xl border border-[#123c28]/10 bg-[#f7f8f4] p-3.5">
-                  <div className="flex items-start gap-2.5">
-                    <Info className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-[#123c28]/75" />
-
-                    <p className="text-[10px] font-medium leading-5 text-[#123c28]/80">
-                      Klik layer untuk menampilkannya di workspace. Gunakan
-                      action icon untuk edit atau hapus data.
-                    </p>
-                  </div>
-                </div>
               </div>
             </aside>
           )}
@@ -1013,113 +1003,256 @@ export default function MapsPage() {
           {/* =================================================
               MAP
           ================================================== */}
-
           <div
-            className={`${
-              isLayerPanelOpen ? "col-span-12 lg:col-span-8" : "col-span-12"
-            }`}
+            className={
+              isLayerPanelOpen ? "col-span-12 lg:col-span-9" : "col-span-12"
+            }
           >
-            <div className="overflow-hidden rounded-[26px] border border-[#123c28]/15 bg-white shadow-sm">
-              {/* Map top information */}
+            <div className="overflow-hidden rounded-[20px] border border-[#123c28]/10 bg-white shadow-sm">
+              {/* =================================================
+                  ACTIVE LAYER HEADER
+              ================================================== */}
+              <div className="border-b border-[#123c28]/10 px-5 py-4">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                  {/* MAP IDENTITY */}
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#f3f6ed]">
+                      <ScanLine className="h-4 w-4 text-[#123c28]" />
+                    </div>
 
-              <div className="flex flex-col justify-between gap-3 border-b border-[#123c28]/10 bg-white px-4 py-3 sm:flex-row sm:items-center">
-                <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-[#f3f6ed]">
-                    <ScanLine className="h-3.5 w-3.5 text-[#123c28]" />
+                    <div className="min-w-0">
+                      <h3 className="truncate text-sm font-bold leading-5 text-[#123c28] sm:text-[15px]">
+                        {selectedMap
+                          ? selectedMap.name
+                          : "Belum ada layer dipilih"}
+                      </h3>
+
+                      {selectedMap ? (
+                        <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[10px] font-medium text-[#123c28]/50">
+                          <span>
+                            {selectedMap.format?.toUpperCase() || "UNKNOWN"}
+                          </span>
+
+                          <span className="text-[#123c28]/20">•</span>
+
+                          <span>{selectedMap.size} MB</span>
+
+                          <span className="text-[#123c28]/20">•</span>
+
+                          <span>Survey {selectedMap.date}</span>
+                        </div>
+                      ) : (
+                        <p className="mt-1 text-[10px] font-medium text-[#123c28]/45">
+                          Pilih layer untuk melihat data pemetaan
+                        </p>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="min-w-0">
-                    <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#123c28]/75">
-                      ACTIVE LAYER
-                    </p>
+                  {/* MAP ACTIONS */}
+                  <div className="flex shrink-0 flex-wrap items-center gap-2">
+                    {/* DOWNLOAD */}
+                    <button
+                      type="button"
+                      onClick={handleDownloadAnalysis}
+                      disabled={isDownloadingAnalysis}
+                      className={`
+                        inline-flex h-10
+                        items-center gap-2
+                        rounded-full
+                        px-4
+                        text-[11px]
+                        font-bold
+                        transition
+                        ${
+                          !isAdmin && user?.tier === "free"
+                            ? "cursor-not-allowed border border-[#123c28]/10 bg-[#fafbf8] text-[#123c28]/35"
+                            : "bg-[#123c28] text-white hover:bg-[#1a5134]"
+                        }
+                      `}
+                    >
+                      {!isAdmin && user?.tier === "free" ? (
+                        <Lock className="h-3.5 w-3.5" />
+                      ) : isDownloadingAnalysis ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Download className="h-3.5 w-3.5" />
+                      )}
 
-                    <p className="truncate text-xs font-bold text-[#123c28]">
-                      {selectedMap
-                        ? selectedMap.name
-                        : "Belum ada layer dipilih"}
-                    </p>
+                      <span>
+                        {isDownloadingAnalysis
+                          ? "Menyiapkan..."
+                          : "Download Analisa"}
+                      </span>
+                    </button>
+
+                    {/* SHARE */}
+                    <button
+                      type="button"
+                      onClick={handleShare}
+                      disabled={!selectedMapRaw}
+                      className="
+                        inline-flex h-10
+                        items-center gap-2
+                        rounded-full
+                        border border-[#123c28]/10
+                        bg-white
+                        px-4
+                        text-[11px]
+                        font-bold
+                        text-[#123c28]
+                        transition
+                        hover:bg-[#f3f6ed]
+                        disabled:cursor-not-allowed
+                        disabled:opacity-40
+                      "
+                    >
+                      <Share2 className="h-3.5 w-3.5" />
+                      Bagikan
+                    </button>
+
+                    {/* MAP CONTROLS */}
+                    <div className="flex h-10 items-center gap-0.5 rounded-full border border-[#123c28]/10 bg-white p-1">
+                      <button
+                        type="button"
+                        onClick={handleZoomIn}
+                        disabled={!selectedMapRaw}
+                        title="Zoom In"
+                        aria-label="Zoom In"
+                        className="
+                          flex h-8 w-8
+                          items-center justify-center
+                          rounded-full
+                          text-[#123c28]/70
+                          transition
+                          hover:bg-[#f3f6ed]
+                          hover:text-[#123c28]
+                          disabled:cursor-not-allowed
+                          disabled:opacity-30
+                        "
+                      >
+                        <ZoomIn className="h-4 w-4" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleZoomOut}
+                        disabled={!selectedMapRaw}
+                        title="Zoom Out"
+                        aria-label="Zoom Out"
+                        className="
+                          flex h-8 w-8
+                          items-center justify-center
+                          rounded-full
+                          text-[#123c28]/70
+                          transition
+                          hover:bg-[#f3f6ed]
+                          hover:text-[#123c28]
+                          disabled:cursor-not-allowed
+                          disabled:opacity-30
+                        "
+                      >
+                        <ZoomOut className="h-4 w-4" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleFullscreen}
+                        title={
+                          isFullscreen ? "Keluar Layar Penuh" : "Full Screen"
+                        }
+                        aria-label={
+                          isFullscreen ? "Keluar Layar Penuh" : "Full Screen"
+                        }
+                        className="
+                          flex h-8 w-8
+                          items-center justify-center
+                          rounded-full
+                          text-[#123c28]/70
+                          transition
+                          hover:bg-[#f3f6ed]
+                          hover:text-[#123c28]
+                        "
+                      >
+                        {isFullscreen ? (
+                          <Minimize2 className="h-4 w-4" />
+                        ) : (
+                          <Maximize2 className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
-
-                {selectedMap && (
-                  <div className="flex items-center gap-4 text-[10px] font-semibold text-[#123c28]/80">
-                    <span>
-                      .{selectedMap.format?.toUpperCase() || "UNKNOWN"}
-                    </span>
-
-                    <span className="h-3 w-px bg-[#123c28]/20" />
-
-                    <span>{selectedMap.size} MB</span>
-                  </div>
-                )}
               </div>
 
-              {/* Map */}
-
+              {/* =================================================
+                  MAP
+              ================================================== */}
               <div
                 ref={mapContainerRef}
-                className="relative h-[520px] w-full bg-[#f1f3ed] sm:h-[600px]"
+                className="relative h-[460px] w-full bg-[#f1f3ed] sm:h-[600px]"
               >
-                {useMemo(
-                  () => (
-                    <Map
-                      ref={mapRef}
-                      mapId={selectedMap?.id}
-                      token={
-                        typeof window !== "undefined"
-                          ? localStorage.getItem("token") || undefined
-                          : undefined
-                      }
-                      mapFormat={selectedMap?.format}
-                      mapTitle={selectedMap?.name}
-                      mapLocation={selectedMap?.location}
-                    />
-                  ),
-                  [
-                    selectedMap?.id,
-                    selectedMap?.format,
-                    selectedMap?.name,
-                    selectedMap?.location,
-                  ]
-                )}
-
-                {/* Floating map badge */}
-
-                <div className="pointer-events-none absolute left-4 top-4 z-[400] hidden rounded-full border border-white/80 bg-white/95 px-3 py-2 shadow-lg backdrop-blur sm:block">
-                  <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-[#91b928]" />
-
-                    <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#123c28]">
-                      UAV FIELD MAP
-                    </span>
-                  </div>
-                </div>
+                <Map
+                  ref={mapRef}
+                  mapId={selectedMap?.id}
+                  token={
+                    typeof window !== "undefined"
+                      ? localStorage.getItem("token") || undefined
+                      : undefined
+                  }
+                  mapFormat={selectedMap?.format}
+                  mapTitle={selectedMap?.name}
+                  mapLocation={selectedMap?.location}
+                />
               </div>
 
-              {/* Map footer */}
+              {/* =================================================
+                  FOOTER
+              ================================================== */}
+              <div className="border-t border-[#123c28]/10 bg-[#fafbf8] px-5 py-3.5">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="text-[10px] font-medium text-[#123c28]/50">
+                    <span>{maps.length} peta tersimpan</span>
 
-              <div className="flex flex-col justify-between gap-3 border-t border-[#123c28]/10 bg-[#fafbf8] px-4 py-3 sm:flex-row sm:items-center">
-                <div className="flex items-center gap-4 text-[10px] font-semibold text-[#123c28]/75">
-                  <span>{maps.length} peta tersimpan</span>
+                    {selectedMap && (
+                      <>
+                        <span className="mx-2 text-[#123c28]/20">•</span>
 
-                  {selectedMap && (
-                    <>
-                      <span>•</span>
+                        <span>
+                          Lokasi {selectedMap.location || "Tidak tersedia"}
+                        </span>
+                      </>
+                    )}
+                  </div>
 
-                      <span>Survey: {selectedMap.date}</span>
-                    </>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => setMetadataMap(selectedMapRaw)}
+                    disabled={!selectedMapRaw}
+                    className="
+                      inline-flex
+                      items-center
+                      justify-center
+                      gap-1.5
+                      rounded-lg
+                      border border-[#123c28]/10
+                      bg-white
+                      px-3.5 py-2
+                      text-[10px]
+                      font-bold
+                      text-[#123c28]
+                      transition
+                      hover:bg-[#f3f6ed]
+                      disabled:cursor-not-allowed
+                      disabled:border-[#123c28]/5
+                      disabled:bg-[#fafbf8]
+                      disabled:text-[#123c28]/30
+                    "
+                  >
+                    Lihat Metadata
+                    <ArrowUpRight className="h-3.5 w-3.5" />
+                  </button>
                 </div>
-
-                <button
-                  type="button"
-                  onClick={() => setMetadataMap(selectedMapRaw)}
-                  disabled={!selectedMapRaw}
-                  className="inline-flex items-center gap-1.5 self-start text-[10px] font-bold text-[#123c28] transition hover:underline disabled:cursor-not-allowed disabled:text-[#123c28]/35 sm:self-auto"
-                >
-                  Lihat Metadata
-                  <ArrowUpRight className="h-3.5 w-3.5" />
-                </button>
               </div>
             </div>
           </div>
@@ -1127,21 +1260,31 @@ export default function MapsPage() {
       </div>
 
       {/* =====================================================
-          NOTICE TOAST
+          NOTICE
       ====================================================== */}
-
       {notice && (
         <div
-          className={`fixed bottom-6 right-6 z-[9998] flex max-w-sm items-center gap-3 rounded-2xl px-4 py-3.5 text-xs font-medium shadow-2xl ${
-            notice.type === "success"
-              ? "bg-[#123c28] text-white"
-              : "bg-[#a3483c] text-white"
-          }`}
+          className={`
+            fixed bottom-6 right-6
+            z-[9998]
+            flex max-w-sm
+            items-center gap-3
+            rounded-2xl
+            px-4 py-3.5
+            text-xs
+            font-medium
+            shadow-2xl
+            ${
+              notice.type === "success"
+                ? "bg-[#123c28] text-white"
+                : "bg-[#a3483c] text-white"
+            }
+          `}
         >
           {notice.type === "success" ? (
-            <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
           ) : (
-            <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+            <AlertTriangle className="h-4 w-4 shrink-0" />
           )}
 
           <span>{notice.text}</span>
@@ -1151,12 +1294,10 @@ export default function MapsPage() {
       {/* =====================================================
           METADATA MODAL
       ====================================================== */}
-
       {metadataMap && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#123c28]/40 p-4 backdrop-blur-sm">
           <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-[28px] border border-[#123c28]/15 bg-white shadow-2xl">
-            {/* header */}
-
+            {/* HEADER */}
             <div className="flex items-center justify-between border-b border-[#123c28]/10 px-6 py-5">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#123c28]/75">
@@ -1171,17 +1312,24 @@ export default function MapsPage() {
               <button
                 type="button"
                 onClick={() => setMetadataMap(null)}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f5f7f1] text-[#123c28]/80 transition hover:bg-[#123c28] hover:text-white"
+                className="
+                  flex h-9 w-9
+                  items-center justify-center
+                  rounded-full
+                  bg-[#f5f7f1]
+                  text-[#123c28]/80
+                  transition
+                  hover:bg-[#123c28]
+                  hover:text-white
+                "
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            {/* content */}
-
+            {/* CONTENT */}
             <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
-              {/* Basic */}
-
+              {/* BASIC */}
               <div>
                 <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#123c28]/70">
                   Informasi Umum
@@ -1211,7 +1359,16 @@ export default function MapsPage() {
                   ].map(([label, value]) => (
                     <div
                       key={label}
-                      className="flex items-center justify-between gap-4 rounded-xl px-3 py-2 text-xs hover:bg-white"
+                      className="
+                        flex
+                        items-center
+                        justify-between
+                        gap-4
+                        rounded-xl
+                        px-3 py-2
+                        text-xs
+                        hover:bg-white
+                      "
                     >
                       <span className="font-medium text-[#123c28]/70">
                         {label}
@@ -1225,19 +1382,12 @@ export default function MapsPage() {
                 </div>
               </div>
 
-              {/* Geo metadata */}
-
+              {/* GEO METADATA */}
               {metadataMap.geo_metadata ? (
                 <div>
-                  <div className="mb-2 flex items-center justify-between">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#123c28]/70">
-                      Metadata Geospasial & Raster
-                    </p>
-
-                    <span className="rounded-full bg-[#eef3e8] px-2.5 py-0.5 text-[9px] font-bold text-[#123c28]">
-                      GeoTIFF Valid
-                    </span>
-                  </div>
+                  <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#123c28]/70">
+                    Metadata Geospasial & Raster
+                  </p>
 
                   <div className="space-y-1 rounded-2xl border border-[#123c28]/10 bg-[#fafbf8] p-3">
                     <div className="flex items-center justify-between gap-4 rounded-xl px-3 py-2 text-xs hover:bg-white">
@@ -1246,7 +1396,7 @@ export default function MapsPage() {
                       </span>
 
                       <span className="max-w-[65%] truncate text-right font-bold text-[#123c28]">
-                        {metadataMap.geo_metadata.crs || "N/A"}
+                        {metadataMap.geo_metadata.crs}
                       </span>
                     </div>
 
@@ -1310,8 +1460,6 @@ export default function MapsPage() {
                       )}
                   </div>
 
-                  {/* Bounding */}
-
                   {metadataMap.geo_metadata.bounds_wgs84 && (
                     <div className="mt-3 rounded-2xl border border-[#123c28]/10 bg-[#f7f8f4] p-3.5">
                       <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.15em] text-[#123c28]/75">
@@ -1370,8 +1518,7 @@ export default function MapsPage() {
                 </div>
               )}
 
-              {/* Description */}
-
+              {/* DESCRIPTION */}
               {metadataMap.description && (
                 <div className="rounded-2xl border border-[#123c28]/10 bg-[#f7f8f4] p-4">
                   <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#123c28]/75">
@@ -1385,8 +1532,7 @@ export default function MapsPage() {
               )}
             </div>
 
-            {/* footer */}
-
+            {/* FOOTER */}
             <div className="flex gap-3 border-t border-[#123c28]/10 bg-[#fafbf8] px-6 py-4">
               <button
                 type="button"
@@ -1416,10 +1562,10 @@ export default function MapsPage() {
       {/* =====================================================
           EDIT MODAL
       ====================================================== */}
-
       {editingMap && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#123c28]/40 p-4 backdrop-blur-sm">
           <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-[28px] border border-[#123c28]/15 bg-white shadow-2xl">
+            {/* HEADER */}
             <div className="flex items-center justify-between border-b border-[#123c28]/10 px-6 py-5">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#123c28]/75">
@@ -1434,15 +1580,24 @@ export default function MapsPage() {
               <button
                 type="button"
                 onClick={closeEditModal}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f5f7f1] text-[#123c28]/80 transition hover:bg-[#123c28] hover:text-white"
+                className="
+                  flex h-9 w-9
+                  items-center justify-center
+                  rounded-full
+                  bg-[#f5f7f1]
+                  text-[#123c28]/80
+                  transition
+                  hover:bg-[#123c28]
+                  hover:text-white
+                "
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
+            {/* CONTENT */}
             <div className="space-y-4 overflow-y-auto px-6 py-5">
-              {/* title */}
-
+              {/* TITLE */}
               <div>
                 <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-[#123c28]/75">
                   Judul Peta
@@ -1457,11 +1612,25 @@ export default function MapsPage() {
                       title: event.target.value,
                     })
                   }
-                  className={`h-11 w-full rounded-2xl border bg-[#fafbf8] px-4 text-sm font-medium text-[#123c28] outline-none transition placeholder:text-[#123c28]/45 focus:bg-white ${
-                    editErrors.title
-                      ? "border-red-400 focus:border-red-500"
-                      : "border-[#123c28]/15 focus:border-[#123c28]/40"
-                  }`}
+                  className={`
+                    h-11 w-full
+                    rounded-2xl
+                    border
+                    bg-[#fafbf8]
+                    px-4
+                    text-sm
+                    font-medium
+                    text-[#123c28]
+                    outline-none
+                    transition
+                    placeholder:text-[#123c28]/45
+                    focus:bg-white
+                    ${
+                      editErrors.title
+                        ? "border-red-400 focus:border-red-500"
+                        : "border-[#123c28]/15 focus:border-[#123c28]/40"
+                    }
+                  `}
                   placeholder="Contoh: Peta Orthomosaic Lahan Padi - Jul 2026"
                 />
 
@@ -1472,8 +1641,7 @@ export default function MapsPage() {
                 )}
               </div>
 
-              {/* location */}
-
+              {/* LOCATION */}
               <div>
                 <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-[#123c28]/75">
                   Lokasi / Wilayah
@@ -1491,11 +1659,25 @@ export default function MapsPage() {
                         location: event.target.value,
                       })
                     }
-                    className={`h-11 w-full rounded-2xl border bg-[#fafbf8] pl-10 pr-4 text-sm font-medium text-[#123c28] outline-none transition placeholder:text-[#123c28]/45 focus:bg-white ${
-                      editErrors.location
-                        ? "border-red-400 focus:border-red-500"
-                        : "border-[#123c28]/15 focus:border-[#123c28]/40"
-                    }`}
+                    className={`
+                      h-11 w-full
+                      rounded-2xl
+                      border
+                      bg-[#fafbf8]
+                      pl-10 pr-4
+                      text-sm
+                      font-medium
+                      text-[#123c28]
+                      outline-none
+                      transition
+                      placeholder:text-[#123c28]/45
+                      focus:bg-white
+                      ${
+                        editErrors.location
+                          ? "border-red-400 focus:border-red-500"
+                          : "border-[#123c28]/15 focus:border-[#123c28]/40"
+                      }
+                    `}
                     placeholder="Contoh: Desa Sriharjo, Kec. Imogiri, Bantul"
                   />
                 </div>
@@ -1507,8 +1689,7 @@ export default function MapsPage() {
                 )}
               </div>
 
-              {/* survey date */}
-
+              {/* DATE */}
               <div>
                 <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-[#123c28]/75">
                   Tanggal Survey Drone
@@ -1526,11 +1707,24 @@ export default function MapsPage() {
                         survey_date: event.target.value,
                       })
                     }
-                    className={`h-11 w-full rounded-2xl border bg-[#fafbf8] pl-10 pr-4 text-sm font-medium text-[#123c28] outline-none transition focus:bg-white ${
-                      editErrors.survey_date
-                        ? "border-red-400 focus:border-red-500"
-                        : "border-[#123c28]/15 focus:border-[#123c28]/40"
-                    }`}
+                    className={`
+                      h-11 w-full
+                      rounded-2xl
+                      border
+                      bg-[#fafbf8]
+                      pl-10 pr-4
+                      text-sm
+                      font-medium
+                      text-[#123c28]
+                      outline-none
+                      transition
+                      focus:bg-white
+                      ${
+                        editErrors.survey_date
+                          ? "border-red-400 focus:border-red-500"
+                          : "border-[#123c28]/15 focus:border-[#123c28]/40"
+                      }
+                    `}
                   />
                 </div>
 
@@ -1541,8 +1735,7 @@ export default function MapsPage() {
                 )}
               </div>
 
-              {/* description */}
-
+              {/* DESCRIPTION */}
               <div>
                 <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-[#123c28]/75">
                   Deskripsi Tambahan (Opsional)
@@ -1557,13 +1750,27 @@ export default function MapsPage() {
                     })
                   }
                   rows={3}
-                  className="w-full resize-none rounded-2xl border border-[#123c28]/15 bg-[#fafbf8] px-4 py-2.5 text-sm font-medium text-[#123c28] outline-none transition placeholder:text-[#123c28]/45 focus:border-[#123c28]/40 focus:bg-white"
+                  className="
+                    w-full
+                    resize-none
+                    rounded-2xl
+                    border border-[#123c28]/15
+                    bg-[#fafbf8]
+                    px-4 py-2.5
+                    text-sm
+                    font-medium
+                    text-[#123c28]
+                    outline-none
+                    transition
+                    placeholder:text-[#123c28]/45
+                    focus:border-[#123c28]/40
+                    focus:bg-white
+                  "
                   placeholder="Informasi ketinggian terbang, sensor kamera, dsb..."
                 />
               </div>
 
-              {/* access */}
-
+              {/* ACCESS */}
               <div className="pt-2">
                 <div className="mb-2.5 flex items-center gap-2">
                   <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#f3f6ed]">
@@ -1576,6 +1783,7 @@ export default function MapsPage() {
                 </div>
 
                 <div className="space-y-2.5">
+                  {/* LOCK */}
                   <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#123c28]/10 bg-[#fafbf8] p-3.5 transition-colors hover:border-[#123c28]/25 hover:bg-white">
                     <input
                       type="checkbox"
@@ -1601,6 +1809,7 @@ export default function MapsPage() {
                     </div>
                   </label>
 
+                  {/* PURCHASE */}
                   <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#123c28]/10 bg-[#fafbf8] p-3.5 transition-colors hover:border-[#123c28]/25 hover:bg-white">
                     <input
                       type="checkbox"
@@ -1629,12 +1838,27 @@ export default function MapsPage() {
               </div>
             </div>
 
+            {/* FOOTER */}
             <div className="flex gap-3 border-t border-[#123c28]/10 bg-[#fafbf8] px-6 py-4">
               <button
                 type="button"
                 onClick={submitEdit}
                 disabled={isSavingEdit}
-                className="flex flex-1 items-center justify-center gap-2 rounded-full bg-[#123c28] py-3 text-xs font-semibold text-white transition hover:bg-[#1a5134] disabled:opacity-60"
+                className="
+                  flex flex-1
+                  items-center
+                  justify-center
+                  gap-2
+                  rounded-full
+                  bg-[#123c28]
+                  py-3
+                  text-xs
+                  font-semibold
+                  text-white
+                  transition
+                  hover:bg-[#1a5134]
+                  disabled:opacity-60
+                "
               >
                 {isSavingEdit && (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1646,7 +1870,19 @@ export default function MapsPage() {
                 type="button"
                 onClick={closeEditModal}
                 disabled={isSavingEdit}
-                className="flex-1 rounded-full border border-[#123c28]/15 bg-white py-3 text-xs font-bold text-[#123c28] transition hover:bg-[#f0f2ed]"
+                className="
+                  flex-1
+                  rounded-full
+                  border
+                  border-[#123c28]/15
+                  bg-white
+                  py-3
+                  text-xs
+                  font-bold
+                  text-[#123c28]
+                  transition
+                  hover:bg-[#f0f2ed]
+                "
               >
                 Batal
               </button>
@@ -1658,7 +1894,6 @@ export default function MapsPage() {
       {/* =====================================================
           DELETE MODAL
       ====================================================== */}
-
       {deletingMap && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#123c28]/40 p-4 backdrop-blur-sm">
           <div className="w-full max-w-sm overflow-hidden rounded-[28px] border border-[#123c28]/15 bg-white shadow-2xl">
@@ -1678,7 +1913,9 @@ export default function MapsPage() {
               <p className="mt-3 text-xs font-medium leading-6 text-[#123c28]/75">
                 Peta{" "}
                 <span className="font-bold text-[#123c28]">
-                  &quot;{deletingMap.title}&quot;
+                  &quot;
+                  {deletingMap.title}
+                  &quot;
                 </span>{" "}
                 akan dihapus secara permanen.
               </p>
@@ -1688,7 +1925,21 @@ export default function MapsPage() {
                   type="button"
                   onClick={confirmDelete}
                   disabled={isDeleting}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-full bg-red-600 py-3 text-xs font-bold text-white transition hover:bg-red-700 disabled:opacity-60"
+                  className="
+                    flex flex-1
+                    items-center
+                    justify-center
+                    gap-2
+                    rounded-full
+                    bg-red-600
+                    py-3
+                    text-xs
+                    font-bold
+                    text-white
+                    transition
+                    hover:bg-red-700
+                    disabled:opacity-60
+                  "
                 >
                   {isDeleting ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1702,7 +1953,19 @@ export default function MapsPage() {
                   type="button"
                   onClick={closeDeleteConfirm}
                   disabled={isDeleting}
-                  className="flex-1 rounded-full border border-[#123c28]/15 bg-[#f5f7f1] py-3 text-xs font-bold text-[#123c28] transition hover:bg-[#e9ede3]"
+                  className="
+                    flex-1
+                    rounded-full
+                    border
+                    border-[#123c28]/15
+                    bg-[#f5f7f1]
+                    py-3
+                    text-xs
+                    font-bold
+                    text-[#123c28]
+                    transition
+                    hover:bg-[#e9ede3]
+                  "
                 >
                   Batal
                 </button>
@@ -1715,12 +1978,10 @@ export default function MapsPage() {
       {/* =====================================================
           PREMIUM MODAL
       ====================================================== */}
-
       {toastMessage && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#123c28]/40 p-4 backdrop-blur-sm">
           <div className="w-full max-w-md overflow-hidden rounded-[28px] border border-[#123c28]/15 bg-white shadow-2xl">
-            {/* header */}
-
+            {/* PREMIUM HEADER */}
             <div className="relative overflow-hidden bg-[#123c28] px-7 py-8 text-center text-white">
               <div className="absolute -right-10 -top-16 h-36 w-36 rounded-full border border-white/10" />
 
@@ -1729,7 +1990,19 @@ export default function MapsPage() {
               <button
                 type="button"
                 onClick={() => setToastMessage("")}
-                className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/80 transition hover:bg-white/20 hover:text-white"
+                className="
+                  absolute
+                  right-4 top-4
+                  flex h-8 w-8
+                  items-center
+                  justify-center
+                  rounded-full
+                  bg-white/10
+                  text-white/80
+                  transition
+                  hover:bg-white/20
+                  hover:text-white
+                "
               >
                 <X className="h-4 w-4" />
               </button>
@@ -1751,8 +2024,7 @@ export default function MapsPage() {
               </p>
             </div>
 
-            {/* body */}
-
+            {/* BODY */}
             <div className="px-7 py-7 text-center">
               <p className="text-sm font-medium leading-6 text-[#123c28]">
                 {toastMessage}
@@ -1761,7 +2033,20 @@ export default function MapsPage() {
               <div className="mt-6 flex flex-col gap-2.5">
                 <Link
                   href="/dashboard/subscription"
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-[#123c28] px-5 py-3.5 text-xs font-bold text-white transition hover:bg-[#1a5134]"
+                  className="
+                    inline-flex
+                    items-center
+                    justify-center
+                    gap-2
+                    rounded-full
+                    bg-[#123c28]
+                    px-5 py-3.5
+                    text-xs
+                    font-bold
+                    text-white
+                    transition
+                    hover:bg-[#1a5134]
+                  "
                 >
                   Lihat Paket Langganan
                   <ArrowUpRight className="h-4 w-4" />
@@ -1770,7 +2055,17 @@ export default function MapsPage() {
                 <button
                   type="button"
                   onClick={() => setToastMessage("")}
-                  className="rounded-full border border-[#123c28]/15 bg-[#f5f7f1] px-5 py-3.5 text-xs font-bold text-[#123c28] transition hover:bg-[#e9ede3]"
+                  className="
+                    rounded-full
+                    border border-[#123c28]/15
+                    bg-[#f5f7f1]
+                    px-5 py-3.5
+                    text-xs
+                    font-bold
+                    text-[#123c28]
+                    transition
+                    hover:bg-[#e9ede3]
+                  "
                 >
                   Mungkin Nanti
                 </button>

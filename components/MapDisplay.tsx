@@ -339,8 +339,8 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         firstUavLayer = map.getLayer(UAV_RASTER_LAYER_ID)
           ? UAV_RASTER_LAYER_ID
           : map.getLayer(UAV_IMAGE_LAYER_ID)
-            ? UAV_IMAGE_LAYER_ID
-            : undefined;
+          ? UAV_IMAGE_LAYER_ID
+          : undefined;
       }
 
       map.addLayer(
@@ -644,9 +644,12 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
          * Fetch Multi-Layers if available
          */
         try {
-          const layersRes = await fetch(`${baseUrl}/maps/${activeMapId}/layers`, {
-            headers,
-          });
+          const layersRes = await fetch(
+            `${baseUrl}/maps/${activeMapId}/layers`,
+            {
+              headers,
+            }
+          );
           if (layersRes.ok) {
             const lData: MapLayerItem[] = await layersRes.json();
             setMapLayers(lData);
@@ -1448,10 +1451,8 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         {currentMeta && (
           <div className="pointer-events-none absolute bottom-14 right-4 z-[1000] max-w-xs rounded-2xl border border-white/80 bg-white/95 px-3 py-2.5 shadow-xl backdrop-blur-md">
             <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-[#91b928]" />
-
-              <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#123c28]">
-                UAV FIELD MAP
+              <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#123c28]">
+                PETA LAPANGAN UAV
               </span>
             </div>
 
