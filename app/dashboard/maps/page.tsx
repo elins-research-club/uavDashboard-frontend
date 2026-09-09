@@ -328,9 +328,8 @@ export default function MapsPage() {
       return;
     }
 
-    const shareUrl = `${window.location.origin}${
-      window.location.pathname
-    }?map=${encodeURIComponent(selectedMapRaw.id)}`;
+    const shareUrl = `${window.location.origin}${window.location.pathname
+      }?map=${encodeURIComponent(selectedMapRaw.id)}`;
 
     const shareTitle = selectedMapRaw.title || "Peta Geospasial";
 
@@ -654,7 +653,7 @@ export default function MapsPage() {
                 </span>
 
                 <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#123c28]/70">
-                  GEOSPATIAL WORKSPACE
+                  UAV DATA-AS-A-SERVICE PLATFORM
                 </span>
               </div>
 
@@ -662,10 +661,6 @@ export default function MapsPage() {
                 Peta & Analisis
                 <span className="text-[#1a5134]"> Geospasial</span>
               </h1>
-
-              <p className="mt-1 text-xs font-medium text-[#123c28]/55">
-                Kelola layer, eksplorasi data, dan analisis hasil survey UAV.
-              </p>
             </div>
 
             {/* SEARCH + LAYER TOGGLE */}
@@ -903,16 +898,14 @@ export default function MapsPage() {
                             border
                             p-3
                             transition
-                            ${
-                              active
-                                ? "border-[#123c28]/25 bg-[#f3f6ed]"
-                                : "border-[#123c28]/10 bg-white hover:border-[#123c28]/20 hover:bg-[#fafbf8]"
-                            }
-                            ${
-                              layer.locked
-                                ? "cursor-not-allowed opacity-70"
-                                : "cursor-pointer"
-                            }
+                            ${active
+                            ? "border-[#123c28]/25 bg-[#f3f6ed]"
+                            : "border-[#123c28]/10 bg-white hover:border-[#123c28]/20 hover:bg-[#fafbf8]"
+                          }
+                            ${layer.locked
+                            ? "cursor-not-allowed opacity-70"
+                            : "cursor-pointer"
+                          }
                           `}
                       >
                         <div className="flex items-start gap-2.5">
@@ -1064,10 +1057,9 @@ export default function MapsPage() {
                         text-[11px]
                         font-bold
                         transition
-                        ${
-                          !isAdmin && user?.tier === "free"
-                            ? "cursor-not-allowed border border-[#123c28]/10 bg-[#fafbf8] text-[#123c28]/35"
-                            : "bg-[#123c28] text-white hover:bg-[#1a5134]"
+                        ${!isAdmin && user?.tier === "free"
+                          ? "cursor-not-allowed border border-[#123c28]/10 bg-[#fafbf8] text-[#123c28]/35"
+                          : "bg-[#123c28] text-white hover:bg-[#1a5134]"
                         }
                       `}
                     >
@@ -1274,10 +1266,9 @@ export default function MapsPage() {
             text-xs
             font-medium
             shadow-2xl
-            ${
-              notice.type === "success"
-                ? "bg-[#123c28] text-white"
-                : "bg-[#a3483c] text-white"
+            ${notice.type === "success"
+              ? "bg-[#123c28] text-white"
+              : "bg-[#a3483c] text-white"
             }
           `}
         >
@@ -1625,10 +1616,9 @@ export default function MapsPage() {
                     transition
                     placeholder:text-[#123c28]/45
                     focus:bg-white
-                    ${
-                      editErrors.title
-                        ? "border-red-400 focus:border-red-500"
-                        : "border-[#123c28]/15 focus:border-[#123c28]/40"
+                    ${editErrors.title
+                      ? "border-red-400 focus:border-red-500"
+                      : "border-[#123c28]/15 focus:border-[#123c28]/40"
                     }
                   `}
                   placeholder="Contoh: Peta Orthomosaic Lahan Padi - Jul 2026"
@@ -1672,10 +1662,9 @@ export default function MapsPage() {
                       transition
                       placeholder:text-[#123c28]/45
                       focus:bg-white
-                      ${
-                        editErrors.location
-                          ? "border-red-400 focus:border-red-500"
-                          : "border-[#123c28]/15 focus:border-[#123c28]/40"
+                      ${editErrors.location
+                        ? "border-red-400 focus:border-red-500"
+                        : "border-[#123c28]/15 focus:border-[#123c28]/40"
                       }
                     `}
                     placeholder="Contoh: Desa Sriharjo, Kec. Imogiri, Bantul"
@@ -1719,10 +1708,9 @@ export default function MapsPage() {
                       outline-none
                       transition
                       focus:bg-white
-                      ${
-                        editErrors.survey_date
-                          ? "border-red-400 focus:border-red-500"
-                          : "border-[#123c28]/15 focus:border-[#123c28]/40"
+                      ${editErrors.survey_date
+                        ? "border-red-400 focus:border-red-500"
+                        : "border-[#123c28]/15 focus:border-[#123c28]/40"
                       }
                     `}
                   />

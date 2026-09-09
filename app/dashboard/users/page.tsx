@@ -82,13 +82,13 @@ export default function UsersPage() {
         cur.map((u) =>
           u.id === id
             ? {
-                ...u,
-                subscription: {
-                  ...(u.subscription || {}),
-                  tier,
-                  status: "active",
-                },
-              }
+              ...u,
+              subscription: {
+                ...(u.subscription || {}),
+                tier,
+                status: "active",
+              },
+            }
             : u
         )
       );
@@ -131,9 +131,7 @@ export default function UsersPage() {
               Manajemen <span className="text-[#1a5134]">User</span>
             </h1>
 
-            <p className="mt-3 text-sm font-medium text-[#4b5d52]">
-              Kelola role akses dan tier subscription setiap pengguna.
-            </p>
+
           </div>
 
           <div className="rounded-full border border-[#123c28]/15 bg-[#f5f7f1] px-4 py-2.5">
@@ -150,24 +148,15 @@ export default function UsersPage() {
             QUICK STATUS
         ====================================================== */}
         <div className="mb-6 flex flex-wrap items-center gap-2">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#123c28]/15 bg-[#f7f8f4] px-3.5 py-2 text-[11px] font-semibold text-[#123c28]">
-            <ShieldCheck className="h-3.5 w-3.5" />
-            Kontrol akses role admin/member
-          </div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#123c28]/15 bg-[#f7f8f4] px-3.5 py-2 text-[11px] font-semibold text-[#123c28]">
-            <CreditCard className="h-3.5 w-3.5" />
-            Simulasi tier subscription
-          </div>
         </div>
 
         {/* Message */}
         {message && (
           <div
-            className={`mb-6 rounded-2xl border px-5 py-3.5 text-sm font-semibold ${
-              msgType === "success"
-                ? "border-[#91b928]/40 bg-[#f3f8e2] text-[#4a5f0e]"
-                : "border-red-200 bg-red-50 text-red-700"
-            }`}
+            className={`mb-6 rounded-2xl border px-5 py-3.5 text-sm font-semibold ${msgType === "success"
+              ? "border-[#91b928]/40 bg-[#f3f8e2] text-[#4a5f0e]"
+              : "border-red-200 bg-red-50 text-red-700"
+              }`}
           >
             {message}
           </div>

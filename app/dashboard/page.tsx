@@ -133,9 +133,7 @@ export default function DashboardHomePage() {
               <span className="text-[#1a5134]">{username}</span>
             </h1>
 
-            <p className="mt-3 text-sm font-medium text-[#123c28]/80">
-              Pantau data lahan dan aktivitas pemetaan Anda dalam satu tempat.
-            </p>
+
           </div>
 
           <div className="flex items-center gap-3">
@@ -688,10 +686,7 @@ export default function DashboardHomePage() {
                 Kembangkan data lahan Anda.
               </h3>
 
-              <p className="mt-2 text-xs font-medium leading-5 text-[#123c28]/80">
-                Jelajahi semua peta dan fitur analitik yang tersedia di
-                platform.
-              </p>
+
             </div>
 
             <Link

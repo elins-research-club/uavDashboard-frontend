@@ -47,13 +47,13 @@ export default function SubscriptionPage() {
               plan.tier === "free"
                 ? "Free"
                 : plan.tier === "desa"
-                ? "Tier Desa"
-                : "Tier Kecamatan",
+                  ? "Tier Desa"
+                  : "Tier Kecamatan",
             description: isFree
               ? "Sempurna untuk memulai dan eksplorasi platform"
               : isDesa
-              ? "Ideal untuk pemantauan level desa dan kelompok tani"
-              : "Solusi lengkap untuk analisis agregat level kecamatan",
+                ? "Ideal untuk pemantauan level desa dan kelompok tani"
+                : "Solusi lengkap untuk analisis agregat level kecamatan",
             popular: isDesa,
           };
         });
@@ -118,12 +118,7 @@ export default function SubscriptionPage() {
             TOP HEADER
         ====================================================== */}
         <header className="mb-8 text-center">
-          <div className="mb-3 flex items-center justify-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-[#91b928]" />
-            <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#123c28]">
-              UAV DaaS PLATFORM
-            </span>
-          </div>
+
 
           <h1 className="text-3xl font-bold tracking-[-0.04em] text-[#123c28] sm:text-4xl">
             Kelola <span className="text-[#1a5134]">Langganan</span> Anda
@@ -138,21 +133,19 @@ export default function SubscriptionPage() {
           <div className="mt-6 inline-flex items-center gap-1 rounded-full border border-[#123c28]/15 bg-[#f7f8f4] p-1">
             <button
               onClick={() => setBillingCycle("monthly")}
-              className={`rounded-full px-5 py-2 text-xs font-bold transition-colors ${
-                billingCycle === "monthly"
-                  ? "bg-[#123c28] text-white"
-                  : "text-[#4b5d52] hover:text-[#123c28]"
-              }`}
+              className={`rounded-full px-5 py-2 text-xs font-bold transition-colors ${billingCycle === "monthly"
+                ? "bg-[#123c28] text-white"
+                : "text-[#4b5d52] hover:text-[#123c28]"
+                }`}
             >
               Bulanan
             </button>
             <button
               onClick={() => setBillingCycle("yearly")}
-              className={`inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-xs font-bold transition-colors ${
-                billingCycle === "yearly"
-                  ? "bg-[#123c28] text-white"
-                  : "text-[#4b5d52] hover:text-[#123c28]"
-              }`}
+              className={`inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-xs font-bold transition-colors ${billingCycle === "yearly"
+                ? "bg-[#123c28] text-white"
+                : "text-[#4b5d52] hover:text-[#123c28]"
+                }`}
             >
               Tahunan
               <span className="rounded-full bg-[#91b928] px-1.5 py-0.5 text-[10px] font-bold text-[#123c28]">
@@ -192,20 +185,18 @@ export default function SubscriptionPage() {
               return (
                 <div
                   key={index}
-                  className={`flex flex-col rounded-[28px] p-7 transition-shadow ${
-                    isPopular
-                      ? "border-2 border-[#123c28] bg-[#123c28] text-white shadow-[0_16px_40px_rgba(18,60,40,0.18)]"
-                      : "border border-[#123c28]/15 bg-white text-[#123c28] hover:shadow-[0_14px_40px_rgba(18,60,40,0.08)]"
-                  }`}
+                  className={`flex flex-col rounded-[28px] p-7 transition-shadow ${isPopular
+                    ? "border-2 border-[#123c28] bg-[#123c28] text-white shadow-[0_16px_40px_rgba(18,60,40,0.18)]"
+                    : "border border-[#123c28]/15 bg-white text-[#123c28] hover:shadow-[0_14px_40px_rgba(18,60,40,0.08)]"
+                    }`}
                 >
                   {/* Tier badge */}
                   <div className="mb-6 flex items-center justify-between">
                     <span
-                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold ${
-                        isPopular
-                          ? "bg-[#91b928] text-[#123c28]"
-                          : `${style.badgeBg} ${style.badgeText}`
-                      }`}
+                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold ${isPopular
+                        ? "bg-[#91b928] text-[#123c28]"
+                        : `${style.badgeBg} ${style.badgeText}`
+                        }`}
                     >
                       {style.icon}
                       {style.label}
@@ -219,16 +210,14 @@ export default function SubscriptionPage() {
 
                   {/* Package name */}
                   <h3
-                    className={`mb-1 text-xl font-bold tracking-[-0.02em] ${
-                      isPopular ? "text-white" : "text-[#123c28]"
-                    }`}
+                    className={`mb-1 text-xl font-bold tracking-[-0.02em] ${isPopular ? "text-white" : "text-[#123c28]"
+                      }`}
                   >
                     {plan.name}
                   </h3>
                   <p
-                    className={`mb-6 text-xs font-medium ${
-                      isPopular ? "text-[#c9dba5]" : "text-[#4b5d52]"
-                    }`}
+                    className={`mb-6 text-xs font-medium ${isPopular ? "text-[#c9dba5]" : "text-[#4b5d52]"
+                      }`}
                   >
                     {plan.description}
                   </p>
@@ -236,32 +225,29 @@ export default function SubscriptionPage() {
                   {/* Price */}
                   <div className="mb-6">
                     <p
-                      className={`mb-1 text-[10px] font-bold uppercase tracking-[0.18em] ${
-                        isPopular ? "text-[#c9dba5]" : "text-[#4b5d52]"
-                      }`}
+                      className={`mb-1 text-[10px] font-bold uppercase tracking-[0.18em] ${isPopular ? "text-[#c9dba5]" : "text-[#4b5d52]"
+                        }`}
                     >
                       Harga / Bulan
                     </p>
                     <div className="flex items-baseline gap-1">
                       <span
-                        className={`text-3xl font-bold tracking-[-0.03em] ${
-                          isPopular ? "text-white" : "text-[#123c28]"
-                        }`}
+                        className={`text-3xl font-bold tracking-[-0.03em] ${isPopular ? "text-white" : "text-[#123c28]"
+                          }`}
                       >
                         {plan.tier === "kecamatan"
                           ? "Custom"
                           : plan.price === 0
-                          ? "Gratis"
-                          : `Rp ${(billingCycle === "yearly"
+                            ? "Gratis"
+                            : `Rp ${(billingCycle === "yearly"
                               ? plan.price * 12 * 0.8
                               : plan.price
                             ).toLocaleString("id-ID")}`}
                       </span>
                       {plan.tier !== "kecamatan" && plan.price > 0 && (
                         <span
-                          className={`text-sm font-semibold ${
-                            isPopular ? "text-[#c9dba5]" : "text-[#4b5d52]"
-                          }`}
+                          className={`text-sm font-semibold ${isPopular ? "text-[#c9dba5]" : "text-[#4b5d52]"
+                            }`}
                         >
                           {billingCycle === "yearly" ? "/tahun" : "/bulan"}
                         </span>
@@ -271,17 +257,15 @@ export default function SubscriptionPage() {
 
                   {/* Divider */}
                   <div
-                    className={`mb-6 border-t ${
-                      isPopular ? "border-white/25" : "border-[#123c28]/10"
-                    }`}
+                    className={`mb-6 border-t ${isPopular ? "border-white/25" : "border-[#123c28]/10"
+                      }`}
                   />
 
                   {/* Features */}
                   <div className="mb-8 flex-1">
                     <p
-                      className={`mb-3 text-[10px] font-bold uppercase tracking-[0.18em] ${
-                        isPopular ? "text-[#c9dba5]" : "text-[#4b5d52]"
-                      }`}
+                      className={`mb-3 text-[10px] font-bold uppercase tracking-[0.18em] ${isPopular ? "text-[#c9dba5]" : "text-[#4b5d52]"
+                        }`}
                     >
                       Fitur Termasuk
                     </p>
@@ -292,14 +276,12 @@ export default function SubscriptionPage() {
                           className="flex items-start gap-2.5 text-sm"
                         >
                           <CheckCircle2
-                            className={`mt-0.5 h-4 w-4 flex-shrink-0 ${
-                              isPopular ? "text-[#91b928]" : "text-[#1a5134]"
-                            }`}
+                            className={`mt-0.5 h-4 w-4 flex-shrink-0 ${isPopular ? "text-[#91b928]" : "text-[#1a5134]"
+                              }`}
                           />
                           <span
-                            className={`font-medium ${
-                              isPopular ? "text-white" : "text-[#123c28]"
-                            }`}
+                            className={`font-medium ${isPopular ? "text-white" : "text-[#123c28]"
+                              }`}
                           >
                             {feature}
                           </span>
@@ -311,11 +293,10 @@ export default function SubscriptionPage() {
                   {/* CTA Button */}
                   {isCurrent ? (
                     <button
-                      className={`mt-auto w-full cursor-not-allowed rounded-full py-3 text-sm font-bold ${
-                        isPopular
-                          ? "border border-white/25 bg-white/0 text-white/70"
-                          : "border border-[#123c28]/15 bg-[#f5f7f1] text-[#4b5d52]"
-                      }`}
+                      className={`mt-auto w-full cursor-not-allowed rounded-full py-3 text-sm font-bold ${isPopular
+                        ? "border border-white/25 bg-white/0 text-white/70"
+                        : "border border-[#123c28]/15 bg-[#f5f7f1] text-[#4b5d52]"
+                        }`}
                       disabled
                     >
                       Paket Anda Saat Ini
@@ -323,17 +304,16 @@ export default function SubscriptionPage() {
                   ) : (
                     <button
                       onClick={() => handleUpgrade(plan.name)}
-                      className={`mt-auto w-full rounded-full py-3 text-sm font-bold transition-colors ${
-                        isPopular
-                          ? "bg-white text-[#123c28] hover:bg-[#f0ad25] hover:text-white"
-                          : "bg-[#123c28] text-white hover:bg-[#1a5134]"
-                      }`}
+                      className={`mt-auto w-full rounded-full py-3 text-sm font-bold transition-colors ${isPopular
+                        ? "bg-white text-[#123c28] hover:bg-[#f0ad25] hover:text-white"
+                        : "bg-[#123c28] text-white hover:bg-[#1a5134]"
+                        }`}
                     >
                       {plan.tier === "free"
                         ? "Downgrade ke Free"
                         : plan.tier === "kecamatan"
-                        ? "Hubungi Tim Sales"
-                        : "Upgrade Sekarang"}
+                          ? "Hubungi Tim Sales"
+                          : "Upgrade Sekarang"}
                     </button>
                   )}
                 </div>

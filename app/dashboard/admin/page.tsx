@@ -204,9 +204,7 @@ export default function AdminPage() {
             Admin <span className="text-[#1a5134]">Panel</span>
           </h1>
 
-          <p className="mt-3 text-sm font-medium text-[#4b5d52]">
-            Kelola Role &amp; Hak Akses (RBAC) dan Harga Paket Langganan.
-          </p>
+
         </header>
 
         {/* =====================================================
@@ -215,22 +213,20 @@ export default function AdminPage() {
         <div className="mb-6 inline-flex w-fit gap-1 rounded-full border border-[#123c28]/15 bg-[#f7f8f4] p-1">
           <button
             onClick={() => setActiveTab("roles")}
-            className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition-colors ${
-              activeTab === "roles"
-                ? "bg-[#123c28] text-white"
-                : "text-[#4b5d52] hover:text-[#123c28]"
-            }`}
+            className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition-colors ${activeTab === "roles"
+              ? "bg-[#123c28] text-white"
+              : "text-[#4b5d52] hover:text-[#123c28]"
+              }`}
           >
             <ShieldCheck className="h-4 w-4" />
-            Manajemen Role (RBAC)
+            Manajemen Role
           </button>
           <button
             onClick={() => setActiveTab("pricing")}
-            className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition-colors ${
-              activeTab === "pricing"
-                ? "bg-[#123c28] text-white"
-                : "text-[#4b5d52] hover:text-[#123c28]"
-            }`}
+            className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition-colors ${activeTab === "pricing"
+              ? "bg-[#123c28] text-white"
+              : "text-[#4b5d52] hover:text-[#123c28]"
+              }`}
           >
             <CreditCard className="h-4 w-4" />
             Harga Subscription
@@ -260,7 +256,7 @@ export default function AdminPage() {
                       </h3>
                       <p className="mt-0.5 text-xs font-semibold text-[#4b5d52]">
                         {role.permissions.length === 1 &&
-                        role.permissions[0] === "all"
+                          role.permissions[0] === "all"
                           ? "Full access ke semua fitur"
                           : `${role.permissions.length} permission aktif`}
                       </p>
@@ -289,7 +285,7 @@ export default function AdminPage() {
                           className="flex items-center gap-1.5 rounded-full border border-[#123c28]/15 bg-[#f5f7f1] px-3.5 py-1.5 text-xs font-bold text-[#123c28] transition hover:bg-[#eef1ea]"
                         >
                           <Edit3 className="h-3.5 w-3.5" />
-                          Edit Permission
+                          Edit Otorisasi
                         </button>
                       )}
                     </div>
@@ -305,22 +301,19 @@ export default function AdminPage() {
                       return (
                         <label
                           key={perm.key}
-                          className={`flex items-center gap-2.5 rounded-xl border p-2.5 text-sm transition-all ${
-                            isChecked
-                              ? "border-[#91b928]/50 bg-[#eef3e8] text-[#123c28]"
-                              : "border-[#123c28]/12 bg-[#fafbf8] text-[#4b5d52]"
-                          } ${
-                            editingRole !== role.id
+                          className={`flex items-center gap-2.5 rounded-xl border p-2.5 text-sm transition-all ${isChecked
+                            ? "border-[#91b928]/50 bg-[#eef3e8] text-[#123c28]"
+                            : "border-[#123c28]/12 bg-[#fafbf8] text-[#4b5d52]"
+                            } ${editingRole !== role.id
                               ? "pointer-events-none"
                               : "cursor-pointer hover:border-[#123c28]/30"
-                          }`}
+                            }`}
                         >
                           <div
-                            className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border ${
-                              isChecked
-                                ? "border-[#123c28] bg-[#123c28]"
-                                : "border-[#123c28]/25 bg-white"
-                            }`}
+                            className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border ${isChecked
+                              ? "border-[#123c28] bg-[#123c28]"
+                              : "border-[#123c28]/25 bg-white"
+                              }`}
                           >
                             {isChecked && (
                               <Check className="h-3 w-3 text-white" />
@@ -343,11 +336,10 @@ export default function AdminPage() {
                   {/* Save message */}
                   {roleSaveMsg?.id === role.id && (
                     <p
-                      className={`mt-3 text-xs font-bold ${
-                        roleSaveMsg.type === "success"
-                          ? "text-[#4a5f0e]"
-                          : "text-red-600"
-                      }`}
+                      className={`mt-3 text-xs font-bold ${roleSaveMsg.type === "success"
+                        ? "text-[#4a5f0e]"
+                        : "text-red-600"
+                        }`}
                     >
                       {roleSaveMsg.text}
                     </p>
@@ -363,11 +355,10 @@ export default function AdminPage() {
           <div>
             {planSaveMsg && (
               <div
-                className={`mb-4 flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm font-bold ${
-                  planSaveMsg.type === "success"
-                    ? "border-[#91b928]/40 bg-[#f3f8e2] text-[#4a5f0e]"
-                    : "border-red-200 bg-red-50 text-red-700"
-                }`}
+                className={`mb-4 flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm font-bold ${planSaveMsg.type === "success"
+                  ? "border-[#91b928]/40 bg-[#f3f8e2] text-[#4a5f0e]"
+                  : "border-red-200 bg-red-50 text-red-700"
+                  }`}
               >
                 {planSaveMsg.type === "success" ? (
                   <Check className="h-4 w-4" />
