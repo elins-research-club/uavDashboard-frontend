@@ -139,26 +139,6 @@ export default function DashboardHomePage() {
         </header>
 
         {/* =====================================================
-            QUICK STATUS
-        ====================================================== */}
-        <div className="mb-6 flex flex-wrap items-center gap-2">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#123c28]/15 bg-[#f7f8f4] px-3.5 py-2 text-[11px] font-semibold text-[#123c28]/85">
-            <Activity className="h-3.5 w-3.5 text-[#123c28]" />
-            Platform aktif
-          </div>
-
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#123c28]/15 bg-[#f7f8f4] px-3.5 py-2 text-[11px] font-semibold text-[#123c28]/85">
-            <ScanLine className="h-3.5 w-3.5 text-[#123c28]" />
-            Data UAV terintegrasi
-          </div>
-
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#123c28]/15 bg-[#f7f8f4] px-3.5 py-2 text-[11px] font-semibold text-[#123c28]/85">
-            <Leaf className="h-3.5 w-3.5 text-[#123c28]" />
-            Precision farming
-          </div>
-        </div>
-
-        {/* =====================================================
             STATS
         ====================================================== */}
         <section className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -183,7 +163,9 @@ export default function DashboardHomePage() {
                 {stat.value}
               </p>
 
-              <p className="mt-1 text-xs font-semibold text-[#123c28]/70">{stat.subtitle}</p>
+              <p className="mt-1 text-xs font-semibold text-[#123c28]/70">
+                {stat.subtitle}
+              </p>
             </div>
           ))}
         </section>
@@ -439,7 +421,9 @@ export default function DashboardHomePage() {
                 ))}
               </div>
             ) : (
-              <p className="text-sm font-medium text-[#123c28]/75">Belum ada aktivitas.</p>
+              <p className="text-sm font-medium text-[#123c28]/75">
+                Belum ada aktivitas.
+              </p>
             )}
           </section>
 
