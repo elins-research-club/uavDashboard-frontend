@@ -1341,7 +1341,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         </div>
 
         {/* =================================================
-            MULTI-LAYER CONTROL PANEL (Agri Watch Net Logic)
+            MULTI-LAYER CONTROL PANEL (AMX Multi-Spectral Engine)
         ================================================== */}
         <LayerControlPanel
           mapId={mapId}

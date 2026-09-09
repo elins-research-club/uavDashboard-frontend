@@ -6,15 +6,11 @@ import {
   Eye,
   EyeOff,
   Sliders,
-  Plus,
   Trash2,
   RefreshCw,
   ChevronDown,
   ChevronUp,
   X,
-  Upload,
-  AlertCircle,
-  CheckCircle2,
   Sparkles,
 } from "lucide-react";
 import type { MapLayerItem } from "@/types/map";
@@ -82,20 +78,10 @@ export default function LayerControlPanel({
   layers,
   onToggleVisibility,
   onChangeOpacity,
-  onLayerUploaded,
   onDeleteLayer,
   onRetryConvert,
 }: LayerControlPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [showUploadModal, setShowUploadModal] = useState(false);
-
-  // Upload Form State
-  const [uploadName, setUploadName] = useState("");
-  const [uploadType, setUploadType] = useState("ndvi");
-  const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [uploadOpacity, setUploadOpacity] = useState(0.85);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
 
   if (!mapId || layers.length === 0) {
     return null;
@@ -111,57 +97,6 @@ export default function LayerControlPanel({
     layers.forEach((l) => {
       onToggleVisibility(l.id, l.is_base_layer);
     });
-  };
-
-  const handleUploadSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!mapId || !uploadFile) return;
-
-    setIsUploading(true);
-    setUploadError(null);
-
-    const baseUrl =
-      process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-
-    const formData = new FormData();
-    formData.append("name", uploadName || `${uploadType.toUpperCase()} Layer`);
-    formData.append("layer_type", uploadType);
-    formData.append("default_opacity", uploadOpacity.toString());
-    formData.append("file", uploadFile);
-
-    try {
-      const headers: Record<string, string> = {};
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-
-      const res = await fetch(`${baseUrl}/maps/${mapId}/layers`, {
-        method: "POST",
-        headers,
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => null);
-        throw new Error(
-          errData?.detail?.message ||
-            errData?.detail ||
-            "Gagal mengunggah file layer."
-        );
-      }
-
-      // Reset form & trigger refresh
-      setShowUploadModal(false);
-      setUploadName("");
-      setUploadFile(null);
-      if (onLayerUploaded) {
-        onLayerUploaded();
-      }
-    } catch (err: any) {
-      setUploadError(err.message || "Terjadi kesalahan upload.");
-    } finally {
-      setIsUploading(false);
-    }
   };
 
   return (
@@ -394,154 +329,14 @@ export default function LayerControlPanel({
               })}
             </div>
 
-            {/* ADD LAYER BUTTON */}
-            <div className="mt-3 border-t border-gray-100 pt-2.5">
-              <button
-                type="button"
-                onClick={() => setShowUploadModal(true)}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[#123c28]/30 bg-emerald-50/50 py-2 text-xs font-bold text-[#123c28] hover:bg-emerald-50 transition"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Tambah Layer TIF (NDVI / NPK)
-              </button>
+            {/* FOOTER INFO */}
+            <div className="mt-2.5 border-t border-gray-100 pt-2 text-center text-[10px] text-gray-400">
+              Kelola & unggah dataset baru melalui menu{" "}
+              <span className="font-semibold text-emerald-800">Upload Peta</span>.
             </div>
           </div>
         )}
       </div>
-
-      {/* UPLOAD LAYER MODAL */}
-      {showUploadModal && (
-        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in">
-          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
-            <div className="flex items-center justify-between border-b pb-3">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-800">
-                  <Upload className="h-4 w-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-gray-900">
-                    Tambah Layer Peta TIF
-                  </h3>
-                  <p className="text-[10px] text-gray-500">
-                    Unggah layer tematik baru untuk ditumpuk pada survei ini
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowUploadModal(false)}
-                className="rounded-lg p-1 text-gray-400 hover:bg-gray-100"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleUploadSubmit} className="mt-4 space-y-3.5">
-              {uploadError && (
-                <div className="flex items-start gap-2 rounded-xl bg-red-50 p-3 text-xs text-red-700">
-                  <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                  <span>{uploadError}</span>
-                </div>
-              )}
-
-              <div>
-                <label className="text-[11px] font-bold text-gray-700">
-                  Tipe Layer Analisis
-                </label>
-                <select
-                  value={uploadType}
-                  onChange={(e) => {
-                    setUploadType(e.target.value);
-                    if (!uploadName) {
-                      const opt = LAYER_TYPE_CONFIG[e.target.value];
-                      if (opt) setUploadName(opt.label);
-                    }
-                  }}
-                  className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-900 focus:border-[#123c28] focus:outline-none"
-                >
-                  <option value="ndvi">Indeks Vegetasi (NDVI)</option>
-                  <option value="nitrogen">Kandungan Hara Nitrogen (N)</option>
-                  <option value="phosphorus">Kandungan Hara Fosfor (P)</option>
-                  <option value="kalium">Kandungan Hara Kalium (K)</option>
-                  <option value="spectral">Citra Multispektral</option>
-                  <option value="vari">Indeks VARI</option>
-                  <option value="dsm">Digital Surface Model (DSM)</option>
-                  <option value="custom">Layer Lainnya</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-[11px] font-bold text-gray-700">
-                  Nama Label Tampilan
-                </label>
-                <input
-                  type="text"
-                  placeholder="Contoh: Peta NDVI Minggu Ke-4"
-                  value={uploadName}
-                  onChange={(e) => setUploadName(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-xs text-gray-900 focus:border-[#123c28] focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] font-bold text-gray-700">
-                  File GeoTIFF (.tif / .tiff)
-                </label>
-                <input
-                  type="file"
-                  accept=".tif,.tiff"
-                  required
-                  onChange={(e) =>
-                    setUploadFile(e.target.files ? e.target.files[0] : null)
-                  }
-                  className="mt-1 w-full rounded-xl border border-dashed border-gray-300 p-2 text-xs text-gray-600 file:mr-2 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-2.5 file:py-1 file:text-xs file:font-bold file:text-[#123c28]"
-                />
-              </div>
-
-              <div>
-                <div className="flex justify-between text-[11px] font-bold text-gray-700">
-                  <span>Opasitas Awal</span>
-                  <span>{Math.round(uploadOpacity * 100)}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value={uploadOpacity}
-                  onChange={(e) => setUploadOpacity(parseFloat(e.target.value))}
-                  className="mt-1 w-full h-1.5 cursor-pointer appearance-none rounded-lg bg-gray-200 accent-[#123c28]"
-                />
-              </div>
-
-              <div className="mt-5 flex gap-2 pt-2 border-t">
-                <button
-                  type="button"
-                  disabled={isUploading}
-                  onClick={() => setShowUploadModal(false)}
-                  className="flex-1 rounded-xl border border-gray-200 py-2.5 text-xs font-bold text-gray-600 hover:bg-gray-50"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={isUploading || !uploadFile}
-                  className="flex-1 rounded-xl bg-[#123c28] py-2.5 text-xs font-bold text-white shadow-md hover:bg-[#0e2f20] disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {isUploading ? (
-                    <>
-                      <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                      Mengunggah...
-                    </>
-                  ) : (
-                    "Unggah & Tumpuk Layer"
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </>
   );
 }

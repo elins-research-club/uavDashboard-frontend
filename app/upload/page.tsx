@@ -1,18 +1,23 @@
-// app/upload/page.js
-'use client';
-import DashboardLayout from '../../components/DashboardLayout';
-import { useUserRole } from '../../context/UserRoleContext';
+"use client";
 
-export default function UploadPage() {
-  const { userRole } = useUserRole();
-  if (!userRole || userRole === 'guest') return null; // Protect route
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+
+export default function UploadRedirectPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace("/dashboard/upload");
+  }, [router]);
 
   return (
-    <DashboardLayout>
-      <div style={{ padding: '20px' }}>
-        <h2>Upload File</h2>
-        <p>This is the file upload page, accessible by Admins.</p>
+    <div className="flex min-h-screen items-center justify-center bg-white">
+      <div className="flex flex-col items-center gap-3">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#123c28] border-t-transparent" />
+        <p className="text-xs font-semibold text-[#123c28]/70">
+          Mengarahkan ke Halaman Upload Peta...
+        </p>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }
