@@ -66,25 +66,34 @@ function StatCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, delay, ease: [0.22, 1, 0.36, 1] }}
       whileHover={{ y: -3 }}
-      className="group relative min-h-[124px] overflow-hidden rounded-3xl border border-brand-800/10 bg-white/70 p-5 shadow-card backdrop-blur-sm transition-shadow duration-300 hover:shadow-card-hover"
+      className="group relative min-h-[124px] overflow-hidden rounded-3xl border border-brand-800/15 bg-white p-5 shadow-card transition-shadow duration-300 hover:border-brand-800/25 hover:shadow-card-hover"
     >
-      {/* 3D orb — spread blur, tint per kartu */}
-      <motion.div
-        aria-hidden
-        className="pointer-events-none absolute -bottom-10 -right-10 h-36 w-36 rounded-full blur-2xl"
-        style={{
-          background: `radial-gradient(circle at 35% 30%, ${orbTint}66, ${orbTint}1f 60%, transparent 75%)`,
-        }}
-        initial={false}
-        animate={{ scale: 1 }}
-        whileHover={{ scale: 1.15 }}
-        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      />
-      {/* Specular highlight di orb */}
+      {/* 3D orb — glass sphere dengan edge terdefinisi.
+          Lapis 1: glow luar lembut (blur ringan, kecil).
+          Lapis 2: sphere utama — gradient terang kiri-atas, tint tengah,
+                   edge bawah-kanan sedikit lebih gelap = depth.
+          Lapis 3: specular highlight kecil tajam di kiri-atas sphere. */}
+      {/* Orb membesar saat CARD di-hover (group-hover) — spring agar hidup */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -bottom-2 -right-2 h-12 w-12 rounded-full bg-white/70 blur-xl"
-      />
+        className="pointer-events-none absolute -bottom-7 -right-7 h-24 w-24 transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-[1.4]"
+      >
+        {/* Glow luar — ikut menguat saat hover */}
+        <div
+          className="absolute -inset-4 rounded-full opacity-70 blur-lg transition-opacity duration-500 group-hover:opacity-100"
+          style={{ background: `${orbTint}26` }}
+        />
+        {/* Sphere utama — bentuk circle jelas, bukan blob */}
+        <div
+          className="absolute inset-0 rounded-full"
+          style={{
+            background: `radial-gradient(circle at 32% 28%, #ffffffcc 0%, ${orbTint}40 42%, ${orbTint}5c 72%, ${orbTint}73 100%)`,
+            boxShadow: `inset -4px -6px 10px ${orbTint}33, inset 3px 4px 8px rgba(255,255,255,0.75), 0 6px 14px ${orbTint}2e`,
+          }}
+        />
+        {/* Specular highlight — titik terang tajam */}
+        <div className="absolute left-[18%] top-[14%] h-4 w-4 rounded-full bg-white/90 blur-[3px]" />
+      </div>
 
       <div className="relative flex h-full flex-col justify-between gap-4">
         <div className="flex items-center justify-between">
