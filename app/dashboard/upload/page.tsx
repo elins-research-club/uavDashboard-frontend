@@ -19,7 +19,7 @@ import {
   RefreshCw,
   ShieldCheck,
   Sliders,
-  Sparkles,
+  Cog,
   Trash2,
   Upload,
 } from "lucide-react";
@@ -245,7 +245,7 @@ function SectionHeader({
           <h2 className="text-sm font-bold text-[#123c28]">{title}</h2>
 
           {description && (
-            <p className="mt-0.5 text-[11px] leading-relaxed text-[#123c28]/55">
+            <p className="mt-0.5 text-xs leading-relaxed text-[#123c28]">
               {description}
             </p>
           )}
@@ -410,9 +410,9 @@ export default function UploadPage() {
         is_base: item.id === id,
         ...(item.id === id
           ? {
-              layer_type: "ortho",
-              default_opacity: 1,
-            }
+            layer_type: "ortho",
+            default_opacity: 1,
+          }
           : {}),
       }))
     );
@@ -665,10 +665,10 @@ export default function UploadPage() {
   const totalSizeMB =
     uploadMode === "batch"
       ? batchFiles.reduce((total, item) => total + item.file.size, 0) /
-        (1024 * 1024)
+      (1024 * 1024)
       : (manualBaseFile?.size || 0) / (1024 * 1024) +
-        manualSlots.reduce((total, item) => total + (item.file?.size || 0), 0) /
-          (1024 * 1024);
+      manualSlots.reduce((total, item) => total + (item.file?.size || 0), 0) /
+      (1024 * 1024);
 
   const locationPresets = [
     "Paca, Halmahera Utara",
@@ -687,23 +687,11 @@ export default function UploadPage() {
         <header className="mb-6">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
-              <div className="mb-3 flex items-center gap-2">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-[#91b928]" />
-
-                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#123c28]/60">
-                  UAV DaaS · GIS Multi-Layer Ingestion
-                </span>
-              </div>
-
               <h1 className="text-2xl font-bold tracking-tight text-[#123c28] sm:text-3xl">
-                Pusat Unggah{" "}
-                <span className="text-[#1a5134]">Dataset Geospasial</span>
+                Unggah Dataset
               </h1>
 
-              <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[#123c28]/60 sm:text-sm">
-                Kelola dataset hasil pemotretan drone menjadi katalog geospasial
-                multi-layer dengan deteksi tipe layer dan validasi CRS otomatis.
-              </p>
+
             </div>
 
             <Link
@@ -730,31 +718,28 @@ export default function UploadPage() {
                 setMessage("");
                 setGeoError(null);
               }}
-              className={`flex items-center gap-3 rounded-xl px-4 py-3 text-left transition ${
-                uploadMode === "batch"
-                  ? "bg-[#123c28] text-white shadow-md shadow-[#123c28]/10"
-                  : "text-[#123c28]/60 hover:bg-[#f6f8f3] hover:text-[#123c28]"
-              }`}
+              className={`flex items-center gap-3 rounded-xl px-4 py-3 text-left transition ${uploadMode === "batch"
+                ? "bg-[#123c28] text-white shadow-md shadow-[#123c28]/10"
+                : "text-[#123c28] hover:bg-[#f6f8f3]"
+                }`}
             >
               <div
-                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
-                  uploadMode === "batch" ? "bg-white/10" : "bg-[#f3f6ed]"
-                }`}
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${uploadMode === "batch" ? "bg-white/10" : "bg-[#f3f6ed]"
+                  }`}
               >
                 <Layers className="h-4 w-4" />
               </div>
 
               <div className="min-w-0">
-                <p className="text-xs font-bold">Multi-File Batch</p>
+                <p className="text-xs font-bold">Batch Otomatis</p>
 
                 <p
-                  className={`mt-0.5 text-[10px] leading-relaxed ${
-                    uploadMode === "batch"
-                      ? "text-white/65"
-                      : "text-[#123c28]/45"
-                  }`}
+                  className={`mt-0.5 text-xs leading-relaxed ${uploadMode === "batch"
+                    ? "text-white/65"
+                    : "text-[#123c28]"
+                    }`}
                 >
-                  Auto-detect Ortho, NDVI, NPK, DSM, dan multispektral.
+                  Deteksi tipe layer otomatis.
                 </p>
               </div>
             </button>
@@ -766,31 +751,28 @@ export default function UploadPage() {
                 setMessage("");
                 setGeoError(null);
               }}
-              className={`flex items-center gap-3 rounded-xl px-4 py-3 text-left transition ${
-                uploadMode === "manual"
-                  ? "bg-[#123c28] text-white shadow-md shadow-[#123c28]/10"
-                  : "text-[#123c28]/60 hover:bg-[#f6f8f3] hover:text-[#123c28]"
-              }`}
+              className={`flex items-center gap-3 rounded-xl px-4 py-3 text-left transition ${uploadMode === "manual"
+                ? "bg-[#123c28] text-white shadow-md shadow-[#123c28]/10"
+                : "text-[#123c28] hover:bg-[#f6f8f3]"
+                }`}
             >
               <div
-                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
-                  uploadMode === "manual" ? "bg-white/10" : "bg-[#f3f6ed]"
-                }`}
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${uploadMode === "manual" ? "bg-white/10" : "bg-[#f3f6ed]"
+                  }`}
               >
                 <Sliders className="h-4 w-4" />
               </div>
 
               <div className="min-w-0">
-                <p className="text-xs font-bold">Manual Per-Layer</p>
+                <p className="text-xs font-bold">Manual</p>
 
                 <p
-                  className={`mt-0.5 text-[10px] leading-relaxed ${
-                    uploadMode === "manual"
-                      ? "text-white/65"
-                      : "text-[#123c28]/45"
-                  }`}
+                  className={`mt-0.5 text-xs leading-relaxed ${uploadMode === "manual"
+                    ? "text-white/65"
+                    : "text-[#123c28]"
+                    }`}
                 >
-                  Tentukan base layer dan layer analisis secara terstruktur.
+                  Atur setiap layer sendiri.
                 </p>
               </div>
             </button>
@@ -822,9 +804,9 @@ export default function UploadPage() {
                     ? "Unggah GeoTIFF Multi-Layer"
                     : "Susun Layer Fotogrametri"
                 }
-                description="Format yang didukung adalah GeoTIFF (.tif / .tiff) dengan referensi spasial valid."
+                description="GeoTIFF (.tif / .tiff)"
                 right={
-                  <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-[#eef3e8] px-2.5 py-1.5 text-[10px] font-bold text-[#123c28]">
+                  <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-[#eef3e8] px-2.5 py-1.5 text-xs font-bold text-[#123c28]">
                     <ShieldCheck className="h-3.5 w-3.5 text-[#1a5134]" />
                     CRS Verification
                   </span>
@@ -842,11 +824,10 @@ export default function UploadPage() {
                     onDragLeave={handleDrag}
                     onDragOver={handleDrag}
                     onDrop={handleDrop}
-                    className={`rounded-2xl border-2 border-dashed px-5 py-10 text-center transition ${
-                      dragActive
-                        ? "border-[#123c28] bg-[#f3f6ed]"
-                        : "border-[#123c28]/15 bg-[#fbfcfa] hover:border-[#123c28]/25"
-                    }`}
+                    className={`rounded-2xl border-2 border-dashed px-5 py-10 text-center transition ${dragActive
+                      ? "border-[#123c28] bg-[#f3f6ed]"
+                      : "border-[#123c28]/15 bg-[#fbfcfa] hover:border-[#123c28]/25"
+                      }`}
                   >
                     <input
                       ref={fileInputRef}
@@ -863,12 +844,11 @@ export default function UploadPage() {
                     </div>
 
                     <h3 className="mt-4 text-sm font-bold text-[#123c28]">
-                      Tarik & lepas GeoTIFF di sini
+                      Tarik file GeoTIFF ke sini
                     </h3>
 
-                    <p className="mx-auto mt-1 max-w-md text-[11px] leading-relaxed text-[#123c28]/50">
-                      Atau pilih beberapa file sekaligus untuk diproses sebagai
-                      satu sesi survei multi-layer.
+                    <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-[#123c28]">
+                      Pilih satu atau beberapa file.
                     </p>
 
                     <label
@@ -879,7 +859,7 @@ export default function UploadPage() {
                       Pilih File
                     </label>
 
-                    <p className="mt-3 text-[10px] text-[#123c28]/40">
+                    <p className="mt-3 text-xs text-[#123c28]">
                       .TIF / .TIFF · Maks. 5 GB per file
                     </p>
                   </div>
@@ -894,7 +874,7 @@ export default function UploadPage() {
                             Layer Terdeteksi
                           </h3>
 
-                          <p className="mt-0.5 text-[10px] text-[#123c28]/45">
+                          <p className="mt-0.5 text-xs text-[#123c28]">
                             {batchFiles.length} file · {totalSizeMB.toFixed(1)}{" "}
                             MB
                           </p>
@@ -903,7 +883,7 @@ export default function UploadPage() {
                         <button
                           type="button"
                           onClick={() => setBatchFiles([])}
-                          className="text-[10px] font-bold text-red-600 transition hover:text-red-700"
+                          className="text-xs font-bold text-red-600 transition hover:text-red-700"
                         >
                           Hapus Semua
                         </button>
@@ -918,29 +898,28 @@ export default function UploadPage() {
                           return (
                             <div
                               key={item.id}
-                              className={`rounded-2xl border p-3.5 ${
-                                item.is_base
-                                  ? "border-emerald-300/70 bg-emerald-50/40"
-                                  : "border-[#123c28]/10 bg-[#fbfcfa]"
-                              }`}
+                              className={`rounded-2xl border p-3.5 ${item.is_base
+                                ? "border-emerald-300/70 bg-emerald-50/40"
+                                : "border-[#123c28]/10 bg-[#fbfcfa]"
+                                }`}
                             >
                               <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
                                 <div className="min-w-0 flex-1">
                                   <div className="mb-2 flex flex-wrap items-center gap-1.5">
                                     <span
-                                      className={`inline-flex rounded-full border px-2 py-1 text-[9px] font-bold ${config.badgeClass}`}
+                                      className={`inline-flex rounded-full border px-2 py-1 text-xs font-bold ${config.badgeClass}`}
                                     >
                                       {config.label}
                                     </span>
 
                                     {item.is_base && (
-                                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-700 px-2 py-1 text-[9px] font-black text-white">
+                                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-700 px-2 py-1 text-xs font-black text-white">
                                         <CheckCircle className="h-3 w-3" />
                                         BASE
                                       </span>
                                     )}
 
-                                    <span className="text-[9px] font-medium text-[#123c28]/40">
+                                    <span className="text-xs font-medium text-[#123c28]">
                                       {formatFileSize(item.file.size)}
                                     </span>
                                   </div>
@@ -959,7 +938,7 @@ export default function UploadPage() {
                                     className="w-full rounded-xl border border-[#123c28]/10 bg-white px-3 py-2 text-xs font-bold text-[#123c28] outline-none transition placeholder:text-[#123c28]/25 focus:border-[#123c28]/30"
                                   />
 
-                                  <p className="mt-1.5 truncate text-[10px] text-[#123c28]/40">
+                                  <p className="mt-1.5 truncate text-xs text-[#123c28]">
                                     {item.file.name}
                                   </p>
                                 </div>
@@ -974,7 +953,7 @@ export default function UploadPage() {
                                         event.target.value
                                       )
                                     }
-                                    className="rounded-xl border border-[#123c28]/10 bg-white px-3 py-2 text-[10px] font-bold text-[#123c28] outline-none"
+                                    className="rounded-xl border border-[#123c28]/10 bg-white px-3 py-2 text-xs font-bold text-[#123c28] outline-none"
                                   >
                                     {layerOptions.map((option) => (
                                       <option
@@ -992,7 +971,7 @@ export default function UploadPage() {
                                       onClick={() =>
                                         handleSetBaseLayer(item.id)
                                       }
-                                      className="rounded-xl border border-[#123c28]/10 bg-white px-3 py-2 text-[10px] font-bold text-[#123c28] transition hover:bg-[#eef3e8]"
+                                      className="rounded-xl border border-[#123c28]/10 bg-white px-3 py-2 text-xs font-bold text-[#123c28] transition hover:bg-[#eef3e8]"
                                     >
                                       Set Base
                                     </button>
@@ -1012,7 +991,7 @@ export default function UploadPage() {
                               </div>
 
                               <div className="mt-3 flex items-center gap-3 border-t border-[#123c28]/10 pt-3">
-                                <span className="shrink-0 text-[10px] font-semibold text-[#123c28]/50">
+                                <span className="shrink-0 text-xs font-semibold text-[#123c28]">
                                   Opasitas
                                 </span>
 
@@ -1032,7 +1011,7 @@ export default function UploadPage() {
                                   className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 accent-[#123c28]"
                                 />
 
-                                <span className="w-10 text-right text-[10px] font-bold text-[#123c28]">
+                                <span className="w-10 text-right text-xs font-bold text-[#123c28]">
                                   {Math.round(item.default_opacity * 100)}%
                                 </span>
                               </div>
@@ -1056,7 +1035,7 @@ export default function UploadPage() {
                   <div className="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-4">
                     <div className="mb-4 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2">
-                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-700 text-[10px] font-black text-white">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-700 text-xs font-black text-white">
                           1
                         </span>
 
@@ -1065,20 +1044,20 @@ export default function UploadPage() {
                             Base Layer · Ortho RGB
                           </p>
 
-                          <p className="text-[10px] text-[#123c28]/45">
+                          <p className="text-xs text-[#123c28]">
                             Wajib menjadi layer dasar visualisasi.
                           </p>
                         </div>
                       </div>
 
-                      <span className="rounded-full bg-emerald-700 px-2 py-1 text-[9px] font-black uppercase text-white">
+                      <span className="rounded-full bg-emerald-700 px-2 py-1 text-xs font-black uppercase text-white">
                         Wajib
                       </span>
                     </div>
 
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div>
-                        <label className="mb-1.5 block text-[10px] font-bold text-[#123c28]/65">
+                        <label className="mb-1.5 block text-xs font-bold text-[#123c28]">
                           Nama Tampilan
                         </label>
 
@@ -1093,7 +1072,7 @@ export default function UploadPage() {
                       </div>
 
                       <div>
-                        <label className="mb-1.5 block text-[10px] font-bold text-[#123c28]/65">
+                        <label className="mb-1.5 block text-xs font-bold text-[#123c28]">
                           File GeoTIFF
                         </label>
 
@@ -1105,18 +1084,18 @@ export default function UploadPage() {
                               setManualBaseFile(event.target.files[0]);
                             }
                           }}
-                          className="block w-full text-[10px] text-[#123c28]/60 file:mr-2 file:rounded-xl file:border-0 file:bg-[#123c28] file:px-3 file:py-2 file:text-[10px] file:font-bold file:text-white hover:file:bg-[#1a5134]"
+                          className="block w-full text-xs text-[#123c28] file:mr-2 file:rounded-xl file:border-0 file:bg-[#123c28] file:px-3 file:py-2 file:text-xs file:font-bold file:text-white hover:file:bg-[#1a5134]"
                         />
                       </div>
                     </div>
 
                     {manualBaseFile && (
                       <div className="mt-3 flex items-center justify-between rounded-xl bg-white/75 px-3 py-2.5">
-                        <span className="max-w-[75%] truncate text-[10px] font-medium text-[#123c28]/60">
+                        <span className="max-w-[75%] truncate text-xs font-medium text-[#123c28]">
                           {manualBaseFile.name}
                         </span>
 
-                        <span className="text-[10px] font-bold text-[#123c28]">
+                        <span className="text-xs font-bold text-[#123c28]">
                           {formatFileSize(manualBaseFile.size)}
                         </span>
                       </div>
@@ -1132,7 +1111,7 @@ export default function UploadPage() {
                           Layer Analisis Tambahan
                         </p>
 
-                        <p className="mt-0.5 text-[10px] text-[#123c28]/45">
+                        <p className="mt-0.5 text-xs text-[#123c28]">
                           Tambahkan indeks vegetasi, kandungan hara, DSM, atau
                           layer kustom.
                         </p>
@@ -1141,7 +1120,7 @@ export default function UploadPage() {
                       <button
                         type="button"
                         onClick={handleAddManualSlot}
-                        className="inline-flex w-fit items-center gap-1.5 rounded-full border border-[#123c28]/15 bg-white px-3.5 py-2 text-[10px] font-bold text-[#123c28] transition hover:bg-[#eef3e8]"
+                        className="inline-flex w-fit items-center gap-1.5 rounded-full border border-[#123c28]/15 bg-white px-3.5 py-2 text-xs font-bold text-[#123c28] transition hover:bg-[#eef3e8]"
                       >
                         <Plus className="h-3.5 w-3.5" />
                         Tambah Layer
@@ -1161,12 +1140,12 @@ export default function UploadPage() {
                           >
                             <div className="mb-3 flex items-center justify-between gap-3">
                               <div className="flex min-w-0 items-center gap-2">
-                                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#eef3e8] text-[10px] font-bold text-[#123c28]">
+                                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#eef3e8] text-xs font-bold text-[#123c28]">
                                   {index + 2}
                                 </span>
 
                                 <span
-                                  className={`truncate rounded-full border px-2 py-1 text-[9px] font-bold ${config.badgeClass}`}
+                                  className={`truncate rounded-full border px-2 py-1 text-xs font-bold ${config.badgeClass}`}
                                 >
                                   {config.label}
                                 </span>
@@ -1183,7 +1162,7 @@ export default function UploadPage() {
 
                             <div className="grid gap-3 sm:grid-cols-2">
                               <div>
-                                <label className="mb-1.5 block text-[10px] font-bold text-[#123c28]/55">
+                                <label className="mb-1.5 block text-xs font-bold text-[#123c28]">
                                   Tipe Layer
                                 </label>
 
@@ -1196,7 +1175,7 @@ export default function UploadPage() {
                                       event.target.value
                                     )
                                   }
-                                  className="w-full rounded-xl border border-[#123c28]/10 bg-[#fbfcfa] px-3 py-2.5 text-[10px] font-bold text-[#123c28] outline-none"
+                                  className="w-full rounded-xl border border-[#123c28]/10 bg-[#fbfcfa] px-3 py-2.5 text-xs font-bold text-[#123c28] outline-none"
                                 >
                                   {manualLayerOptions.map((option) => (
                                     <option
@@ -1210,7 +1189,7 @@ export default function UploadPage() {
                               </div>
 
                               <div>
-                                <label className="mb-1.5 block text-[10px] font-bold text-[#123c28]/55">
+                                <label className="mb-1.5 block text-xs font-bold text-[#123c28]">
                                   Nama Tampilan
                                 </label>
 
@@ -1229,7 +1208,7 @@ export default function UploadPage() {
                               </div>
 
                               <div className="sm:col-span-2">
-                                <label className="mb-1.5 block text-[10px] font-bold text-[#123c28]/55">
+                                <label className="mb-1.5 block text-xs font-bold text-[#123c28]">
                                   File TIF / TIFF
                                 </label>
 
@@ -1245,13 +1224,13 @@ export default function UploadPage() {
                                       );
                                     }
                                   }}
-                                  className="block w-full text-[10px] text-[#123c28]/50 file:mr-2 file:rounded-xl file:border-0 file:bg-[#123c28] file:px-3 file:py-2 file:text-[10px] file:font-bold file:text-white"
+                                  className="block w-full text-xs text-[#123c28] file:mr-2 file:rounded-xl file:border-0 file:bg-[#123c28] file:px-3 file:py-2 file:text-xs file:font-bold file:text-white"
                                 />
                               </div>
                             </div>
 
                             <div className="mt-3 flex items-center gap-3 border-t border-[#123c28]/10 pt-3">
-                              <span className="shrink-0 text-[10px] font-semibold text-[#123c28]/50">
+                              <span className="shrink-0 text-xs font-semibold text-[#123c28]">
                                 Opasitas
                               </span>
 
@@ -1271,7 +1250,7 @@ export default function UploadPage() {
                                 className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 accent-[#123c28]"
                               />
 
-                              <span className="w-10 text-right text-[10px] font-bold text-[#123c28]">
+                              <span className="w-10 text-right text-xs font-bold text-[#123c28]">
                                 {Math.round(slot.default_opacity * 100)}%
                               </span>
                             </div>
@@ -1283,7 +1262,7 @@ export default function UploadPage() {
                         <div className="rounded-2xl border border-dashed border-[#123c28]/10 px-4 py-8 text-center">
                           <Layers className="mx-auto h-6 w-6 text-[#123c28]/20" />
 
-                          <p className="mt-2 text-[11px] font-semibold text-[#123c28]/45">
+                          <p className="mt-2 text-xs font-semibold text-[#123c28]">
                             Belum ada layer tambahan
                           </p>
                         </div>
@@ -1303,14 +1282,14 @@ export default function UploadPage() {
                     <div className="flex min-w-0 items-center gap-2">
                       <RefreshCw className="h-3.5 w-3.5 shrink-0 animate-spin" />
 
-                      <span className="truncate text-[10px] font-bold text-[#123c28]">
+                      <span className="truncate text-xs font-bold text-[#123c28]">
                         {uploadProgress >= 99
                           ? "Memvalidasi CRS, bounds spasial, dan metadata GeoTIFF..."
                           : "Mengunggah dataset..."}
                       </span>
                     </div>
 
-                    <span className="shrink-0 text-[10px] font-bold">
+                    <span className="shrink-0 text-xs font-bold">
                       {uploadProgress}%
                     </span>
                   </div>
@@ -1334,13 +1313,12 @@ export default function UploadPage() {
             <section className="rounded-3xl border border-[#123c28]/10 bg-white p-5 shadow-sm sm:p-6">
               <SectionHeader
                 icon={<FileText className="h-4 w-4" />}
-                title="Informasi Sesi Survei"
-                description="Metadata yang digunakan untuk katalog, identifikasi lahan, dan pengaturan akses dataset."
+                title="Detail Survei"
               />
 
               <div className="space-y-4">
                 <div>
-                  <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-[#123c28]/55">
+                  <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-[#123c28]">
                     Judul Peta / Sesi
                   </label>
 
@@ -1356,11 +1334,11 @@ export default function UploadPage() {
 
                 <div>
                   <div className="mb-1.5 flex items-center justify-between gap-3">
-                    <label className="block text-[10px] font-bold uppercase tracking-wide text-[#123c28]/55">
+                    <label className="block text-xs font-bold uppercase tracking-wide text-[#123c28]">
                       Lokasi Survei
                     </label>
 
-                    <span className="text-[9px] font-bold text-[#1a5134]">
+                    <span className="text-xs font-bold text-[#1a5134]">
                       Preset Halmahera Utara
                     </span>
                   </div>
@@ -1380,11 +1358,10 @@ export default function UploadPage() {
                               setTitle(`Survei Pertanian ${preset}`);
                             }
                           }}
-                          className={`rounded-full border px-2.5 py-1.5 text-[9px] font-bold transition ${
-                            location === preset
-                              ? "border-[#123c28] bg-[#123c28] text-white"
-                              : "border-[#123c28]/10 bg-white text-[#123c28]/60 hover:bg-[#f3f6ed]"
-                          }`}
+                          className={`rounded-full border px-2.5 py-1.5 text-xs font-bold transition ${location === preset
+                            ? "border-[#123c28] bg-[#123c28] text-white"
+                            : "border-[#123c28]/10 bg-white text-[#123c28] hover:bg-[#f3f6ed]"
+                            }`}
                         >
                           {shortName}
                         </button>
@@ -1408,7 +1385,7 @@ export default function UploadPage() {
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-[#123c28]/55">
+                    <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-[#123c28]">
                       Tanggal Penerbangan
                     </label>
 
@@ -1426,7 +1403,7 @@ export default function UploadPage() {
                   </div>
 
                   <div>
-                    <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-[#123c28]/55">
+                    <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-[#123c28]">
                       Deskripsi
                     </label>
 
@@ -1453,12 +1430,12 @@ export default function UploadPage() {
                       />
 
                       <div>
-                        <span className="block text-[11px] font-bold text-[#123c28]">
-                          Kunci akses Member Free
+                        <span className="block text-xs font-bold text-[#123c28]">
+                          Batasi untuk member berbayar
                         </span>
 
-                        <span className="block text-[10px] leading-relaxed text-[#123c28]/45">
-                          Dataset hanya dapat diakses oleh tier berbayar.
+                        <span className="block text-xs leading-relaxed text-[#123c28]">
+                          Sembunyikan dari member free.
                         </span>
                       </div>
                     </label>
@@ -1474,13 +1451,12 @@ export default function UploadPage() {
                       />
 
                       <div>
-                        <span className="block text-[11px] font-bold text-[#123c28]">
-                          Aktifkan pembelian satuan
+                        <span className="block text-xs font-bold text-[#123c28]">
+                          Izinkan pembelian satuan
                         </span>
 
-                        <span className="block text-[10px] leading-relaxed text-[#123c28]/45">
-                          Member dapat membeli akses dataset secara
-                          pay-per-view.
+                        <span className="block text-xs leading-relaxed text-[#123c28]">
+                          Member dapat membeli akses dataset.
                         </span>
                       </div>
                     </label>
@@ -1508,7 +1484,7 @@ export default function UploadPage() {
                     </p>
 
                     {geoError?.details?.missing_requirements && (
-                      <ul className="mt-2 space-y-1 pl-4 text-[10px] leading-relaxed text-red-800">
+                      <ul className="mt-2 space-y-1 pl-4 text-xs leading-relaxed text-red-900">
                         {geoError.details.missing_requirements.map(
                           (requirement, index) => (
                             <li key={index} className="list-disc">
@@ -1521,7 +1497,7 @@ export default function UploadPage() {
 
                     {geoError?.details?.solution && (
                       <div className="mt-3 rounded-xl border border-red-100 bg-white/70 p-3">
-                        <p className="text-[10px] leading-relaxed text-red-900">
+                        <p className="text-xs leading-relaxed text-red-900">
                           <strong>Solusi GIS:</strong>{" "}
                           {geoError.details.solution}
                         </p>
@@ -1544,7 +1520,7 @@ export default function UploadPage() {
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <span className="inline-flex rounded-full bg-emerald-500/15 px-2.5 py-1 text-[9px] font-black uppercase tracking-wide text-emerald-300">
+                    <span className="inline-flex rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs font-black uppercase tracking-wide text-emerald-200">
                       Validasi Spasial Lolos
                     </span>
 
@@ -1552,7 +1528,7 @@ export default function UploadPage() {
                       {geoSuccess.title}
                     </h3>
 
-                    <p className="mt-1 text-[11px] leading-relaxed text-white/65">
+                    <p className="mt-1 text-xs leading-relaxed text-white">
                       {geoSuccess.totalLayers} layer berhasil disimpan dan
                       diproses menuju arsip PMTiles di background.
                     </p>
@@ -1560,7 +1536,7 @@ export default function UploadPage() {
                     <div className="mt-4 flex flex-wrap gap-2">
                       <Link
                         href={`/dashboard/maps?id=${geoSuccess.mapId}`}
-                        className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-[10px] font-black text-[#123c28] transition hover:bg-[#eef3e8]"
+                        className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-xs font-black text-[#123c28] transition hover:bg-[#eef3e8]"
                       >
                         <Eye className="h-3.5 w-3.5" />
                         Buka di Map Viewer
@@ -1573,7 +1549,7 @@ export default function UploadPage() {
                           setIsSuccess(false);
                           setGeoSuccess(null);
                         }}
-                        className="rounded-full border border-white/15 px-4 py-2.5 text-[10px] font-bold text-white transition hover:bg-white/10"
+                        className="rounded-full border border-white/15 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-white/10"
                       >
                         Unggah Survei Lainnya
                       </button>
@@ -1618,69 +1594,63 @@ export default function UploadPage() {
             <section className="rounded-3xl border border-[#123c28]/10 bg-white p-5 shadow-sm sm:p-6">
               <SectionHeader
                 icon={<Compass className="h-4 w-4" />}
-                title="Panduan Layer GIS"
-                description="Struktur layer yang direkomendasikan untuk dataset UAV."
+                title="Jenis Layer"
               />
 
               <div className="space-y-2.5">
                 <div className="rounded-2xl border border-emerald-200 bg-emerald-50/45 p-3">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-bold text-emerald-900">
+                    <span className="text-xs font-bold text-emerald-900">
                       01 · Base Ortho RGB
                     </span>
 
-                    <span className="rounded-full bg-white/70 px-2 py-1 text-[8px] font-bold text-emerald-700">
+                    <span className="rounded-full bg-white/70 px-2 py-1 text-xs font-bold text-emerald-700">
                       BASE
                     </span>
                   </div>
 
-                  <p className="mt-1.5 text-[10px] leading-relaxed text-emerald-800/80">
-                    Citra mosaik visual utama dengan band merah, hijau, dan
-                    biru.
+                  <p className="mt-1.5 text-xs leading-relaxed text-emerald-900">
+                    Citra visual utama.
                   </p>
                 </div>
 
                 <div className="rounded-2xl border border-lime-200 bg-lime-50/45 p-3">
-                  <span className="text-[10px] font-bold text-lime-900">
+                  <span className="text-xs font-bold text-lime-900">
                     02 · NDVI / VARI
                   </span>
 
-                  <p className="mt-1.5 text-[10px] leading-relaxed text-lime-800/80">
-                    Menunjukkan kondisi dan kepadatan vegetasi berdasarkan
-                    analisis spektral.
+                  <p className="mt-1.5 text-xs leading-relaxed text-lime-900">
+                    Kondisi vegetasi.
                   </p>
                 </div>
 
                 <div className="rounded-2xl border border-violet-200 bg-violet-50/45 p-3">
-                  <span className="text-[10px] font-bold text-violet-900">
+                  <span className="text-xs font-bold text-violet-900">
                     03 · NPK
                   </span>
 
-                  <p className="mt-1.5 text-[10px] leading-relaxed text-violet-800/80">
-                    Layer kandungan Nitrogen, Fosfor, dan Kalium untuk analisis
-                    pertanian presisi.
+                  <p className="mt-1.5 text-xs leading-relaxed text-violet-900">
+                    Kandungan hara tanaman.
                   </p>
                 </div>
 
                 <div className="rounded-2xl border border-stone-200 bg-stone-50/70 p-3">
-                  <span className="text-[10px] font-bold text-stone-900">
+                  <span className="text-xs font-bold text-stone-900">
                     04 · DSM
                   </span>
 
-                  <p className="mt-1.5 text-[10px] leading-relaxed text-stone-800/80">
-                    Model elevasi permukaan untuk melihat topografi dan
-                    ketinggian vegetasi.
+                  <p className="mt-1.5 text-xs leading-relaxed text-stone-900">
+                    Elevasi dan topografi.
                   </p>
                 </div>
 
                 <div className="rounded-2xl border border-sky-200 bg-sky-50/45 p-3">
-                  <span className="text-[10px] font-bold text-sky-900">
+                  <span className="text-xs font-bold text-sky-900">
                     05 · Multispektral
                   </span>
 
-                  <p className="mt-1.5 text-[10px] leading-relaxed text-sky-800/80">
-                    Saluran spektral seperti NIR dan Red Edge untuk kebutuhan
-                    analisis lanjutan.
+                  <p className="mt-1.5 text-xs leading-relaxed text-sky-900">
+                    Saluran spektral lanjutan.
                   </p>
                 </div>
               </div>
@@ -1693,36 +1663,25 @@ export default function UploadPage() {
             <section className="rounded-3xl border border-[#123c28]/10 bg-[#f3f6ed] p-5 sm:p-6">
               <div className="mb-3 flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white shadow-sm">
-                  <Sparkles className="h-4 w-4 text-[#123c28]" />
+                  <Cog className="h-4 w-4 text-[#123c28]" />
                 </div>
 
                 <div>
-                  <h3 className="text-xs font-bold text-[#123c28]">
-                    AMX GeoStream™
+                  <h3 className="text-sm font-bold text-[#123c28]">
+                    AMX GeoStream Engine™
                   </h3>
 
-                  <p className="text-[9px] text-[#123c28]/45">
-                    Streaming-ready geospatial engine
-                  </p>
+
                 </div>
               </div>
 
-              <p className="text-[10px] leading-relaxed text-[#123c28]/70">
-                Dataset orthomosaic dan multispektral berukuran besar diproses
-                menjadi struktur spasial terindeks untuk kebutuhan visualisasi
-                multi-layer.
+              <p className="text-xs leading-relaxed text-[#123c28]">
+                GeoTIFF besar dibaca, divalidasi, lalu diubah menjadi PMTiles
+                agar peta dapat dimuat bertahap melalui HTTP Range tanpa
+                mengunduh seluruh dataset.
               </p>
 
-              <div className="mt-4 flex items-center justify-between rounded-xl bg-white/70 px-3 py-2.5">
-                <span className="text-[9px] font-bold text-[#123c28]/55">
-                  Engine Status
-                </span>
 
-                <span className="inline-flex items-center gap-1.5 text-[9px] font-bold text-emerald-700">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                  AMX Stream Core · HTTP 206
-                </span>
-              </div>
             </section>
 
             {/* ===============================================
@@ -1734,24 +1693,23 @@ export default function UploadPage() {
                 <ShieldCheck className="h-4 w-4 text-[#123c28]" />
 
                 <h3 className="text-xs font-bold text-[#123c28]">
-                  Alur Validasi
+                  Proses
                 </h3>
               </div>
 
               <div className="space-y-3">
                 {[
-                  "File GeoTIFF diterima server",
-                  "Header dan metadata spasial diperiksa",
-                  "CRS dan spatial bounds divalidasi",
-                  "Layer didaftarkan ke dataset",
-                  "Konversi PMTiles berjalan di background",
+                  "File diterima",
+                  "Metadata dan CRS diperiksa",
+                  "Layer didaftarkan",
+                  "PMTiles diproses di background",
                 ].map((step, index) => (
                   <div key={step} className="flex items-start gap-2.5">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#f3f6ed] text-[8px] font-black text-[#123c28]">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#f3f6ed] text-xs font-black text-[#123c28]">
                       {index + 1}
                     </span>
 
-                    <p className="text-[10px] leading-relaxed text-[#123c28]/55">
+                    <p className="text-xs leading-relaxed text-[#123c28]">
                       {step}
                     </p>
                   </div>
