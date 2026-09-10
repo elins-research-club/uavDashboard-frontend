@@ -11,29 +11,29 @@ import React, {
 
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+
 import * as pmtiles from "pmtiles";
 
-import {
-  Globe,
-  Map as MapIcon,
-  RotateCcw,
-  RotateCw,
-  Mountain,
-  Layers3,
-} from "lucide-react";
+import { RotateCcw, RotateCw } from "lucide-react";
 
 import LayerControlPanel from "@/components/LayerControlPanel";
 import type { MapLayerItem } from "@/types/map";
 
-// Registrasi protokol PMTiles ke MapLibre GL jika belum terdaftar
+/* =========================================================
+   PMTILES REGISTRATION
+========================================================= */
+
 let pmtilesRegistered = false;
+
 if (typeof window !== "undefined" && !pmtilesRegistered) {
   try {
     const protocol = new pmtiles.Protocol();
+
     maplibregl.addProtocol("pmtiles", protocol.tile);
+
     pmtilesRegistered = true;
   } catch {
-    // Protocol already added
+    // Protocol already registered.
   }
 }
 
@@ -59,6 +59,7 @@ export interface MapHandle {
   resetNorth: () => void;
 
   getBearing: () => number;
+
   setBearing: (deg: number) => void;
 
   tiltUp: () => void;
@@ -67,16 +68,21 @@ export interface MapHandle {
   resetView: () => void;
 
   toggle3D: () => void;
+
   is3D: () => boolean;
 }
 
 interface BoundsResponse {
   bounds: [[number, number], [number, number]];
+
   center: [number, number];
+
   has_tiles: boolean;
+
   gps_source: string;
 
   title?: string;
+
   location?: string;
 }
 
@@ -91,16 +97,24 @@ const TERRAIN_SOURCE_ID = "terrain-dem";
 const TERRAIN_SOURCE_URL = "https://tiles.mapterhorn.com/tilejson.json";
 
 const BASEMAP_RASTER_SOURCE_ID = "basemap-raster";
+
 const BASEMAP_RASTER_LAYER_ID = "basemap-layer";
 
 const SATELLITE_LABEL_SOURCE_ID = "satellite-labels";
+
 const SATELLITE_LABEL_LAYER_ID = "satellite-labels-layer";
 
 const UAV_RASTER_SOURCE_ID = "uav-raster";
+
 const UAV_RASTER_LAYER_ID = "uav-raster-layer";
 
 const UAV_IMAGE_SOURCE_ID = "uav-image";
+
 const UAV_IMAGE_LAYER_ID = "uav-image-layer";
+
+/* =========================================================
+   BASEMAPS
+========================================================= */
 
 const BASEMAPS = {
   satellite: {
@@ -132,21 +146,27 @@ const BASEMAPS = {
 };
 
 /* =========================================================
-   MAP DISPLAY
+   COMPONENT
 ========================================================= */
 
 const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
   ({ mapId, token, mapFormat, mapTitle, mapLocation }, ref) => {
+    /* =====================================================
+       REFS
+    ====================================================== */
+
     const containerRef = useRef<HTMLDivElement | null>(null);
 
     const mapRef = useRef<maplibregl.Map | null>(null);
 
-    /*
-     * Simpan state terbaru di ref supaya callback yang
-     * dipakai MapLibre tidak menyebabkan map dibuat ulang.
-     */
-
     const basemapRef = useRef<keyof typeof BASEMAPS>("satellite");
+
+    /*
+     * Tetap digunakan untuk fallback
+     * single raster/image mode.
+     *
+     * TIDAK dikirim ke LayerControlPanel.
+     */
 
     const overlayOpacityRef = useRef(0.95);
 
@@ -158,14 +178,25 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
     const currentMetaRef = useRef<BoundsResponse | null>(null);
 
+    const mapLayersRef = useRef<MapLayerItem[]>([]);
+
+    /* =====================================================
+       STATE
+    ====================================================== */
+
     const [basemap, setBasemap] = useState<keyof typeof BASEMAPS>("satellite");
+
+    /*
+     * Global overlay opacity.
+     *
+     * Hanya dipakai fallback single-layer.
+     */
 
     const [overlayOpacity, setOverlayOpacity] = useState(0.95);
 
     const [currentMeta, setCurrentMeta] = useState<BoundsResponse | null>(null);
 
     const [mapLayers, setMapLayers] = useState<MapLayerItem[]>([]);
-    const mapLayersRef = useRef<MapLayerItem[]>([]);
 
     const [bearing, setBearing] = useState(0);
 
@@ -177,9 +208,11 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
     const [mapReady, setMapReady] = useState(false);
 
+    const [isFullscreen, setIsFullscreen] = useState(false);
+
     /* =====================================================
-       KEEP REFS IN SYNC
-    ===================================================== */
+       SYNC REFS
+    ====================================================== */
 
     useEffect(() => {
       basemapRef.current = basemap;
@@ -207,32 +240,54 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
     /* =====================================================
        HELPERS
-    ===================================================== */
+    ====================================================== */
 
     const normalizeBearing = useCallback((value: number) => {
       return ((value % 360) + 360) % 360;
     }, []);
 
     const getDirection = useCallback((deg: number) => {
-      if (deg >= 337.5 || deg < 22.5) return "U";
-      if (deg >= 22.5 && deg < 67.5) return "TL";
-      if (deg >= 67.5 && deg < 112.5) return "T";
-      if (deg >= 112.5 && deg < 157.5) return "TG";
-      if (deg >= 157.5 && deg < 202.5) return "S";
-      if (deg >= 202.5 && deg < 247.5) return "BD";
-      if (deg >= 247.5 && deg < 292.5) return "B";
+      if (deg >= 337.5 || deg < 22.5) {
+        return "U";
+      }
+
+      if (deg >= 22.5 && deg < 67.5) {
+        return "TL";
+      }
+
+      if (deg >= 67.5 && deg < 112.5) {
+        return "T";
+      }
+
+      if (deg >= 112.5 && deg < 157.5) {
+        return "TG";
+      }
+
+      if (deg >= 157.5 && deg < 202.5) {
+        return "S";
+      }
+
+      if (deg >= 202.5 && deg < 247.5) {
+        return "BD";
+      }
+
+      if (deg >= 247.5 && deg < 292.5) {
+        return "B";
+      }
 
       return "BL";
     }, []);
 
     /* =====================================================
-       CAMERA STATE
-    ===================================================== */
+       CAMERA
+    ====================================================== */
 
     const syncCameraState = useCallback(() => {
       const map = mapRef.current;
 
-      if (!map) return;
+      if (!map) {
+        return;
+      }
 
       setBearing(Math.round(normalizeBearing(map.getBearing())));
 
@@ -240,25 +295,29 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     }, [normalizeBearing]);
 
     /* =====================================================
-       REMOVE UAV LAYERS
-    ===================================================== */
+       REMOVE UAV
+    ====================================================== */
 
     const removeUavLayers = useCallback(() => {
       const map = mapRef.current;
 
-      if (!map) return;
-
-      /*
-       * Remove previous multi-layer & single-layer UAV layers
-       */
-      if (mapLayersRef.current) {
-        mapLayersRef.current.forEach((l) => {
-          const lid = `layer-render-${l.id}`;
-          const sid = `layer-source-${l.id}`;
-          if (map.getLayer(lid)) map.removeLayer(lid);
-          if (map.getSource(sid)) map.removeSource(sid);
-        });
+      if (!map) {
+        return;
       }
+
+      mapLayersRef.current.forEach((layer) => {
+        const layerId = `layer-render-${layer.id}`;
+
+        const sourceId = `layer-source-${layer.id}`;
+
+        if (map.getLayer(layerId)) {
+          map.removeLayer(layerId);
+        }
+
+        if (map.getSource(sourceId)) {
+          map.removeSource(sourceId);
+        }
+      });
 
       if (map.getLayer(UAV_RASTER_LAYER_ID)) {
         map.removeLayer(UAV_RASTER_LAYER_ID);
@@ -278,8 +337,8 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     }, []);
 
     /* =====================================================
-       SETUP BASEMAP
-    ===================================================== */
+       BASEMAP
+    ====================================================== */
 
     const setupBasemap = useCallback(() => {
       const map = mapRef.current;
@@ -290,25 +349,19 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
       const active = BASEMAPS[basemapRef.current];
 
-      /*
-       * Remove previous basemap layer
-       */
+      /* Remove old raster layer */
 
       if (map.getLayer(BASEMAP_RASTER_LAYER_ID)) {
         map.removeLayer(BASEMAP_RASTER_LAYER_ID);
       }
 
-      /*
-       * Remove previous basemap source
-       */
+      /* Remove old raster source */
 
       if (map.getSource(BASEMAP_RASTER_SOURCE_ID)) {
         map.removeSource(BASEMAP_RASTER_SOURCE_ID);
       }
 
-      /*
-       * Add basemap source
-       */
+      /* Add new source */
 
       map.addSource(BASEMAP_RASTER_SOURCE_ID, {
         type: "raster",
@@ -323,24 +376,27 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       });
 
       /*
-       * Add basemap layer — always BELOW the UAV overlay layers.
+       * Put basemap below UAV layers.
        */
-      let firstUavLayer: string | undefined = undefined;
-      if (mapLayersRef.current && mapLayersRef.current.length > 0) {
-        for (const l of mapLayersRef.current) {
-          const target = `layer-render-${l.id}`;
-          if (map.getLayer(target)) {
-            firstUavLayer = target;
-            break;
-          }
+
+      let firstUavLayer: string | undefined;
+
+      for (const layer of mapLayersRef.current) {
+        const target = `layer-render-${layer.id}`;
+
+        if (map.getLayer(target)) {
+          firstUavLayer = target;
+
+          break;
         }
       }
+
       if (!firstUavLayer) {
-        firstUavLayer = map.getLayer(UAV_RASTER_LAYER_ID)
-          ? UAV_RASTER_LAYER_ID
-          : map.getLayer(UAV_IMAGE_LAYER_ID)
-          ? UAV_IMAGE_LAYER_ID
-          : undefined;
+        if (map.getLayer(UAV_RASTER_LAYER_ID)) {
+          firstUavLayer = UAV_RASTER_LAYER_ID;
+        } else if (map.getLayer(UAV_IMAGE_LAYER_ID)) {
+          firstUavLayer = UAV_IMAGE_LAYER_ID;
+        }
       }
 
       map.addLayer(
@@ -358,9 +414,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         firstUavLayer
       );
 
-      /*
-       * Satellite labels — juga di bawah UAV overlay.
-       */
+      /* =================================================
+           SATELLITE LABELS
+        ================================================== */
 
       if (map.getLayer(SATELLITE_LABEL_LAYER_ID)) {
         map.removeLayer(SATELLITE_LABEL_LAYER_ID);
@@ -399,8 +455,8 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     }, []);
 
     /* =====================================================
-       SETUP TERRAIN
-    ===================================================== */
+       TERRAIN
+    ====================================================== */
 
     const setupTerrain = useCallback(() => {
       const map = mapRef.current;
@@ -408,10 +464,6 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       if (!map || !map.isStyleLoaded()) {
         return;
       }
-
-      /*
-       * Create DEM source only once.
-       */
 
       if (!map.getSource(TERRAIN_SOURCE_ID)) {
         map.addSource(TERRAIN_SOURCE_ID, {
@@ -425,16 +477,17 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         });
       }
 
-      /*
-       * Enable / disable terrain.
-       */
-
       if (terrainEnabledRef.current) {
         map.setTerrain({
           source: TERRAIN_SOURCE_ID,
 
           exaggeration: 1.5,
         });
+
+        /*
+         * Tidak menampilkan derajat di UI,
+         * tetapi terrain tetap memakai pitch.
+         */
 
         if (map.getPitch() < 20) {
           map.easeTo({
@@ -455,8 +508,8 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     }, []);
 
     /* =====================================================
-       SETUP UAV LAYER
-    ===================================================== */
+       UAV LAYER
+    ====================================================== */
 
     const setupUavLayer = useCallback(
       (meta: BoundsResponse, layersToRender?: MapLayerItem[]) => {
@@ -471,39 +524,43 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         const baseUrl =
           process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
-        /*
-         * Remove old UAV layers.
-         */
         removeUavLayers();
 
         const currentLayers = layersToRender ?? mapLayersRef.current;
 
-        /*
-         * 1. MULTI-LAYER MODE (PMTiles / Dynamic Tile per layer)
-         */
+        /* =============================================
+             MULTI LAYER
+          ============================================== */
+
         if (currentLayers && currentLayers.length > 0) {
           currentLayers.forEach((layer) => {
             const sourceId = `layer-source-${layer.id}`;
+
             const layerId = `layer-render-${layer.id}`;
 
             if (!map.getSource(sourceId)) {
               if (layer.pmtiles_url) {
-                // Streaming langsung lewat PMTiles HTTP Range Request
                 const apiOrigin = baseUrl.replace(/\/api\/?$/, "");
+
                 const pmtilesUrl = `${apiOrigin}${layer.pmtiles_url}`;
+
                 map.addSource(sourceId, {
                   type: "raster",
+
                   url: `pmtiles://${pmtilesUrl}`,
+
                   tileSize: 256,
                 });
               } else {
-                // Fallback dynamic XYZ raster tile
                 map.addSource(sourceId, {
                   type: "raster",
+
                   tiles: [
                     `${baseUrl}/maps/${activeMapId}/layers/${layer.id}/tiles/{z}/{x}/{y}.png`,
                   ],
+
                   tileSize: 256,
+
                   maxzoom: 22,
                 });
               }
@@ -512,24 +569,31 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             if (!map.getLayer(layerId)) {
               map.addLayer({
                 id: layerId,
+
                 type: "raster",
+
                 source: sourceId,
+
                 layout: {
                   visibility: layer.is_visible ? "visible" : "none",
                 },
+
                 paint: {
                   "raster-opacity": layer.default_opacity,
+
                   "raster-resampling": "linear",
                 },
               });
             }
           });
+
           return;
         }
 
-        /*
-         * 2. FALLBACK SINGLE TILE MODE
-         */
+        /* =============================================
+             SINGLE TILE
+          ============================================== */
+
         if (meta.has_tiles) {
           map.addSource(UAV_RASTER_SOURCE_ID, {
             type: "raster",
@@ -558,9 +622,10 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
           return;
         }
 
-        /*
-         * 3. SINGLE IMAGE PREVIEW MODE
-         */
+        /* =============================================
+             SINGLE IMAGE
+          ============================================== */
+
         if (meta.bounds) {
           const [[south, west], [north, east]] = meta.bounds;
 
@@ -596,8 +661,8 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     );
 
     /* =====================================================
-       LOAD MAP BOUNDS
-    ===================================================== */
+       LOAD BOUNDS
+    ====================================================== */
 
     const loadBounds = useCallback(async () => {
       const map = mapRef.current;
@@ -626,6 +691,10 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       }
 
       try {
+        /* ===============================================
+             BOUNDS
+          ================================================ */
+
         const response = await fetch(`${baseUrl}/maps/${activeMapId}/bounds`, {
           headers,
         });
@@ -640,9 +709,10 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
         currentMetaRef.current = data;
 
-        /*
-         * Fetch Multi-Layers if available
-         */
+        /* ===============================================
+             LAYERS
+          ================================================ */
+
         try {
           const layersRes = await fetch(
             `${baseUrl}/maps/${activeMapId}/layers`,
@@ -650,10 +720,14 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               headers,
             }
           );
+
           if (layersRes.ok) {
-            const lData: MapLayerItem[] = await layersRes.json();
+            const lData = (await layersRes.json()) as MapLayerItem[];
+
             setMapLayers(lData);
+
             mapLayersRef.current = lData;
+
             setupUavLayer(data, lData);
           } else {
             setupUavLayer(data);
@@ -662,9 +736,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
           setupUavLayer(data);
         }
 
-        /*
-         * Fit bounds
-         */
+        /* ===============================================
+             FIT BOUNDS
+          ================================================ */
 
         if (
           data.bounds &&
@@ -693,11 +767,6 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             essential: true,
           });
         } else if (data.center) {
-          /*
-           * Backend:
-           * [latitude, longitude]
-           */
-
           const [lat, lng] = data.center;
 
           map.flyTo({
@@ -722,10 +791,64 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     }, [setupUavLayer]);
 
     /* =====================================================
+       FULLSCREEN
+    ====================================================== */
+
+    const handleToggleFullscreen = useCallback(async () => {
+      const target = containerRef.current?.parentElement;
+
+      if (!target) {
+        return;
+      }
+
+      try {
+        if (!document.fullscreenElement) {
+          await target.requestFullscreen();
+        } else {
+          await document.exitFullscreen();
+        }
+      } catch (error) {
+        console.error("Fullscreen gagal:", error);
+      }
+    }, []);
+
+    /* =====================================================
+       FULLSCREEN EVENT
+    ====================================================== */
+
+    useEffect(() => {
+      const handleFullscreenChange = () => {
+        const fullscreen = document.fullscreenElement !== null;
+
+        setIsFullscreen(fullscreen);
+
+        /*
+         * MapLibre perlu resize setelah
+         * fullscreen berubah.
+         */
+
+        requestAnimationFrame(() => {
+          mapRef.current?.resize();
+        });
+
+        window.setTimeout(() => {
+          mapRef.current?.resize();
+        }, 100);
+      };
+
+      document.addEventListener("fullscreenchange", handleFullscreenChange);
+
+      return () => {
+        document.removeEventListener(
+          "fullscreenchange",
+          handleFullscreenChange
+        );
+      };
+    }, []);
+
+    /* =====================================================
        CREATE MAP
-       IMPORTANT:
-       MAP INSTANCE HANYA DIBUAT SEKALI
-    ===================================================== */
+    ====================================================== */
 
     useEffect(() => {
       if (!containerRef.current || mapRef.current) {
@@ -772,9 +895,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
       mapRef.current = map;
 
-      /*
-       * Navigation control
-       */
+      /* Navigation */
 
       map.addControl(
         new maplibregl.NavigationControl({
@@ -787,35 +908,23 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         "top-left"
       );
 
-      /*
-       * Map load
-       */
+      /* Load */
 
       map.once("load", () => {
-        /*
-         * Basemap
-         */
-
         setupBasemap();
 
-        /*
-         * Terrain
-         */
-
         setupTerrain();
-
-        /*
-         * Ready
-         */
 
         setMapReady(true);
 
         syncCameraState();
+
+        requestAnimationFrame(() => {
+          map.resize();
+        });
       });
 
-      /*
-       * Camera events
-       */
+      /* Camera */
 
       map.on("rotate", syncCameraState);
 
@@ -823,9 +932,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
       map.on("zoom", syncCameraState);
 
-      /*
-       * Cleanup
-       */
+      /* Cleanup */
 
       return () => {
         map.remove();
@@ -840,7 +947,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
     /* =====================================================
        BASEMAP CHANGE
-    ===================================================== */
+    ====================================================== */
 
     useEffect(() => {
       if (!mapReady) {
@@ -848,12 +955,6 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       }
 
       setupBasemap();
-
-      /*
-       * Re-add UAV overlay because
-       * basemap layer might have changed
-       * layer ordering.
-       */
 
       const meta = currentMetaRef.current;
 
@@ -863,8 +964,8 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     }, [basemap, mapReady, setupBasemap, setupUavLayer]);
 
     /* =====================================================
-       TERRAIN TOGGLE
-    ===================================================== */
+       TERRAIN CHANGE
+    ====================================================== */
 
     useEffect(() => {
       if (!mapReady) {
@@ -875,8 +976,8 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     }, [terrainEnabled, mapReady, setupTerrain]);
 
     /* =====================================================
-       OVERLAY OPACITY
-    ===================================================== */
+       FALLBACK OVERLAY OPACITY
+    ====================================================== */
 
     useEffect(() => {
       overlayOpacityRef.current = overlayOpacity;
@@ -887,12 +988,14 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
       const map = mapRef.current;
 
+      /*
+       * Only fallback single raster.
+       */
+
       if (map.getLayer(UAV_RASTER_LAYER_ID)) {
         map.setPaintProperty(
           UAV_RASTER_LAYER_ID,
-
           "raster-opacity",
-
           overlayOpacity
         );
       }
@@ -900,9 +1003,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       if (map.getLayer(UAV_IMAGE_LAYER_ID)) {
         map.setPaintProperty(
           UAV_IMAGE_LAYER_ID,
-
           "raster-opacity",
-
           overlayOpacity
         );
       }
@@ -910,7 +1011,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
     /* =====================================================
        LOAD MAP DATA
-    ===================================================== */
+    ====================================================== */
 
     useEffect(() => {
       if (!mapReady) {
@@ -923,14 +1024,14 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         return;
       }
 
-      /*
-       * No map selected
-       */
-
       if (!mapId) {
         setCurrentMeta(null);
 
         currentMetaRef.current = null;
+
+        setMapLayers([]);
+
+        mapLayersRef.current = [];
 
         removeUavLayers();
 
@@ -942,7 +1043,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
     /* =====================================================
        IMPERATIVE HANDLE
-    ===================================================== */
+    ====================================================== */
 
     useImperativeHandle(
       ref,
@@ -1063,8 +1164,8 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     );
 
     /* =====================================================
-       LOCAL UI HANDLERS
-    ===================================================== */
+       LOCAL HANDLERS
+    ====================================================== */
 
     const handleResetNorth = useCallback(() => {
       mapRef.current?.easeTo({
@@ -1136,223 +1237,90 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
     /* =====================================================
        RENDER
-    ===================================================== */
+    ====================================================== */
 
     return (
-      <div className="relative h-full w-full overflow-hidden">
+      <div className="relative h-full w-full overflow-hidden bg-[#eef2ec]">
         {/* =================================================
             LOADING
         ================================================== */}
 
         {loading && (
-          <div className="absolute left-1/2 top-4 z-[1000] -translate-x-1/2">
-            <div className="flex items-center gap-2.5 rounded-full border border-gray-700 bg-gray-900/90 px-4 py-2 text-white shadow-2xl backdrop-blur-md">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-emerald-400 border-t-transparent" />
+          <div className="pointer-events-none absolute left-1/2 top-4 z-[1000] -translate-x-1/2">
+            <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 shadow-md">
+              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
 
-              <span className="text-xs font-semibold">
-                🛰️ Memuat data geospasial...
-              </span>
+              <span>Memuat data geospasial...</span>
             </div>
           </div>
         )}
 
         {/* =================================================
-            TOP CONTROL
-        ================================================== */}
-
-        <div className="absolute right-3 top-3 z-[1000] flex flex-col gap-2">
-          {/* BASEMAP */}
-
-          <div className="rounded-xl border border-gray-200 bg-white/95 p-2 shadow-xl backdrop-blur-md">
-            <div className="flex items-center gap-1 rounded-lg bg-gray-100 p-1">
-              <button
-                type="button"
-                onClick={() => setBasemap("satellite")}
-                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition ${
-                  basemap === "satellite"
-                    ? "bg-gray-900 text-white shadow-sm"
-                    : "text-gray-600 hover:text-gray-900"
-                }`}
-              >
-                <Globe className="h-3.5 w-3.5" />
-                Satelit
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setBasemap("street")}
-                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition ${
-                  basemap === "street"
-                    ? "bg-gray-900 text-white shadow-sm"
-                    : "text-gray-600 hover:text-gray-900"
-                }`}
-              >
-                <MapIcon className="h-3.5 w-3.5" />
-                Jalan
-              </button>
-            </div>
-
-            {/* OPACITY */}
-
-            {mapId && (
-              <div className="mt-2 border-t border-gray-200 px-1 pt-2">
-                <div className="mb-1 flex items-center justify-between">
-                  <span className="text-[10px] font-semibold text-gray-600">
-                    Transparansi
-                  </span>
-
-                  <span className="text-[10px] font-bold text-gray-800">
-                    {Math.round(overlayOpacity * 100)}%
-                  </span>
-                </div>
-
-                <div className="flex gap-1">
-                  {[1, 0.75, 0.5, 0.25].map((op) => (
-                    <button
-                      key={op}
-                      type="button"
-                      onClick={() => setOverlayOpacity(op)}
-                      className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
-                        overlayOpacity === op
-                          ? "bg-blue-600 text-white"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
-                    >
-                      {Math.round(op * 100)}%
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* 3D CONTROL */}
-
-          <div className="rounded-xl border border-gray-200 bg-white/95 p-2 shadow-xl backdrop-blur-md">
-            <button
-              type="button"
-              onClick={handleToggle3D}
-              className={`flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-bold transition ${
-                terrainEnabled
-                  ? "bg-[#123c28] text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              <Mountain className="h-4 w-4" />
-
-              {terrainEnabled ? "3D Terrain Aktif" : "Aktifkan 3D"}
-            </button>
-
-            <div className="mt-2 flex items-center justify-center gap-1">
-              <button
-                type="button"
-                onClick={handlePitchDown}
-                title="Kurangi kemiringan"
-                className="flex h-7 flex-1 items-center justify-center rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200"
-              >
-                −
-              </button>
-
-              <div className="flex min-w-[52px] items-center justify-center gap-1 text-[10px] font-bold text-gray-700">
-                <Layers3 className="h-3 w-3" />
-                {pitch}°
-              </div>
-
-              <button
-                type="button"
-                onClick={handlePitchUp}
-                title="Tambah kemiringan"
-                className="flex h-7 flex-1 items-center justify-center rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200"
-              >
-                +
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* =================================================
             COMPASS
         ================================================== */}
 
-        <div className="absolute bottom-6 left-4 z-[1000] flex flex-col items-center gap-1.5 rounded-2xl border border-gray-200/80 bg-white/95 p-2 shadow-xl backdrop-blur-md">
+        <div className="absolute bottom-6 left-4 z-[1000] flex items-center gap-1 rounded-full border border-gray-200 bg-white p-1.5 shadow-md">
+          <button
+            type="button"
+            onClick={handleRotateLeft}
+            title="Putar -45°"
+            className="flex h-7 w-7 items-center justify-center rounded-full text-gray-500 transition hover:bg-gray-100 hover:text-gray-800"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+          </button>
+
           <button
             type="button"
             onClick={handleResetNorth}
             title="Reset ke Utara"
-            className="group relative flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-gradient-to-b from-gray-50 to-gray-100 transition hover:scale-105 hover:border-gray-300"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-gray-50 transition hover:bg-gray-100"
           >
             <div
-              className="flex h-full w-full items-center justify-center transition-transform duration-200"
+              className="flex h-full w-full items-center justify-center"
               style={{
                 transform: `rotate(${-bearing}deg)`,
               }}
             >
-              <div className="relative flex h-8 w-2.5 flex-col items-center">
-                <div className="h-4 w-0 border-x-[5px] border-x-transparent border-b-[15px] border-b-red-600" />
+              <div className="relative flex h-6 w-2 flex-col items-center">
+                <div className="h-3 w-0 border-x-[4px] border-x-transparent border-b-[11px] border-b-red-600" />
 
-                <div className="h-4 w-0 border-x-[5px] border-x-transparent border-t-[15px] border-t-gray-400" />
-
-                <div className="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-gray-600 bg-white" />
+                <div className="h-3 w-0 border-x-[4px] border-x-transparent border-t-[11px] border-t-gray-300" />
               </div>
             </div>
-
-            <span
-              className="pointer-events-none absolute text-[8px] font-black text-red-600"
-              style={{
-                transform: `rotate(${-bearing}deg) translateY(-14px)`,
-              }}
-            >
-              N
-            </span>
           </button>
 
-          <div className="flex items-center gap-1 text-[10px] font-bold text-gray-700">
-            <span>{bearing}°</span>
+          <button
+            type="button"
+            onClick={handleRotateRight}
+            title="Putar +45°"
+            className="flex h-7 w-7 items-center justify-center rounded-full text-gray-500 transition hover:bg-gray-100 hover:text-gray-800"
+          >
+            <RotateCw className="h-3.5 w-3.5" />
+          </button>
 
-            <span className="text-gray-300">|</span>
-
-            <span className="font-extrabold text-emerald-800">
-              {getDirection(bearing)}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1 border-t border-gray-200/80 pt-1">
-            <button
-              type="button"
-              onClick={handleRotateLeft}
-              title="Putar -45°"
-              className="flex h-6 w-6 items-center justify-center rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200"
-            >
-              <RotateCcw className="h-3 w-3" />
-            </button>
-
-            <button
-              type="button"
-              onClick={handleRotateRight}
-              title="Putar +45°"
-              className="flex h-6 w-6 items-center justify-center rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200"
-            >
-              <RotateCw className="h-3 w-3" />
-            </button>
-          </div>
-
-          <span className="text-center text-[8px] font-medium leading-tight text-gray-600">
-            Drag untuk rotasi
-            <br />
-            Ctrl / Shift untuk tilt
+          <span className="pl-1 pr-1.5 text-[10px] font-bold text-gray-700">
+            {bearing}° {getDirection(bearing)}
           </span>
         </div>
 
         {/* =================================================
-            MULTI-LAYER CONTROL PANEL (AMX Multi-Spectral Engine)
+            LAYER CONTROL PANEL
         ================================================== */}
+
         <LayerControlPanel
           mapId={mapId}
-          token={token}
           layers={mapLayers}
+          basemap={basemap}
+          onChangeBasemap={setBasemap}
+          terrainEnabled={terrainEnabled}
+          onToggleTerrain={handleToggle3D}
+          isFullscreen={isFullscreen}
+          onToggleFullscreen={handleToggleFullscreen}
           onToggleVisibility={(layerId, visible) => {
             const map = mapRef.current;
+
             const targetId = `layer-render-${layerId}`;
+
             if (map && map.getLayer(targetId)) {
               map.setLayoutProperty(
                 targetId,
@@ -1360,114 +1328,155 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                 visible ? "visible" : "none"
               );
             }
+
             setMapLayers((prev) =>
-              prev.map((l) =>
-                l.id === layerId ? { ...l, is_visible: visible } : l
+              prev.map((layer) =>
+                layer.id === layerId
+                  ? {
+                      ...layer,
+                      is_visible: visible,
+                    }
+                  : layer
               )
             );
-            if (mapLayersRef.current) {
-              mapLayersRef.current = mapLayersRef.current.map((l) =>
-                l.id === layerId ? { ...l, is_visible: visible } : l
-              );
-            }
+
+            mapLayersRef.current = mapLayersRef.current.map((layer) =>
+              layer.id === layerId
+                ? {
+                    ...layer,
+                    is_visible: visible,
+                  }
+                : layer
+            );
           }}
           onChangeOpacity={(layerId, opacity) => {
             const map = mapRef.current;
+
             const targetId = `layer-render-${layerId}`;
+
             if (map && map.getLayer(targetId)) {
               map.setPaintProperty(targetId, "raster-opacity", opacity);
             }
+
             setMapLayers((prev) =>
-              prev.map((l) =>
-                l.id === layerId ? { ...l, default_opacity: opacity } : l
+              prev.map((layer) =>
+                layer.id === layerId
+                  ? {
+                      ...layer,
+                      default_opacity: opacity,
+                    }
+                  : layer
               )
             );
-            if (mapLayersRef.current) {
-              mapLayersRef.current = mapLayersRef.current.map((l) =>
-                l.id === layerId ? { ...l, default_opacity: opacity } : l
-              );
-            }
+
+            mapLayersRef.current = mapLayersRef.current.map((layer) =>
+              layer.id === layerId
+                ? {
+                    ...layer,
+                    default_opacity: opacity,
+                  }
+                : layer
+            );
           }}
           onLayerUploaded={async () => {
             const activeMapId = mapIdRef.current;
+
             const activeToken = tokenRef.current;
-            if (!activeMapId) return;
+
+            if (!activeMapId) {
+              return;
+            }
+
             const baseUrl =
               process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+
             const headers: Record<string, string> = {};
-            if (activeToken) headers.Authorization = `Bearer ${activeToken}`;
+
+            if (activeToken) {
+              headers.Authorization = `Bearer ${activeToken}`;
+            }
+
             try {
               const res = await fetch(`${baseUrl}/maps/${activeMapId}/layers`, {
                 headers,
               });
+
               if (res.ok) {
-                const data: MapLayerItem[] = await res.json();
+                const data = (await res.json()) as MapLayerItem[];
+
                 setMapLayers(data);
+
                 mapLayersRef.current = data;
+
                 if (currentMetaRef.current) {
                   setupUavLayer(currentMetaRef.current, data);
                 }
               }
-            } catch (err) {
-              console.error("Gagal refresh layers:", err);
+            } catch (error) {
+              console.error("Gagal refresh layers:", error);
             }
           }}
           onDeleteLayer={async (layerId) => {
             const activeMapId = mapIdRef.current;
+
             const activeToken = tokenRef.current;
-            if (!activeMapId) return;
+
+            if (!activeMapId) {
+              return;
+            }
+
             const baseUrl =
               process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+
             const headers: Record<string, string> = {};
-            if (activeToken) headers.Authorization = `Bearer ${activeToken}`;
+
+            if (activeToken) {
+              headers.Authorization = `Bearer ${activeToken}`;
+            }
+
             try {
               const res = await fetch(
                 `${baseUrl}/maps/${activeMapId}/layers/${layerId}`,
-                { method: "DELETE", headers }
+                {
+                  method: "DELETE",
+
+                  headers,
+                }
               );
+
               if (res.ok) {
                 const map = mapRef.current;
+
                 if (map) {
-                  const lid = `layer-render-${layerId}`;
-                  const sid = `layer-source-${layerId}`;
-                  if (map.getLayer(lid)) map.removeLayer(lid);
-                  if (map.getSource(sid)) map.removeSource(sid);
+                  const layerIdMap = `layer-render-${layerId}`;
+
+                  const sourceId = `layer-source-${layerId}`;
+
+                  if (map.getLayer(layerIdMap)) {
+                    map.removeLayer(layerIdMap);
+                  }
+
+                  if (map.getSource(sourceId)) {
+                    map.removeSource(sourceId);
+                  }
                 }
-                setMapLayers((prev) => prev.filter((l) => l.id !== layerId));
+
+                setMapLayers((prev) =>
+                  prev.filter((layer) => layer.id !== layerId)
+                );
+
                 mapLayersRef.current = mapLayersRef.current.filter(
-                  (l) => l.id !== layerId
+                  (layer) => layer.id !== layerId
                 );
               }
-            } catch (err) {
-              console.error("Gagal menghapus layer:", err);
+            } catch (error) {
+              console.error("Gagal menghapus layer:", error);
             }
           }}
         />
 
         {/* =================================================
-            ACTIVE DATA BADGE
-        ================================================== */}
-
-        {currentMeta && (
-          <div className="pointer-events-none absolute bottom-14 right-4 z-[1000] max-w-xs rounded-2xl border border-white/80 bg-white/95 px-3 py-2.5 shadow-xl backdrop-blur-md">
-            <div className="flex items-center gap-2">
-              <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#123c28]">
-                PETA LAPANGAN UAV
-              </span>
-            </div>
-
-            <p className="mt-1 truncate text-[10px] font-bold text-gray-900">
-              {mapTitle || currentMeta.title || "Peta UAV"}
-            </p>
-
-            <p className="mt-0.5 truncate text-[9px] text-gray-500">
-              {mapLocation || currentMeta.location || "Lokasi Survey"}
-            </p>
-          </div>
-        )}
-
-        {/* =================================================
-            MAP
+            MAP CONTAINER
         ================================================== */}
 
         <div ref={containerRef} className="h-full w-full bg-[#eef2ec]" />
