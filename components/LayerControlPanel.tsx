@@ -320,11 +320,10 @@ export default function LayerControlPanel({
             <button
               type="button"
               onClick={() => onChangeBasemap("satellite")}
-              className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left transition ${
-                basemap === "satellite"
+              className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left transition ${basemap === "satellite"
                   ? "bg-[#123c28] text-white"
                   : "bg-gray-50 text-gray-700 hover:bg-gray-100"
-              }`}
+                }`}
             >
               <Globe className="h-3.5 w-3.5" />
 
@@ -338,11 +337,10 @@ export default function LayerControlPanel({
             <button
               type="button"
               onClick={() => onChangeBasemap("street")}
-              className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left transition ${
-                basemap === "street"
+              className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left transition ${basemap === "street"
                   ? "bg-[#123c28] text-white"
                   : "bg-gray-50 text-gray-700 hover:bg-gray-100"
-              }`}
+                }`}
             >
               <MapIcon className="h-3.5 w-3.5" />
 
@@ -378,11 +376,10 @@ export default function LayerControlPanel({
             <button
               type="button"
               onClick={onToggleTerrain}
-              className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 transition ${
-                terrainEnabled
+              className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 transition ${terrainEnabled
                   ? "bg-[#123c28] text-white"
                   : "bg-gray-50 text-gray-700 hover:bg-gray-100"
-              }`}
+                }`}
             >
               <div className="flex items-center gap-2">
                 <Mountain className="h-3.5 w-3.5" />
@@ -391,14 +388,12 @@ export default function LayerControlPanel({
               </div>
 
               <span
-                className={`relative h-5 w-9 rounded-full transition ${
-                  terrainEnabled ? "bg-emerald-400" : "bg-gray-300"
-                }`}
+                className={`relative h-5 w-9 rounded-full transition ${terrainEnabled ? "bg-emerald-400" : "bg-gray-300"
+                  }`}
               >
                 <span
-                  className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition ${
-                    terrainEnabled ? "left-[18px]" : "left-0.5"
-                  }`}
+                  className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition ${terrainEnabled ? "left-[18px]" : "left-0.5"
+                    }`}
                 />
               </span>
             </button>
@@ -424,9 +419,7 @@ export default function LayerControlPanel({
                 </h4>
               </div>
 
-              <p className="mt-0.5 text-[9px] text-gray-500">
-                Aktifkan dan atur tampilan layer
-              </p>
+
             </div>
 
             <div className="flex items-center gap-2">
@@ -522,17 +515,16 @@ export default function LayerControlPanel({
                     index % 3 === 0
                       ? "rotate-[0.2deg]"
                       : index % 3 === 1
-                      ? "rotate-[-0.25deg]"
-                      : "rotate-0";
+                        ? "rotate-[-0.25deg]"
+                        : "rotate-0";
 
                   return (
                     <div
                       key={layer.id}
-                      className={`rounded-xl border p-2.5 transition-all duration-150 ${
-                        layer.is_visible
+                      className={`rounded-xl border p-2.5 transition-all duration-150 ${layer.is_visible
                           ? "border-gray-200 bg-white"
                           : "border-dashed border-gray-200 bg-gray-50 opacity-60"
-                      } ${rotation} hover:rotate-0 hover:border-gray-300 hover:shadow-sm`}
+                        } ${rotation} hover:rotate-0 hover:border-gray-300 hover:shadow-sm`}
                     >
                       {/* =================================
                             HEADER
@@ -550,11 +542,10 @@ export default function LayerControlPanel({
                             title={
                               layer.is_visible ? "Sembunyikan" : "Tampilkan"
                             }
-                            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border transition ${
-                              layer.is_visible
+                            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border transition ${layer.is_visible
                                 ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
                                 : "border-gray-200 bg-gray-100 text-gray-400 hover:bg-gray-200"
-                            }`}
+                              }`}
                           >
                             {layer.is_visible ? (
                               <Eye className="h-3.5 w-3.5" />
