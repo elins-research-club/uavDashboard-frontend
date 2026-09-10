@@ -96,8 +96,21 @@ body {
       #f7f9f6;
   }
 
-  /* Soft ring untuk icon container — pengganti neumorphic inset */
+  /* Icon container — liquid glass, konsisten dengan .liquid-badge:
+     transparan + backdrop blur + highlight atas, bukan bg hijau solid. */
   .icon-ring {
-    @apply flex items-center justify-center rounded-2xl bg-brand-100 text-brand-800 ring-1 ring-inset ring-brand-800/10;
+    @apply relative flex items-center justify-center overflow-hidden rounded-2xl border border-white/60 bg-white/40 text-brand-800 backdrop-blur-md;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.7),
+      inset 0 -1px 1px rgba(18, 60, 40, 0.06),
+      0 2px 8px rgba(18, 60, 40, 0.08);
+  }
+
+  .icon-ring::before {
+    content: "";
+    @apply pointer-events-none absolute inset-x-1.5 top-0 h-1/2 rounded-full;
+    background: linear-gradient(180deg,
+        rgba(255, 255, 255, 0.55),
+        rgba(255, 255, 255, 0));
   }
 }

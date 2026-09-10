@@ -200,10 +200,7 @@ export default function DashboardHomePage() {
         =================================================== */}
         <header className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <span className="liquid-badge text-2xs font-bold uppercase text-brand-800">
-              <Sparkles className="h-3 w-3" strokeWidth={1.75} />
-              UAV Data-as-a-Service
-            </span>
+
 
             <h1 className="mt-3 text-3xl font-bold tracking-[-0.035em] text-brand-900 sm:text-4xl">
               Selamat datang,{" "}
@@ -323,7 +320,7 @@ export default function DashboardHomePage() {
                       href="/dashboard/maps"
                       className="group flex items-center gap-3 rounded-2xl p-2 transition hover:bg-brand-50"
                     >
-                      <span className="icon-ring relative z-10 h-9 w-9 flex-shrink-0 transition group-hover:bg-brand-200">
+                      <span className="icon-ring relative z-10 h-9 w-9 flex-shrink-0">
                         <MapPinned
                           className="h-4 w-4"
                           strokeWidth={1.75}
@@ -486,7 +483,7 @@ export default function DashboardHomePage() {
                         }
                         className="group flex items-center gap-4 rounded-2xl p-3 transition hover:bg-brand-50"
                       >
-                        <span className="icon-ring h-10 w-10 flex-shrink-0 transition group-hover:bg-brand-200">
+                        <span className="icon-ring h-10 w-10 flex-shrink-0">
                           {layer.locked_for_free ? (
                             <Lock className="h-4 w-4" strokeWidth={1.75} />
                           ) : (
@@ -603,7 +600,7 @@ export default function DashboardHomePage() {
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="flex items-start gap-3 rounded-2xl border border-brand-800/8 bg-white/60 p-4">
-                <span className="icon-ring mt-0.5 h-8 w-8 flex-shrink-0 rounded-full bg-brand-800 text-white ring-brand-800">
+                <span className="icon-ring mt-0.5 h-8 w-8 flex-shrink-0 rounded-full">
                   <CircleCheck className="h-4 w-4" strokeWidth={1.75} />
                 </span>
                 <div>
@@ -618,7 +615,7 @@ export default function DashboardHomePage() {
               </div>
 
               <div className="flex items-start gap-3 rounded-2xl border border-brand-800/8 bg-white/60 p-4">
-                <span className="icon-ring mt-0.5 h-8 w-8 flex-shrink-0 rounded-full bg-brand-200 text-brand-800">
+                <span className="icon-ring mt-0.5 h-8 w-8 flex-shrink-0 rounded-full">
                   <Layers className="h-4 w-4" strokeWidth={1.75} />
                 </span>
                 <div>
