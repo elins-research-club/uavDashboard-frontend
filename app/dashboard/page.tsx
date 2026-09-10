@@ -1,28 +1,28 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import api from "@/lib/api";
 import { useUserRole } from "@/context/UserRoleContext";
 import {
-  MapPin,
-  TrendingUp,
-  Lock,
-  Eye,
-  Calendar,
-  Award,
+  Activity,
   ArrowRight,
-  Database,
-  FileText,
-  BarChart3,
-  Clock,
   ArrowUpRight,
-  CheckCircle2,
+  CalendarDays,
+  CircleCheck,
+  Eye,
+  Gem,
+  HardDrive,
+  Layers,
   Leaf,
+  Lock,
+  MapPin,
+  MapPinned,
   Search,
+  Sparkles,
   X,
-  Crown,
 } from "lucide-react";
 
 type MapRecord = {
@@ -39,6 +39,77 @@ type MapRecord = {
 
 const formatSize = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(2)} MB`;
 
+/* ============================================================
+   STAT CARD — 3D orb versi refined:
+   - Satu orb besar translucent dengan radial gradient + blur
+   - Tidak ada double icon (orb = dekorasi, icon tunggal di chip)
+   - Hover: orb membesar halus + card lift tipis
+============================================================ */
+function StatCard({
+  label,
+  value,
+  hint,
+  icon: Icon,
+  orbTint,
+  delay = 0,
+}: {
+  label: string;
+  value: string | number;
+  hint: string;
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  orbTint: string; // css color untuk orb
+  delay?: number;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, delay, ease: [0.22, 1, 0.36, 1] }}
+      whileHover={{ y: -3 }}
+      className="group relative min-h-[124px] overflow-hidden rounded-3xl border border-brand-800/10 bg-white/70 p-5 shadow-card backdrop-blur-sm transition-shadow duration-300 hover:shadow-card-hover"
+    >
+      {/* 3D orb — spread blur, tint per kartu */}
+      <motion.div
+        aria-hidden
+        className="pointer-events-none absolute -bottom-10 -right-10 h-36 w-36 rounded-full blur-2xl"
+        style={{
+          background: `radial-gradient(circle at 35% 30%, ${orbTint}66, ${orbTint}1f 60%, transparent 75%)`,
+        }}
+        initial={false}
+        animate={{ scale: 1 }}
+        whileHover={{ scale: 1.15 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      />
+      {/* Specular highlight di orb */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -bottom-2 -right-2 h-12 w-12 rounded-full bg-white/70 blur-xl"
+      />
+
+      <div className="relative flex h-full flex-col justify-between gap-4">
+        <div className="flex items-center justify-between">
+          <p className="micro-label">{label}</p>
+          <span className="icon-ring h-9 w-9">
+            <Icon className="h-4 w-4" strokeWidth={1.75} />
+          </span>
+        </div>
+
+        <div className="min-w-0">
+          <p className="truncate text-2xl font-bold tracking-[-0.03em] text-brand-900">
+            {value}
+          </p>
+          <p className="mt-0.5 text-xs font-medium text-brand-800/60">
+            {hint}
+          </p>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+/* ============================================================
+   PAGE
+============================================================ */
 export default function DashboardHomePage() {
   const { user } = useUserRole();
 
@@ -64,22 +135,17 @@ export default function DashboardHomePage() {
   }, []);
 
   const totalStorage = maps.reduce((total, map) => total + map.file_size, 0);
-
   const latestMaps = maps.slice(0, 4);
 
   const filteredMaps = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-
-    if (!query) {
-      return latestMaps;
-    }
-
+    if (!query) return latestMaps;
     return maps
-      .filter((map) => {
-        return [map.title, map.location, map.description, map.map_type]
+      .filter((map) =>
+        [map.title, map.location, map.description, map.map_type]
           .filter(Boolean)
-          .some((value) => value!.toLowerCase().includes(query));
-      })
+          .some((value) => value!.toLowerCase().includes(query))
+      )
       .slice(0, 4);
   }, [maps, latestMaps, searchQuery]);
 
@@ -88,677 +154,477 @@ export default function DashboardHomePage() {
 
   const stats = [
     {
-      title: "Total Peta",
+      label: "Total Peta",
       value: maps.length,
-      subtitle: "peta tersimpan",
-      icon: MapPin,
+      hint: "peta tersimpan",
+      icon: Layers,
+      orbTint: "#2e7d54",
     },
     {
-      title: "Paket Tier",
+      label: "Paket Anda",
       value: tier,
-      subtitle: "lihat benefit paket",
-      icon: Award,
+      hint: "lihat benefit paket",
+      icon: Gem,
+      orbTint: "#d99a2b",
     },
     {
-      title: "Aktivitas",
+      label: "Aktivitas",
       value: latestMaps.length,
-      subtitle: "upload terbaru",
-      icon: TrendingUp,
+      hint: "upload terbaru",
+      icon: Activity,
+      orbTint: "#5aa37b",
     },
     {
-      title: "Penyimpanan",
+      label: "Penyimpanan",
       value: formatSize(totalStorage),
-      subtitle: "total file peta",
-      icon: Database,
+      hint: "total file peta",
+      icon: HardDrive,
+      orbTint: "#8cc7a5",
     },
   ];
 
   return (
-    <main className="min-h-screen bg-white text-[#123c28]">
+    <main className="bg-page min-h-screen text-brand-900">
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        {/* =====================================================
-            TOP HEADER
-        ====================================================== */}
-        <header className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+        {/* ==================================================
+            HEADER
+        =================================================== */}
+        <header className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <div className="mb-3 flex items-center gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#123c28]/80">
-                UAV Data-as-a-Service Platform
-              </span>
-            </div>
+            <span className="liquid-badge text-2xs font-bold uppercase text-brand-800">
+              <Sparkles className="h-3 w-3" strokeWidth={1.75} />
+              UAV Data-as-a-Service
+            </span>
 
-            <h1 className="text-3xl font-bold tracking-[-0.04em] text-[#123c28] sm:text-4xl">
-              Selamat datang,
-              <br className="sm:hidden" />{" "}
-              <span className="text-[#1a5134]">{username}</span>
+            <h1 className="mt-3 text-3xl font-bold tracking-[-0.035em] text-brand-900 sm:text-4xl">
+              Selamat datang,{" "}
+              <span className="text-brand-600">{username}</span>
             </h1>
+
+            <p className="mt-1.5 text-sm font-medium text-brand-800/60">
+              Pantau kesehatan lahan Anda dari satu tempat.
+            </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="rounded-full border border-[#123c28]/15 bg-[#f5f7f1] px-4 py-2.5">
-              <div className="flex items-center gap-2">
-                <Crown className="h-3.5 w-3.5 text-[#123c28]" />
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="liquid-badge px-4 py-2 text-xs font-bold text-brand-800">
+              <Gem className="h-3.5 w-3.5" strokeWidth={1.75} />
+              Paket {tier}
+            </span>
 
-                <span className="text-[11px] font-bold text-[#123c28]">
-                  Paket {tier}
-                </span>
-              </div>
-            </div>
-
-            <Link
-              href="/dashboard/maps"
-              className="inline-flex items-center gap-2 rounded-full bg-[#123c28] px-5 py-2.5 text-[11px] font-semibold text-white transition hover:bg-[#1a5134]"
-            >
-              Kelola Peta Anda
-              <ArrowUpRight className="h-3.5 w-3.5" />
+            <Link href="/dashboard/maps" className="btn-brand">
+              Kelola Peta
+              <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={2} />
             </Link>
           </div>
         </header>
 
-        {/* =====================================================
-            STATS
-        ====================================================== */}
-        <section className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat) => {
-            const Icon = stat.icon;
+        {/* ==================================================
+            BENTO GRID
+            lg: 12 kolom — hero span 8, activity span 4 rowspan 2,
+            data lahan span 8, tips full width
+        =================================================== */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+          {/* ---------- ROW 1: STATS (4 kartu) ---------- */}
+          <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:col-span-12 lg:grid-cols-4">
+            {stats.map((stat, index) => (
+              <StatCard key={stat.label} {...stat} delay={index * 0.06} />
+            ))}
+          </section>
 
-            return (
-              <motion.div
-                key={stat.title}
-                initial="rest"
-                animate="rest"
-                whileHover="hover"
-                variants={{
-                  rest: {
-                    y: 0,
-                  },
-                  hover: {
-                    y: -2,
-                  },
-                }}
-                transition={{
-                  duration: 0.2,
-                  ease: "easeOut",
-                }}
-                className="group relative min-h-[112px] overflow-hidden rounded-[20px] border border-[#123c28]/10 bg-white px-4 py-4 transition-shadow duration-200 hover:shadow-[0_12px_30px_rgba(18,60,40,0.07)]"
-              >
-                {/* Background 3D icon */}
-                <motion.div
-                  variants={{
-                    rest: {
-                      rotate: 0,
-                      scale: 1,
-                      x: 8,
-                      y: 8,
-                      boxShadow:
-                        "inset 6px 6px 12px rgba(255,255,255,0.8), inset -7px -7px 14px rgba(18,60,40,0.10)",
-                    },
-                    hover: {
-                      rotate: -12,
-                      scale: 1.12,
-                      x: 2,
-                      y: 2,
-                      boxShadow:
-                        "inset 10px 8px 16px rgba(255,255,255,0.9), inset -10px -10px 18px rgba(18,60,40,0.18), 0 10px 20px rgba(18,60,40,0.08)",
-                    },
-                  }}
-                  transition={{
-                    duration: 0.45,
-                    ease: [0.22, 1, 0.36, 1],
-                  }}
-                  className="
-    pointer-events-none
-    absolute
-    -bottom-6
-    -right-5
-    flex
-    h-28
-    w-28
-    items-center
-    justify-center
-    rounded-full
-    bg-[#f3f6ed]
-  "
-                >
-                  {/* Highlight / light reflection */}
-                  <motion.div
-                    variants={{
-                      rest: {
-                        x: 0,
-                        y: 0,
-                        opacity: 0.35,
-                        scale: 1,
-                      },
-                      hover: {
-                        x: -5,
-                        y: -5,
-                        opacity: 0.75,
-                        scale: 1.15,
-                      },
-                    }}
-                    transition={{
-                      duration: 0.4,
-                      ease: "easeOut",
-                    }}
-                    className="
-      pointer-events-none
-      absolute
-      left-4
-      top-4
-      h-8
-      w-8
-      rounded-full
-      bg-white
-      blur-md
-    "
-                  />
-                </motion.div>
-
-                {/* Content */}
-                <div className="relative z-10 flex min-h-[80px] items-center justify-between">
-                  <div className="min-w-0">
-                    <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#123c28]/55">
-                      {stat.title}
-                    </p>
-
-                    <p className="mt-1.5 truncate text-xl font-bold tracking-[-0.035em] text-[#123c28]">
-                      {stat.value}
-                    </p>
-
-                    <p className="mt-0.5 text-[10px] font-semibold text-[#123c28]/55">
-                      {stat.subtitle}
-                    </p>
-                  </div>
-
-                  {/* Small foreground icon */}
-                  <motion.div
-                    variants={{
-                      rest: {
-                        x: 0,
-                        rotate: 0,
-                      },
-                      hover: {
-                        x: -3,
-                        rotate: -5,
-                      },
-                    }}
-                    transition={{
-                      duration: 0.3,
-                      ease: "easeOut",
-                    }}
-                    className="mr-1 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border bg-white text-[#123c28]/70"
-                  >
-                    <Icon className="h-4 w-4" strokeWidth={2} />
-                  </motion.div>
-                </div>
-              </motion.div>
-            );
-          })}
-        </section>
-
-        {/* =====================================================
-            UPGRADE / PLAN CARD
-        ====================================================== */}
-        <section className="mb-6 overflow-hidden rounded-[28px]">
-          <div className="relative min-h-[260px] overflow-hidden">
-            <img
+          {/* ---------- ROW 2 LEFT: HERO / UPGRADE ---------- */}
+          <motion.section
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            className="relative min-h-[280px] overflow-hidden rounded-3xl shadow-card lg:col-span-8"
+          >
+            <Image
               src="https://images.unsplash.com/photo-1650227128597-dbac6c5bd1b6?auto=format&fit=crop&w=1800&q=85"
-              alt="Agricultural drone"
-              className="absolute inset-0 h-full w-full object-cover object-center"
+              alt="Drone pertanian di atas lahan"
+              fill
+              priority
+              sizes="(max-width: 1024px) 100vw, 66vw"
+              className="object-cover"
             />
+            {/* Overlay gradasi kiri → kanan agar teks terbaca */}
+            <div className="absolute inset-0 bg-gradient-to-r from-brand-900/85 via-brand-900/50 to-brand-900/10" />
 
-            <div className="absolute inset-0 bg-[#123c28]/25" />
+            <div className="relative flex h-full flex-col justify-between gap-6 p-6 sm:p-8">
+              <span className="liquid-badge-dark self-start text-2xs font-bold uppercase text-white">
+                <Leaf className="h-3 w-3" strokeWidth={1.75} />
+                Langganan
+              </span>
 
-            <div className="absolute inset-0 bg-gradient-to-r from-black/45 via-black/20 to-transparent" />
-
-            <div className="relative z-10 p-6 sm:p-8">
-              <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
-                <div className="max-w-2xl">
-                  <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white backdrop-blur-sm">
-                    <Leaf className="h-3.5 w-3.5 text-[#dfeeb1]" />
-                    Subscription
-                  </div>
-
-                  <h2 className="max-w-xl text-2xl font-bold tracking-[-0.035em] text-white sm:text-3xl">
-                    Tingkatkan pengalaman
-                    <br className="hidden sm:block" />
-                    dengan paket premium.
+              <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+                <div className="max-w-md">
+                  <h2 className="text-2xl font-bold leading-tight tracking-[-0.03em] text-white sm:text-[28px]">
+                    Tingkatkan pengalaman dengan paket premium.
                   </h2>
-
-                  <p className="mt-3 max-w-xl text-sm font-medium leading-6 text-white/80">
-                    Dapatkan kapasitas lebih besar, analisis yang lebih lengkap,
-                    dan akses fitur premium untuk kebutuhan pertanian berbasis
-                    data.
+                  <p className="mt-2 text-sm font-medium leading-6 text-white/75">
+                    Kapasitas lebih besar, analisis lengkap, dan akses semua
+                    layer NDVI hingga NPK tanpa batas.
                   </p>
                 </div>
 
                 <Link
                   href="/dashboard/subscription"
-                  className="inline-flex flex-shrink-0 items-center justify-center gap-2 rounded-full bg-white px-6 py-3.5 text-sm font-bold text-[#123c28] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#f5f7f1] hover:shadow-lg"
+                  className="inline-flex flex-shrink-0 items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-xs font-bold text-brand-900 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-glass-lg"
                 >
                   Lihat Paket
-                  <ArrowRight className="h-4 w-4" />
+                  <ArrowRight className="h-4 w-4" strokeWidth={2} />
                 </Link>
               </div>
             </div>
-          </div>
-        </section>
+          </motion.section>
 
-        {/* =====================================================
-MAP DATA
-====================================================== */}
-
-        <section className="mb-6">
-          <div className="overflow-hidden rounded-[28px] border border-[#123c28]/10 bg-white shadow-sm">
-            {/* ================= HEADER ================= */}
-            <div className="border-b border-[#123c28]/10 bg-[#123c28] px-5 py-5 sm:px-6">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                {/* LEFT */}
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2.5">
-                    <MapPin className="h-6 w-6 text-white/80" />
-
-                    <h2 className="text-2xl font-bold tracking-[-0.035em] text-white sm:text-[28px]">
-                      Data Lahan Anda
-                    </h2>
-                  </div>
+          {/* ---------- ROW 2 RIGHT: ACTIVITY (rowspan 2) ---------- */}
+          <motion.section
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.26, ease: [0.22, 1, 0.36, 1] }}
+            className="glass flex flex-col p-6 lg:col-span-4 lg:row-span-2"
+          >
+            <div className="mb-5 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <span className="icon-ring h-9 w-9">
+                  <Activity className="h-4 w-4" strokeWidth={1.75} />
+                </span>
+                <div>
+                  <p className="micro-label">Aktivitas</p>
+                  <h3 className="text-base font-bold tracking-[-0.02em] text-brand-900">
+                    Upload Terbaru
+                  </h3>
                 </div>
-
-                {/* RIGHT */}
-                <div className="flex w-full lg:w-auto">
-                  {/* SEARCH */}
-
-                  <div className="relative w-full lg:w-[380px]">
-                    <Search className="pointer-events-none absolute left-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#123c28]/40" />
-
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(event) => setSearchQuery(event.target.value)}
-                      placeholder="Cari data peta Anda..."
-                      className="h-9 w-full rounded-full border border-white/20 bg-white pl-10 pr-10 text-[11px] font-medium text-[#123c28] outline-none transition placeholder:text-[#123c28]/35 focus:border-white focus:ring-4 focus:ring-white/10"
-                    />
-
-                    {searchQuery && (
-                      <button
-                        type="button"
-                        onClick={() => setSearchQuery("")}
-                        aria-label="Hapus pencarian"
-                        className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-[#123c28]/40 transition hover:bg-[#f3f6ed] hover:text-[#123c28]"
-                      >
-                        {" "}
-                        <X className="h-3 w-3" />{" "}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-            {/* ================= CONTENT ================= */}
-            <div className="bg-white/70 px-5 sm:px-6">
-              {/* Loading */}
-              {isLoading && (
-                <div className="divide-y divide-[#123c28]/20">
-                  {[1, 2, 3].map((item) => (
-                    <div key={item} className="min-h-[104px] animate-pulse">
-                      <div className="flex min-h-[104px] items-stretch">
-                        <div className="flex w-[56px] flex-shrink-0 flex-col items-center justify-center">
-                          <div className="h-2 w-7 rounded bg-[#123c28]/10" />
-                          <div className="mt-2 h-4 w-5 rounded bg-[#123c28]/10" />
-                        </div>
-
-                        <div className="flex-1 px-4 py-4">
-                          <div className="h-4 w-1/3 rounded bg-[#123c28]/10" />
-                          <div className="mt-2 h-3 w-1/2 rounded bg-[#123c28]/10" />
-                          <div className="mt-4 h-3 w-2/3 rounded bg-[#123c28]/10" />
-                        </div>
-
-                        <div className="hidden w-[130px] md:block" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Error */}
-              {error && (
-                <div className="py-5">
-                  <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-600">
-                    {error}
-                  </div>
-                </div>
-              )}
-
-              {/* No Data */}
-              {!isLoading && !error && !maps.length && (
-                <div className="py-6">
-                  <div className="rounded-[20px] border border-dashed border-[#123c28]/20 bg-white px-6 py-14 text-center">
-                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#f3f6ed]">
-                      <MapPin className="h-5 w-5 text-[#123c28]/60" />
-                    </div>
-
-                    <h3 className="mt-4 text-sm font-bold text-[#123c28]">
-                      Belum ada peta tersimpan
-                    </h3>
-
-                    <p className="mx-auto mt-2 max-w-sm text-xs font-medium leading-5 text-[#123c28]/70">
-                      Setelah data pemetaan tersedia, hasilnya akan muncul di
-                      dashboard ini.
-                    </p>
-
-                    <Link
-                      href="/dashboard/maps"
-                      className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#123c28] px-5 py-2.5 text-xs font-semibold text-white transition hover:bg-[#1a5134]"
-                    >
-                      Kelola Peta
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </Link>
-                  </div>
-                </div>
-              )}
-
-              {/* Search Result Empty */}
-              {!isLoading &&
-                !error &&
-                maps.length > 0 &&
-                filteredMaps.length === 0 && (
-                  <div className="py-6">
-                    <div className="rounded-[20px] border border-dashed border-[#123c28]/20 bg-white px-6 py-14 text-center">
-                      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#f3f6ed]">
-                        <Search className="h-5 w-5 text-[#123c28]/55" />
-                      </div>
-
-                      <h3 className="mt-4 text-sm font-bold text-[#123c28]">
-                        Data tidak ditemukan
-                      </h3>
-
-                      <p className="mx-auto mt-2 max-w-sm text-xs font-medium leading-5 text-[#123c28]/70">
-                        Tidak ada dataset yang cocok dengan pencarian{" "}
-                        <span className="font-bold">"{searchQuery}"</span>.
-                      </p>
-
-                      <button
-                        type="button"
-                        onClick={() => setSearchQuery("")}
-                        className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#123c28] px-5 py-2.5 text-xs font-semibold text-white transition hover:bg-[#1a5134]"
-                      >
-                        Reset Pencarian
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-              {/* Maps */}
-              {!isLoading && !error && filteredMaps.length > 0 && (
-                <>
-                  <div className="divide-y divide-[#123c28]/20">
-                    {filteredMaps.slice(0, 4).map((layer, index) => (
-                      <div
-                        key={layer.id}
-                        className="group -mx-5 px-5 transition-colors duration-200 hover:bg-[#f3f6ed] sm:-mx-6 sm:px-6"
-                      >
-                        <div className="flex min-h-[104px] items-stretch py-1">
-                          {/* MAP NUMBER */}
-                          <div className="flex w-[56px] flex-shrink-0 flex-col items-center justify-center">
-                            <span className="text-[8px] font-bold uppercase tracking-[0.15em] text-[#123c28]/40">
-                              MAP
-                            </span>
-
-                            <span className="mt-1 text-lg font-bold leading-none tracking-[-0.04em] text-[#123c28]/35">
-                              {String(index + 1).padStart(2, "0")}
-                            </span>
-                          </div>
-
-                          {/* MAIN CONTENT */}
-                          <div className="min-w-0 flex-1 px-4 py-4">
-                            <div className="flex min-w-0 flex-col gap-3">
-                              {/* TITLE */}
-                              <div className="flex min-w-0 items-center gap-2">
-                                <h3 className="min-w-0 truncate text-sm font-bold text-[#123c28]">
-                                  {layer.title}
-                                </h3>
-
-                                {layer.locked_for_free && (
-                                  <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-[#fff3d9] px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.08em] text-[#a46800]">
-                                    <Lock className="h-2.5 w-2.5" />
-                                    Premium
-                                  </span>
-                                )}
-
-                                {layer.map_type && (
-                                  <span className="hidden flex-shrink-0 rounded-full bg-[#eef3e8] px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.08em] text-[#123c28] sm:inline-flex">
-                                    {layer.map_type}
-                                  </span>
-                                )}
-                              </div>
-
-                              {/* DESCRIPTION */}
-                              <p className="truncate text-xs font-medium text-[#123c28]/70">
-                                {layer.description || layer.location}
-                              </p>
-
-                              {/* METADATA */}
-                              <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 overflow-hidden text-[9px] font-semibold text-[#123c28]/60">
-                                <div className="flex flex-shrink-0 items-center gap-1.5">
-                                  <Calendar className="h-3 w-3" />
-
-                                  <span>
-                                    {new Date(
-                                      layer.survey_date
-                                    ).toLocaleDateString("id-ID")}
-                                  </span>
-                                </div>
-
-                                <div className="flex flex-shrink-0 items-center gap-1.5">
-                                  <Database className="h-3 w-3" />
-
-                                  <span>{formatSize(layer.file_size)}</span>
-                                </div>
-
-                                <div className="flex min-w-0 items-center gap-1.5">
-                                  <MapPin className="h-3 w-3 flex-shrink-0" />
-
-                                  <span className="truncate">
-                                    {layer.location}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* ACTION */}
-                          <div className="flex w-[130px] flex-shrink-0 items-center justify-center pl-4 pr-1">
-                            {layer.locked_for_free ? (
-                              <Link
-                                href="/dashboard/subscription"
-                                className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#D99A2B] px-3 py-2.5 text-[10px] font-bold text-white transition hover:bg-[#C68920]"
-                              >
-                                <Lock className="h-3 w-3" />
-                                Upgrade
-                              </Link>
-                            ) : (
-                              <Link
-                                href="/dashboard/maps"
-                                className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#123c28] px-3 py-2.5 text-[10px] font-bold text-white transition hover:bg-[#1a5134]"
-                              >
-                                <Eye className="h-3 w-3" />
-                                Lihat Peta
-                              </Link>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* INFO */}
-
-                  <div className="border-t border-[#123c28]/10 py-4">
-                    <div className="flex flex-col gap-1 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
-                      <p className="text-[10px] font-medium text-[#123c28]/50">
-                        Dashboard menampilkan maksimal 4 data lahan.
-                      </p>
-
-                      <Link
-                        href="/dashboard/maps"
-                        className="inline-flex items-center justify-center gap-1.5 text-[10px] font-bold text-[#123c28] transition hover:text-[#1a5134]"
-                      >
-                        Lihat semua peta
-                        <ArrowRight className="h-3 w-3" />
-                      </Link>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </section>
-
-        {/* =====================================================
-            LOWER GRID
-        ====================================================== */}
-        <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
-          {/* Recent Activity */}
-          <section className="rounded-[28px] border border-[#123c28]/12 bg-white p-6">
-            <div className="mb-6 flex items-center justify-between">
-              <div>
-                <div className="mb-2 flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#f3f6ed]">
-                    <Clock className="h-4 w-4 text-[#123c28]" />
-                  </div>
-
-                  <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#123c28]/75">
-                    ACTIVITY
-                  </span>
-                </div>
-
-                <h3 className="text-xl font-bold tracking-[-0.03em] text-[#123c28]">
-                  Upload Terbaru
-                </h3>
               </div>
 
               <Link
                 href="/dashboard/maps"
-                className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#123c28]/80 hover:text-[#123c28]"
+                className="text-2xs font-bold uppercase text-brand-700 transition hover:text-brand-900"
               >
                 Semua
               </Link>
             </div>
 
             {latestMaps.length ? (
-              <div className="space-y-4">
-                {latestMaps.slice(0, 3).map((map) => (
-                  <div key={map.id} className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[#f3f6ed]">
-                      <FileText className="h-4 w-4 text-[#123c28]" />
-                    </div>
+              <ol className="relative flex-1 space-y-1 before:absolute before:bottom-2 before:left-[19px] before:top-2 before:w-px before:bg-brand-800/10">
+                {latestMaps.slice(0, 4).map((map) => (
+                  <li key={map.id} className="relative">
+                    <Link
+                      href="/dashboard/maps"
+                      className="group flex items-center gap-3 rounded-2xl p-2 transition hover:bg-brand-50"
+                    >
+                      <span className="icon-ring relative z-10 h-9 w-9 flex-shrink-0 transition group-hover:bg-brand-200">
+                        <MapPinned
+                          className="h-4 w-4"
+                          strokeWidth={1.75}
+                        />
+                      </span>
 
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-bold text-[#123c28]">
-                        {map.title}
-                      </p>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold text-brand-900">
+                          {map.title}
+                        </span>
+                        <span className="mt-0.5 block text-xs font-medium text-brand-800/55">
+                          {new Date(map.created_at).toLocaleDateString(
+                            "id-ID",
+                            { day: "numeric", month: "long", year: "numeric" }
+                          )}
+                        </span>
+                      </span>
 
-                      <p className="mt-1 text-[11px] font-medium text-[#123c28]/75">
-                        {new Date(map.created_at).toLocaleDateString("id-ID")}
-                      </p>
-                    </div>
-
-                    <ArrowUpRight className="h-4 w-4 text-[#123c28]/60" />
-                  </div>
+                      <ArrowUpRight
+                        className="h-4 w-4 flex-shrink-0 text-brand-800/40 transition group-hover:translate-x-0.5 group-hover:text-brand-800"
+                        strokeWidth={1.75}
+                      />
+                    </Link>
+                  </li>
                 ))}
-              </div>
+              </ol>
             ) : (
-              <p className="text-sm font-medium text-[#123c28]/75">
+              <p className="flex flex-1 items-center justify-center rounded-2xl border border-dashed border-brand-800/15 py-8 text-center text-xs font-medium text-brand-800/55">
                 Belum ada aktivitas.
               </p>
             )}
-          </section>
+          </motion.section>
 
-          {/* Tips */}
-          <section className="rounded-[28px] border border-[#123c28]/10 bg-[#f3f6ed] p-6">
-            <div className="mb-6 flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white shadow-sm">
-                <BarChart3 className="h-4 w-4 text-[#123c28]" />
+          {/* ---------- ROW 3 LEFT: DATA LAHAN ---------- */}
+          <motion.section
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.32, ease: [0.22, 1, 0.36, 1] }}
+            className="glass overflow-hidden lg:col-span-8"
+          >
+            {/* Header kartu */}
+            <div className="flex flex-col gap-4 border-b border-brand-800/8 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2.5">
+                <span className="icon-ring h-9 w-9">
+                  <MapPin className="h-4 w-4" strokeWidth={1.75} />
+                </span>
+                <div>
+                  <p className="micro-label">Dataset</p>
+                  <h3 className="text-base font-bold tracking-[-0.02em] text-brand-900">
+                    Data Lahan Anda
+                  </h3>
+                </div>
               </div>
 
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#123c28]/75">
-                  FIELD NOTES
-                </p>
+              <div className="relative w-full sm:w-[300px]">
+                <Search
+                  className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-brand-800/40"
+                  strokeWidth={1.75}
+                />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Cari data peta..."
+                  className="glass-input"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    aria-label="Hapus pencarian"
+                    className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-brand-800/40 transition hover:bg-brand-100 hover:text-brand-800"
+                  >
+                    <X className="h-3 w-3" strokeWidth={2} />
+                  </button>
+                )}
+              </div>
+            </div>
 
-                <h3 className="mt-0.5 text-xl font-bold tracking-[-0.03em] text-[#123c28]">
+            {/* Isi */}
+            <div className="px-2 py-2 sm:px-3">
+              {isLoading && (
+                <div className="space-y-2 p-3">
+                  {[1, 2, 3].map((item) => (
+                    <div
+                      key={item}
+                      className="flex min-h-[76px] animate-pulse items-center gap-4 rounded-2xl bg-brand-50/60 p-4"
+                    >
+                      <div className="h-9 w-9 rounded-xl bg-brand-800/10" />
+                      <div className="flex-1">
+                        <div className="h-3.5 w-1/3 rounded bg-brand-800/10" />
+                        <div className="mt-2 h-3 w-1/2 rounded bg-brand-800/10" />
+                      </div>
+                      <div className="h-8 w-24 rounded-full bg-brand-800/10" />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {error && !isLoading && (
+                <div className="m-3 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-medium text-red-600">
+                  {error}
+                </div>
+              )}
+
+              {!isLoading && !error && !maps.length && (
+                <div className="m-3 rounded-2xl border border-dashed border-brand-800/15 px-6 py-12 text-center">
+                  <span className="icon-ring mx-auto h-12 w-12">
+                    <MapPin className="h-5 w-5" strokeWidth={1.75} />
+                  </span>
+                  <h4 className="mt-4 text-sm font-bold text-brand-900">
+                    Belum ada peta tersimpan
+                  </h4>
+                  <p className="mx-auto mt-1.5 max-w-sm text-xs font-medium leading-5 text-brand-800/60">
+                    Setelah data pemetaan tersedia, hasilnya akan muncul di
+                    sini.
+                  </p>
+                  <Link href="/dashboard/maps" className="btn-brand mt-5">
+                    Kelola Peta
+                    <ArrowRight className="h-3.5 w-3.5" strokeWidth={2} />
+                  </Link>
+                </div>
+              )}
+
+              {!isLoading &&
+                !error &&
+                maps.length > 0 &&
+                filteredMaps.length === 0 && (
+                  <div className="m-3 rounded-2xl border border-dashed border-brand-800/15 px-6 py-12 text-center">
+                    <span className="icon-ring mx-auto h-12 w-12">
+                      <Search className="h-5 w-5" strokeWidth={1.75} />
+                    </span>
+                    <h4 className="mt-4 text-sm font-bold text-brand-900">
+                      Data tidak ditemukan
+                    </h4>
+                    <p className="mx-auto mt-1.5 max-w-sm text-xs font-medium leading-5 text-brand-800/60">
+                      Tidak ada dataset yang cocok dengan{" "}
+                      <span className="font-bold">&ldquo;{searchQuery}&rdquo;</span>.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery("")}
+                      className="btn-ghost mt-5"
+                    >
+                      Reset Pencarian
+                      <X className="h-3.5 w-3.5" strokeWidth={2} />
+                    </button>
+                  </div>
+                )}
+
+              {!isLoading && !error && filteredMaps.length > 0 && (
+                <ul className="space-y-1">
+                  {filteredMaps.slice(0, 4).map((layer) => (
+                    <li key={layer.id}>
+                      <Link
+                        href={
+                          layer.locked_for_free
+                            ? "/dashboard/subscription"
+                            : "/dashboard/maps"
+                        }
+                        className="group flex items-center gap-4 rounded-2xl p-3 transition hover:bg-brand-50"
+                      >
+                        <span className="icon-ring h-10 w-10 flex-shrink-0 transition group-hover:bg-brand-200">
+                          {layer.locked_for_free ? (
+                            <Lock className="h-4 w-4" strokeWidth={1.75} />
+                          ) : (
+                            <MapPinned
+                              className="h-4 w-4"
+                              strokeWidth={1.75}
+                            />
+                          )}
+                        </span>
+
+                        <span className="min-w-0 flex-1">
+                          <span className="flex min-w-0 items-center gap-2">
+                            <span className="truncate text-sm font-bold text-brand-900">
+                              {layer.title}
+                            </span>
+                            {layer.locked_for_free && (
+                              <span className="liquid-badge flex-shrink-0 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#a46800]">
+                                Premium
+                              </span>
+                            )}
+                            {layer.map_type && (
+                              <span className="hidden flex-shrink-0 rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-800 sm:inline-flex">
+                                {layer.map_type}
+                              </span>
+                            )}
+                          </span>
+
+                          <span className="mt-1 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium text-brand-800/55">
+                            <span className="inline-flex items-center gap-1">
+                              <CalendarDays
+                                className="h-3 w-3"
+                                strokeWidth={1.75}
+                              />
+                              {new Date(layer.survey_date).toLocaleDateString(
+                                "id-ID"
+                              )}
+                            </span>
+                            <span className="inline-flex items-center gap-1">
+                              <HardDrive
+                                className="h-3 w-3"
+                                strokeWidth={1.75}
+                              />
+                              {formatSize(layer.file_size)}
+                            </span>
+                            <span className="inline-flex min-w-0 items-center gap-1">
+                              <MapPin
+                                className="h-3 w-3 flex-shrink-0"
+                                strokeWidth={1.75}
+                              />
+                              <span className="truncate">{layer.location}</span>
+                            </span>
+                          </span>
+                        </span>
+
+                        <span
+                          className={`inline-flex flex-shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-[11px] font-bold transition ${layer.locked_for_free
+                            ? "bg-[#d99a2b] text-white group-hover:bg-[#c68920]"
+                            : "bg-brand-800 text-white group-hover:bg-brand-700"
+                            }`}
+                        >
+                          {layer.locked_for_free ? (
+                            <>
+                              <Lock className="h-3 w-3" strokeWidth={2} />
+                              Upgrade
+                            </>
+                          ) : (
+                            <>
+                              <Eye className="h-3 w-3" strokeWidth={2} />
+                              Lihat
+                            </>
+                          )}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {!isLoading && !error && filteredMaps.length > 0 && (
+              <div className="flex items-center justify-between border-t border-brand-800/8 px-6 py-3.5">
+                <p className="text-xs font-medium text-brand-800/50">
+                  Menampilkan maksimal 4 data lahan.
+                </p>
+                <Link
+                  href="/dashboard/maps"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-800 transition hover:text-brand-600"
+                >
+                  Lihat semua
+                  <ArrowRight className="h-3.5 w-3.5" strokeWidth={2} />
+                </Link>
+              </div>
+            )}
+          </motion.section>
+
+          {/* ---------- ROW 4: TIPS (full width, horizontal) ---------- */}
+          <motion.section
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.38, ease: [0.22, 1, 0.36, 1] }}
+            className="glass p-6 lg:col-span-12"
+          >
+            <div className="mb-5 flex items-center gap-2.5">
+              <span className="icon-ring h-9 w-9">
+                <Leaf className="h-4 w-4" strokeWidth={1.75} />
+              </span>
+              <div>
+                <p className="micro-label">Field Notes</p>
+                <h3 className="text-base font-bold tracking-[-0.02em] text-brand-900">
                   Tips & Informasi
                 </h3>
               </div>
             </div>
 
-            <div className="space-y-3">
-              <div className="rounded-2xl border border-[#123c28]/5 bg-white p-4 shadow-sm">
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-[#123c28] text-white">
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-bold text-[#123c28]">
-                      Gunakan data secara berkala
-                    </p>
-
-                    <p className="mt-1 text-[11px] font-medium leading-5 text-[#123c28]/80">
-                      Monitoring berkala membantu melihat perubahan kesehatan
-                      tanaman dari waktu ke waktu.
-                    </p>
-                  </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="flex items-start gap-3 rounded-2xl border border-brand-800/8 bg-white/60 p-4">
+                <span className="icon-ring mt-0.5 h-8 w-8 flex-shrink-0 rounded-full bg-brand-800 text-white ring-brand-800">
+                  <CircleCheck className="h-4 w-4" strokeWidth={1.75} />
+                </span>
+                <div>
+                  <p className="text-xs font-bold text-brand-900">
+                    Gunakan data secara berkala
+                  </p>
+                  <p className="mt-1 text-xs font-medium leading-5 text-brand-800/65">
+                    Monitoring rutin membantu melihat perubahan kesehatan
+                    tanaman dari waktu ke waktu.
+                  </p>
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-[#123c28]/5 bg-white p-4 shadow-sm">
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-[#dfeeb1]">
-                    <Leaf className="h-3.5 w-3.5 text-[#123c28]" />
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-bold text-[#123c28]">
-                      Optimalkan analisis
-                    </p>
-
-                    <p className="mt-1 text-[11px] font-medium leading-5 text-[#123c28]/80">
-                      Gunakan layer NDVI, NPK dan topografi secara bersamaan
-                      untuk mendapatkan gambaran lahan yang lebih lengkap.
-                    </p>
-                  </div>
+              <div className="flex items-start gap-3 rounded-2xl border border-brand-800/8 bg-white/60 p-4">
+                <span className="icon-ring mt-0.5 h-8 w-8 flex-shrink-0 rounded-full bg-brand-200 text-brand-800">
+                  <Layers className="h-4 w-4" strokeWidth={1.75} />
+                </span>
+                <div>
+                  <p className="text-xs font-bold text-brand-900">
+                    Optimalkan analisis
+                  </p>
+                  <p className="mt-1 text-xs font-medium leading-5 text-brand-800/65">
+                    Kombinasikan layer NDVI, NPK, dan topografi untuk gambaran
+                    lahan yang lebih lengkap.
+                  </p>
                 </div>
               </div>
             </div>
-          </section>
+          </motion.section>
         </div>
-
-        {/* =====================================================
-            BOTTOM MINI CTA
-        ====================================================== */}
-        <section className="mt-6 overflow-hidden rounded-[28px] border border-[#123c28]/15 bg-white p-6 sm:p-8">
-          <div className="flex flex-col justify-between gap-6 md:flex-row md:items-center">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#123c28]/75">
-                READY FOR THE NEXT FLIGHT?
-              </p>
-
-              <h3 className="mt-2 text-2xl font-bold tracking-[-0.035em] text-[#123c28]">
-                Kembangkan data lahan Anda.
-              </h3>
-            </div>
-
-            <Link
-              href="/dashboard/maps"
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-[#123c28] px-6 py-3 text-xs font-semibold text-white transition hover:bg-[#1a5134]"
-            >
-              Buka Peta
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-        </section>
       </div>
     </main>
   );

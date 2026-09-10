@@ -2,12 +2,102 @@
 @tailwind components;
 @tailwind utilities;
 
-/* * Ini adalah setup yang benar menggunakan format Anda.
- * Kita definisikan style dasar untuk light mode (default).
- */
+/* ============================================================
+   BASE
+============================================================ */
 body {
-  @apply bg-white text-gray-900;
-  /* Transisi opsional untuk perpindahan mode */
-  @apply transition-colors duration-300 ease-in-out;
+  @apply bg-white text-gray-900 transition-colors duration-300 ease-in-out;
 }
 
+/* ============================================================
+   GLASS SYSTEM — konsisten dipakai di seluruh dashboard
+   Prinsip: satu sumber kebenaran. Jangan inline backdrop-blur
+   + bg-white/xx + border-white/xx berulang-ulang di komponen.
+============================================================ */
+@layer components {
+
+  /* Kartu glass utama di atas background terang */
+  .glass {
+    @apply rounded-3xl border border-white/60 bg-white/70 shadow-glass backdrop-blur-xl;
+  }
+
+  /* Glass di atas background gelap/foto (lebih transparan) */
+  .glass-dark {
+    @apply rounded-3xl border border-white/20 bg-white/10 shadow-glass backdrop-blur-xl;
+  }
+
+  /* Liquid glass badge — pill kecil dengan highlight dalam.
+     "Liquid" = gradasi halus + inner glow + refleksi atas. */
+  .liquid-badge {
+    @apply relative inline-flex items-center gap-1.5 overflow-hidden rounded-full border border-white/50 bg-white/40 px-3 py-1 backdrop-blur-md;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.7),
+      inset 0 -1px 1px rgba(18, 60, 40, 0.06),
+      0 2px 8px rgba(18, 60, 40, 0.08);
+  }
+
+  .liquid-badge::before {
+    content: "";
+    @apply pointer-events-none absolute inset-x-2 top-0 h-1/2 rounded-full;
+    background: linear-gradient(180deg,
+        rgba(255, 255, 255, 0.55),
+        rgba(255, 255, 255, 0));
+  }
+
+  /* Liquid badge varian gelap (di atas foto / brand-900) */
+  .liquid-badge-dark {
+    @apply relative inline-flex items-center gap-1.5 overflow-hidden rounded-full border border-white/25 bg-white/10 px-3 py-1 backdrop-blur-md;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.25),
+      0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .liquid-badge-dark::before {
+    content: "";
+    @apply pointer-events-none absolute inset-x-2 top-0 h-1/2 rounded-full;
+    background: linear-gradient(180deg,
+        rgba(255, 255, 255, 0.22),
+        rgba(255, 255, 255, 0));
+  }
+
+  /* Input glass */
+  .glass-input {
+    @apply h-10 w-full rounded-full border border-brand-800/10 bg-white/80 pl-10 pr-10 text-xs font-medium text-brand-800 outline-none backdrop-blur-sm transition placeholder:text-brand-800/40 focus:border-brand-700/40 focus:ring-4 focus:ring-brand-700/10;
+  }
+
+  /* Tombol brand — satu varian utama, satu ghost */
+  .btn-brand {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-brand-800 px-5 py-2.5 text-xs font-semibold text-white transition-all duration-200 hover:-translate-y-px hover:bg-brand-700 hover:shadow-card-hover active:translate-y-0;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-brand-800/15 bg-white/60 px-5 py-2.5 text-xs font-semibold text-brand-800 backdrop-blur-sm transition-all duration-200 hover:border-brand-800/25 hover:bg-white;
+  }
+
+  /* Micro label uppercase — satu-satunya tempat teks boleh < 11px */
+  .micro-label {
+    @apply text-2xs font-bold uppercase text-brand-800/60;
+  }
+}
+
+/* ============================================================
+   PAGE BACKGROUND — subtle radial tint, bukan flat white.
+   Bikin glass card "keluar" tanpa noisy gradient.
+============================================================ */
+@layer utilities {
+  .bg-page {
+    background:
+      radial-gradient(1200px 600px at 85% -10%,
+        rgba(46, 125, 84, 0.08),
+        transparent 60%),
+      radial-gradient(900px 500px at -10% 20%,
+        rgba(18, 60, 40, 0.05),
+        transparent 55%),
+      #f7f9f6;
+  }
+
+  /* Soft ring untuk icon container — pengganti neumorphic inset */
+  .icon-ring {
+    @apply flex items-center justify-center rounded-2xl bg-brand-100 text-brand-800 ring-1 ring-inset ring-brand-800/10;
+  }
+}
