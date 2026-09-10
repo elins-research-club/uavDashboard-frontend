@@ -25,6 +25,124 @@ interface Role {
   permissions: string[];
 }
 
+function RolePermissionEditor({
+  roles,
+  permissionGroups,
+  roleLoading,
+  selectedRoleId,
+  setSelectedRoleId,
+  editedPermissions,
+  togglePermission,
+  saveRole,
+  cancelEdit,
+  saveMessage,
+}: {
+  roles: Role[];
+  permissionGroups: PermissionGroup[];
+  roleLoading: boolean;
+  selectedRoleId: string;
+  setSelectedRoleId: (roleId: string) => void;
+  editedPermissions: string[];
+  togglePermission: (permission: string) => void;
+  saveRole: (roleId: string) => Promise<void>;
+  cancelEdit: () => void;
+  saveMessage: { id: string; type: "success" | "error"; text: string } | null;
+}) {
+  const selectedRole = roles.find((role) => role.id === selectedRoleId);
+
+  const toggleGroup = (permissions: string[]) => {
+    const allSelected = permissions.every((permission) =>
+      editedPermissions.includes(permission)
+    );
+    permissions.forEach((permission) => {
+      const shouldToggle = allSelected
+        ? editedPermissions.includes(permission)
+        : !editedPermissions.includes(permission);
+      if (shouldToggle) togglePermission(permission);
+    });
+  };
+
+  if (roleLoading || !selectedRole || !permissionGroups.length) {
+    return (
+      <div className="flex items-center justify-center gap-2.5 rounded-3xl border border-[#123c28]/10 bg-white p-12 text-sm font-semibold">
+        Memuat data role...
+      </div>
+    );
+  }
+
+  return (
+    <section className="rounded-3xl border border-[#123c28]/10 bg-white p-5 shadow-sm sm:p-7">
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-[#123c28]/10 pb-5">
+        <div className="flex-1">
+          <div className="mb-2 flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-[#277f6d]" />
+            <h2 className="text-xl font-bold">Edit Role</h2>
+          </div>
+          <p className="text-sm">Atur fitur yang dapat digunakan oleh setiap role.</p>
+        </div>
+        <label className="w-full max-w-xs">
+          <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide">Role</span>
+          <select
+            value={selectedRoleId}
+            onChange={(event) => setSelectedRoleId(event.target.value)}
+            className="w-full rounded-xl border border-[#123c28]/15 bg-white px-3.5 py-2.5 text-sm font-bold outline-none focus:border-[#277f6d]"
+          >
+            {roles.map((role) => (
+              <option key={role.id} value={role.id}>{role.name}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <div className="mt-6 grid gap-4 lg:grid-cols-2">
+        {permissionGroups.map((group) => {
+          const groupKeys = group.permissions.map((permission) => permission.key);
+          const allSelected = editedPermissions.includes("all") ||
+            groupKeys.every((permission) => editedPermissions.includes(permission));
+
+          return (
+            <div key={group.title} className="rounded-2xl border border-[#123c28]/10 bg-[#f1f6fb] p-4 transition hover:-translate-y-0.5 hover:shadow-sm">
+              <div className="mb-3 flex items-center justify-between border-b border-[#123c28]/10 pb-2">
+                <div><span className="text-sm font-bold">{group.title}</span><span className="ml-1.5 text-xs">{group.description}</span></div>
+                <label className="flex cursor-pointer items-center gap-2 text-xs font-semibold">
+                  <input type="checkbox" checked={allSelected} onChange={() => toggleGroup(groupKeys)} className="h-4 w-4 accent-[#277f6d]" />
+                  Pilih Semua
+                </label>
+              </div>
+              <div className="grid gap-x-5 gap-y-2 sm:grid-cols-2">
+                {group.permissions.map((permission) => {
+                  const checked = editedPermissions.includes(permission.key) || editedPermissions.includes("all");
+                  return (
+                    <label key={permission.key} className="flex cursor-pointer items-center gap-2 text-sm font-medium">
+                      <input type="checkbox" checked={checked} onChange={() => togglePermission(permission.key)} className="h-4 w-4 accent-[#277f6d]" />
+                      {permission.label}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[#123c28]/10 pt-5">
+        <p className="text-sm font-semibold">{editedPermissions.includes("all") ? "Akses penuh aktif" : `${editedPermissions.length} permission aktif`}</p>
+        <div className="flex gap-2">
+          <button type="button" onClick={cancelEdit} className="rounded-xl border border-[#123c28]/15 px-4 py-2.5 text-sm font-bold transition hover:bg-[#f3f6ed]">Batal</button>
+          <button type="button" onClick={() => saveRole(selectedRole.id)} className="inline-flex items-center gap-2 rounded-xl bg-[#277f6d] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#1f6c5d]"><Save className="h-4 w-4" />Simpan Role</button>
+        </div>
+      </div>
+      {saveMessage?.id === selectedRole.id && <p className={`mt-3 text-sm font-bold ${saveMessage.type === "success" ? "text-emerald-700" : "text-red-700"}`}>{saveMessage.text}</p>}
+    </section>
+  );
+}
+
+interface PermissionGroup {
+  title: string;
+  description: string;
+  permissions: { key: string; label: string }[];
+}
+
 interface Plan {
   id: string;
   tier: string;
@@ -81,6 +199,8 @@ export default function AdminPage() {
 
   // Roles state
   const [roles, setRoles] = useState<Role[]>([]);
+  const [permissionGroups, setPermissionGroups] = useState<PermissionGroup[]>([]);
+  const [selectedRoleId, setSelectedRoleId] = useState("");
   const [editingRole, setEditingRole] = useState<string | null>(null);
   const [editedPermissions, setEditedPermissions] = useState<string[]>([]);
   const [roleLoading, setRoleLoading] = useState(false);
@@ -112,9 +232,16 @@ export default function AdminPage() {
     setRoleLoading(true);
     api
       .get("/admin/roles")
-      .then(({ data }) => setRoles(data))
+      .then(({ data }) => {
+        setRoles(data);
+        if (data[0]) {
+          setSelectedRoleId(data[0].id);
+          startEditRole(data[0]);
+        }
+      })
       .finally(() => setRoleLoading(false));
     api.get("/admin/plans").then(({ data }) => setPlans(data));
+    api.get("/admin/permission-catalog").then(({ data }) => setPermissionGroups(data));
   }, []);
 
   // ─── Role Handlers ─────────────────────────────────────────────────────────
@@ -235,6 +362,28 @@ export default function AdminPage() {
 
         {/* ─── TAB 1: RBAC Role Management ──────────────────────────────────── */}
         {activeTab === "roles" && (
+          <RolePermissionEditor
+            roles={roles}
+            permissionGroups={permissionGroups}
+            roleLoading={roleLoading}
+            selectedRoleId={selectedRoleId}
+            setSelectedRoleId={(roleId) => {
+              setSelectedRoleId(roleId);
+              const role = roles.find((item) => item.id === roleId);
+              if (role) startEditRole(role);
+            }}
+            editedPermissions={editedPermissions}
+            togglePermission={togglePermission}
+            saveRole={saveRole}
+            cancelEdit={() => {
+              const role = roles.find((item) => item.id === selectedRoleId);
+              if (role) startEditRole(role);
+            }}
+            saveMessage={roleSaveMsg}
+          />
+        )}
+
+        {false && activeTab === "roles" && (
           <div className="space-y-4">
             {roleLoading ? (
               <div className="flex items-center justify-center gap-2.5 py-12 text-[#4b5d52]">
