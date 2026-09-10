@@ -3,6 +3,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 const UserRoleContext = createContext(null);
+const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 
 export function UserRoleProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -20,6 +21,30 @@ export function UserRoleProvider({ children }) {
       } catch {}
     }
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !localStorage.getItem('token')) return;
+
+    let timeoutId: ReturnType<typeof setTimeout>;
+    const logoutForIdle = () => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login?reason=idle';
+    };
+    const resetIdleTimer = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(logoutForIdle, IDLE_TIMEOUT_MS);
+    };
+
+    const events = ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'];
+    events.forEach((event) => window.addEventListener(event, resetIdleTimer, { passive: true }));
+    resetIdleTimer();
+
+    return () => {
+      clearTimeout(timeoutId);
+      events.forEach((event) => window.removeEventListener(event, resetIdleTimer));
+    };
+  }, [user]);
 
   const loginAs = (role, name = 'USERNAME', tier = null) => {
     const nextUser = { role, username: name, tier };
