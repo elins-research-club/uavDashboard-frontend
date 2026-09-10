@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useState } from "react";
+import scene from "@/components/HelpScene.module.css";
 import {
   ArrowUpRight,
   BookOpen,
@@ -104,7 +105,7 @@ export default function HelpPage() {
         {/* ==================================================
             HEADER — pola sama dengan dashboard utama
         =================================================== */}
-        <header className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <header className="mb-8 flex items-center justify-between gap-4">
           <div>
 
             <h1 className="mt-3 text-3xl font-bold tracking-[-0.035em] text-brand-900 sm:text-4xl">
@@ -112,8 +113,16 @@ export default function HelpPage() {
             </h1>
 
           </div>
-
-
+          <div className={scene.scene} aria-hidden="true">
+            <div className={scene.shadow} />
+            <div className={scene.object}>
+              <span className={`${scene.face} ${scene.back}`} />
+              <span className={`${scene.face} ${scene.side}`} />
+              <span className={`${scene.face} ${scene.front}`}>?</span>
+            </div>
+            <span className={scene.orb} />
+            <span className={`${scene.orb} ${scene.small}`} />
+          </div>
         </header>
 
         {/* ==================================================

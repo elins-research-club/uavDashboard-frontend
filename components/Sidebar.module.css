@@ -1,0 +1,340 @@
+.sidebar {
+    --neu-surface: #edf2ee;
+    --neu-raised: 5px 5px 12px #d4ddd6, -5px -5px 12px #ffffff;
+    --neu-inset: inset 3px 3px 7px #d0dad3, inset -3px -3px 7px #ffffff;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    width: 264px;
+    height: 100dvh;
+    color: #123c28;
+    background: var(--neu-surface);
+    border-right: 1px solid #d9e2dc;
+    transition: width 280ms cubic-bezier(.22, 1, .36, 1);
+}
+
+.collapsed {
+    width: 84px;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 94px;
+    padding: 20px;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    flex: 1;
+    border-radius: 14px;
+}
+
+.brandCopy {
+    white-space: nowrap;
+    animation: reveal 200ms ease-out;
+}
+
+.brandCopy strong {
+    display: block;
+    font-size: 15px;
+    letter-spacing: -.025em;
+}
+
+.brandCopy small {
+    display: block;
+    margin-top: 3px;
+    font-size: 11px;
+    color: #526b5d;
+}
+
+.logo,
+.toggle,
+.avatar {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+    border-radius: 15px;
+    background: var(--neu-surface);
+    box-shadow: var(--neu-raised);
+}
+
+.logo {
+    color: #226842;
+}
+
+.toggle {
+    width: 32px;
+    height: 32px;
+    border-radius: 11px;
+    transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.toggle:hover {
+    transform: translateY(-2px);
+}
+
+.toggle:active {
+    transform: scale(.94);
+    box-shadow: var(--neu-inset);
+}
+
+.expand {
+    width: 44px;
+    height: 44px;
+    border-radius: 15px;
+}
+
+.expand svg {
+    transition: transform 220ms ease;
+}
+
+.expand:hover svg {
+    transform: translateX(2px);
+}
+
+.nav {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 8px 16px 20px;
+    scrollbar-width: thin;
+    scrollbar-color: #bdcbc0 transparent;
+}
+
+.section+.section {
+    margin-top: 26px;
+}
+
+.sectionLabel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 24px;
+    margin: 0 10px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: #526b5d;
+}
+
+.sectionBadge {
+    letter-spacing: 0;
+    font-size: 10px;
+    padding: 3px 7px;
+    border-radius: 6px;
+    box-shadow: var(--neu-inset);
+}
+
+.divider {
+    height: 2px;
+    margin: 10px 12px 18px;
+    border-radius: 2px;
+    background: #d5dfd7;
+    box-shadow: 0 1px 0 #fff;
+}
+
+.list {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 46px;
+    padding: 0 14px;
+    border: 1px solid transparent;
+    border-radius: 15px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #435e4e;
+    isolation: isolate;
+    transition: color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.item:hover {
+    color: #123c28;
+    box-shadow: var(--neu-raised);
+    transform: translateY(-1px);
+}
+
+.item:active {
+    transform: scale(.97);
+}
+
+.item svg {
+    flex-shrink: 0;
+    transition: transform 220ms cubic-bezier(.22, 1, .36, 1);
+}
+
+.item:hover svg {
+    transform: translateY(-1px) rotate(-5deg);
+}
+
+.active,
+.active:hover {
+    color: #123c28;
+    font-weight: 700;
+    box-shadow: var(--neu-inset);
+    border-color: #d8e3da;
+}
+
+.active svg {
+    color: #226842;
+}
+
+.active::after {
+    content: "";
+    position: absolute;
+    right: 10px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #2e7d54;
+    box-shadow: 0 0 0 3px #2e7d5412;
+}
+
+.label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    animation: reveal 220ms ease-out;
+}
+
+.collapsed .item {
+    justify-content: center;
+    padding: 0;
+    min-height: 48px;
+}
+
+.collapsed .active::after {
+    right: 6px;
+    top: 7px;
+    width: 4px;
+    height: 4px;
+    box-shadow: none;
+}
+
+.footer {
+    padding: 16px;
+    border-top: 1px solid #d9e2dc;
+}
+
+.profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    border-radius: 18px;
+    box-shadow: var(--neu-raised);
+    transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.profile:hover {
+    transform: translateY(-2px);
+}
+
+.profile:active {
+    box-shadow: var(--neu-inset);
+    transform: scale(.98);
+}
+
+.avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+    box-shadow: var(--neu-inset);
+    color: #226842;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.profileCopy {
+    flex: 1;
+    min-width: 0;
+    animation: reveal 220ms ease-out;
+}
+
+.profileCopy strong {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+}
+
+.profileCopy small {
+    display: block;
+    margin-top: 3px;
+    color: #526b5d;
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.collapsed .profile {
+    justify-content: center;
+    padding: 8px 0;
+}
+
+.sidebar a:focus-visible,
+.sidebar button:focus-visible {
+    outline: 2px solid #226842;
+    outline-offset: 4px;
+}
+
+.tooltip {
+    position: fixed;
+    z-index: 100;
+    pointer-events: none;
+    transform: translateY(-50%);
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: #123c28;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    box-shadow: 0 5px 16px #123c2826;
+    animation: reveal 140ms ease-out;
+}
+
+@keyframes reveal {
+    from {
+        opacity: 0;
+        translate: -4px 0;
+    }
+
+    to {
+        opacity: 1;
+        translate: 0 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .sidebar,
+    .sidebar *,
+    .tooltip {
+        animation: none !important;
+        transition: none !important;
+    }
+
+    .sidebar a:hover,
+    .sidebar button:hover,
+    .sidebar svg {
+        transform: none !important;
+    }
+}
