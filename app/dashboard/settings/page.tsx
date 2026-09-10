@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Bell, Check, ChevronDown, CircleHelp, Globe2, LayoutDashboard,
@@ -19,6 +20,7 @@ const tabs = [
 ];
 
 export default function SettingsPage() {
+  const router = useRouter();
   const { user, logout } = useUserRole();
   const [activeTab, setActiveTab] = useState<SettingsTab>("preferences");
   const [theme, setTheme] = useState("light");
@@ -49,7 +51,7 @@ export default function SettingsPage() {
     <main className="min-h-full bg-[#f3f6f4] px-4 py-5 text-[#123c28] sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <header className="mb-5 flex flex-wrap items-center justify-between gap-4">
-          <div><h1 className="text-2xl font-bold tracking-tight">Pengaturan</h1><p className="mt-1 text-sm">Sesuaikan dashboard dengan kebutuhan Anda.</p></div>
+          <h1 className="text-2xl font-bold tracking-tight">Pengaturan</h1>
           <div className="flex items-center gap-2">
             <button type="button" onClick={() => setActiveTab("preferences")} className="inline-flex items-center gap-2 rounded-xl border border-[#123c28]/15 bg-white px-4 py-2.5 text-sm font-bold transition hover:bg-[#eef3e8]"><X className="h-4 w-4" />Batal</button>
             <button type="button" onClick={saveSettings} className="inline-flex items-center gap-2 rounded-xl bg-[#277f6d] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#1f6c5d]">{saved ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}{saved ? "Tersimpan" : "Simpan"}</button>
@@ -62,11 +64,11 @@ export default function SettingsPage() {
             <div className="mt-6 border-t border-[#123c28]/10 pt-5"><Link href="/dashboard/help" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-bold text-[#385246] transition hover:bg-[#eef3e8]"><CircleHelp className="h-4 w-4" />Pusat Bantuan</Link></div>
           </nav>
 
-          <section className="p-5 sm:p-8">
+          <section key={activeTab} className="animate-[fade-in_250ms_ease-out] p-5 sm:p-8">
             {activeTab === "preferences" && <PreferencesPanel {...{ theme, setTheme, timezone, setTimezone, language, setLanguage, sidebarSize, setSidebarSize, iconSize, setIconSize }} />}
-            {activeTab === "general" && <Panel title="Umum" description="Informasi dasar workspace Anda."><InfoItem icon={<LayoutDashboard />} label="Platform" value="AMX UAV DaaS" /><InfoItem icon={<Globe2 />} label="Wilayah" value="Halmahera Utara, Indonesia" /><InfoItem icon={<ShieldCheck />} label="Status platform" value="Aktif" /></Panel>}
-            {activeTab === "notifications" && <Panel title="Notifikasi" description="Atur pemberitahuan aktivitas dashboard."><ToggleRow icon={<Bell />} label="Status upload dan konversi" description="Siapkan notifikasi saat proses dataset selesai." checked={notifications} onChange={setNotifications} /></Panel>}
-            {activeTab === "account" && <Panel title="Akun" description="Informasi akun dan keamanan sesi."><InfoItem icon={<UserRound />} label="Nama pengguna" value={user?.username || "Pengguna"} /><InfoItem icon={<UsersRound />} label="Role" value={user?.role || "Member"} /><InfoItem icon={<LockKeyhole />} label="Idle timeout" value="30 menit" /><button type="button" onClick={logout} className="mt-5 rounded-xl border border-red-200 px-4 py-2.5 text-sm font-bold text-red-700 transition hover:bg-red-50">Keluar dari akun</button></Panel>}
+            {activeTab === "general" && <Panel title="Umum" description="Informasi workspace"><InfoItem icon={<LayoutDashboard />} label="Platform" value="AMX UAV DaaS" /><InfoItem icon={<Globe2 />} label="Wilayah" value="Halmahera Utara" /><InfoItem icon={<ShieldCheck />} label="Status" value="Aktif" /></Panel>}
+            {activeTab === "notifications" && <Panel title="Notifikasi" description="Pemberitahuan proses"><ToggleRow icon={<Bell />} label="Status proses" description="Upload dan konversi dataset" checked={notifications} onChange={setNotifications} /></Panel>}
+            {activeTab === "account" && <Panel title="Akun" description="Akses dan sesi"><InfoItem icon={<UserRound />} label="Nama" value={user?.username || "Pengguna"} /><InfoItem icon={<UsersRound />} label="Role" value={user?.role || "Member"} /><InfoItem icon={<LockKeyhole />} label="Idle timeout" value="30 menit" /><button type="button" onClick={() => { logout(); router.push("/"); }} className="mt-5 rounded-xl border border-red-200 px-4 py-2.5 text-sm font-bold text-red-700 transition hover:bg-red-50">Log Out</button></Panel>}
           </section>
         </div>
       </div>
@@ -75,9 +77,9 @@ export default function SettingsPage() {
 }
 
 function PreferencesPanel({ theme, setTheme, timezone, setTimezone, language, setLanguage, sidebarSize, setSidebarSize, iconSize, setIconSize }: any) {
-  return <Panel title="Preferensi" description="Sesuaikan tampilan dashboard sesuai preferensi Anda.">
-    <h3 className="mb-3 text-sm font-bold">Pilih tema</h3>
-    <div className="grid gap-3 md:grid-cols-3">{[{ value: "light", label: "Mode Terang", className: "bg-white" }, { value: "dark", label: "Mode Gelap", className: "bg-[#18211f]" }, { value: "custom", label: "Warna Kustom", className: "bg-[#dce9e5]" }].map((item) => <button key={item.value} type="button" onClick={() => setTheme(item.value)} className={`rounded-2xl border-2 p-2 text-left transition-all duration-200 hover:-translate-y-1 hover:shadow-md ${theme === item.value ? "border-[#277f6d]" : "border-[#123c28]/10"}`}><div className={`h-20 rounded-xl ${item.className} p-3 shadow-inner`}><div className="h-2 w-1/2 rounded bg-[#277f6d]/70" /><div className="mt-3 h-7 w-3/4 rounded bg-[#277f6d]/20" /></div><span className="mt-2 flex items-center justify-between px-1 text-sm font-bold">{item.label}{theme === item.value && <Check className="h-4 w-4 text-[#277f6d]" />}</span></button>)}</div>
+  return <Panel title="Preferensi" description="Tampilan dashboard">
+    <h3 className="mb-3 text-sm font-bold">Tema</h3>
+    <div className="grid gap-3 md:grid-cols-3">{[{ value: "light", label: "Terang", className: "bg-white" }, { value: "dark", label: "Gelap", className: "bg-[#18211f]" }, { value: "custom", label: "Kustom", className: "bg-[#dce9e5]" }].map((item) => <button key={item.value} type="button" onClick={() => setTheme(item.value)} className={`rounded-2xl border-2 p-2 text-left transition-all duration-200 hover:-translate-y-1 hover:shadow-md ${theme === item.value ? "border-[#277f6d]" : "border-[#123c28]/10"}`}><div className={`h-20 rounded-xl ${item.className} p-3 shadow-inner`}><div className="h-2 w-1/2 rounded bg-[#277f6d]/70" /><div className="mt-3 h-7 w-3/4 rounded bg-[#277f6d]/20" /></div><span className="mt-2 flex items-center justify-between px-1 text-sm font-bold">{item.label}{theme === item.value && <Check className="h-4 w-4 text-[#277f6d]" />}</span></button>)}</div>
     <div className="mt-6 grid gap-4 sm:grid-cols-2"><SelectField label="Zona waktu" value={timezone} onChange={setTimezone} options={["WIB (UTC+07:00)", "WITA (UTC+08:00)", "WIT (UTC+09:00)"]} /><SelectField label="Bahasa" value={language} onChange={setLanguage} options={["Bahasa Indonesia", "English (US)"]} /><SelectField label="Ukuran sidebar" value={sidebarSize} onChange={setSidebarSize} options={["Kecil (220px)", "Sedang (255px)", "Besar (290px)"]} /><SelectField label="Ukuran ikon" value={iconSize} onChange={setIconSize} options={["Kecil (16px)", "Sedang (18px)", "Besar (21px)"]} /></div>
   </Panel>;
 }

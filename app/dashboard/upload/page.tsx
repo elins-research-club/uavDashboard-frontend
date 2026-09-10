@@ -242,7 +242,7 @@ function SectionHeader({
         </div>
 
         <div className="min-w-0">
-          <h2 className="text-sm font-bold text-[#123c28]">{title}</h2>
+          <h2 className="text-base font-bold text-[#123c28]">{title}</h2>
 
           {description && (
             <p className="mt-0.5 text-xs leading-relaxed text-[#123c28]">
@@ -253,6 +253,76 @@ function SectionHeader({
       </div>
 
       {right}
+    </div>
+  );
+}
+
+function ManualUploadFlow({
+  baseFile,
+  baseName,
+  slots,
+  setBaseFile,
+  setBaseName,
+  addSlot,
+  removeSlot,
+  updateSlot,
+}: {
+  baseFile: File | null;
+  baseName: string;
+  slots: ManualSlotItem[];
+  setBaseFile: (file: File) => void;
+  setBaseName: (name: string) => void;
+  addSlot: () => void;
+  removeSlot: (id: string) => void;
+  updateSlot: (id: string, field: keyof ManualSlotItem, value: any) => void;
+}) {
+  return (
+    <div className="grid gap-6 lg:grid-cols-[170px_minmax(0,1fr)]">
+      <div className="hidden lg:block">
+        <div className="sticky top-6 space-y-5 pt-1">
+          {["Base Ortho RGB", "Layer Analisis", "Cek Dataset"].map((step, index) => (
+            <div key={step} className="flex items-start gap-3">
+              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black ${index === 0 ? "bg-emerald-700 text-white" : "bg-[#eef3e8] text-[#123c28]"}`}>
+                {index + 1}
+              </span>
+              <div>
+                <p className="text-sm font-bold">{step}</p>
+                <p className="mt-0.5 text-xs">{index === 0 ? "Wajib" : index === 1 ? "Opsional" : "Sebelum unggah"}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-5">
+        <section className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-5">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div><h3 className="text-base font-bold">1. Base Ortho RGB</h3><p className="mt-1 text-sm">Layer dasar visualisasi. Wajib diisi.</p></div>
+            <span className="rounded-full bg-emerald-700 px-2.5 py-1 text-xs font-bold text-white">Wajib</span>
+          </div>
+          <div className="space-y-4">
+            <label className="block"><span className="mb-1.5 block text-sm font-bold">Nama layer</span><input type="text" value={baseName} onChange={(event) => setBaseName(event.target.value)} className="w-full rounded-xl border border-[#123c28]/15 bg-white px-3.5 py-3 text-sm font-bold outline-none focus:border-[#277f6d]" /></label>
+            <label className="block"><span className="mb-1.5 block text-sm font-bold">File GeoTIFF</span><input type="file" accept=".tif,.tiff" onChange={(event) => event.target.files?.[0] && setBaseFile(event.target.files[0])} className="block w-full text-sm file:mr-3 file:rounded-xl file:border-0 file:bg-[#123c28] file:px-3 file:py-2 file:text-sm file:font-bold file:text-white" /></label>
+            {baseFile && <div className="flex items-center justify-between rounded-xl bg-white px-3.5 py-3 text-sm"><span className="max-w-[75%] truncate">{baseFile.name}</span><strong>{formatFileSize(baseFile.size)}</strong></div>}
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-[#123c28]/10 bg-[#fbfcfa] p-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h3 className="text-base font-bold">2. Layer Analisis</h3><p className="mt-1 text-sm">Tambahkan layer sesuai kebutuhan survei.</p></div><button type="button" onClick={addSlot} className="inline-flex items-center gap-2 rounded-xl bg-[#123c28] px-3.5 py-2.5 text-sm font-bold text-white transition hover:bg-[#1a5134]"><Plus className="h-4 w-4" />Tambah Layer</button></div>
+          <div className="space-y-4">
+            {slots.map((slot, index) => {
+              const config = LAYER_TYPE_CONFIG[slot.layer_type] || LAYER_TYPE_CONFIG.custom;
+              return <div key={slot.id} className="rounded-2xl border border-[#123c28]/10 bg-white p-4 transition-shadow hover:shadow-sm">
+                <div className="mb-4 flex items-center justify-between gap-3"><div className="flex items-center gap-3"><span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#eef3e8] text-xs font-black">{index + 1}</span><div><p className="text-sm font-bold">Layer {index + 1}</p><span className={`mt-1 inline-flex rounded-full border px-2 py-0.5 text-xs font-bold ${config.badgeClass}`}>{config.label}</span></div></div><button type="button" onClick={() => removeSlot(slot.id)} aria-label={`Hapus layer ${index + 1}`} className="rounded-xl p-2 text-red-600 transition hover:bg-red-50"><Trash2 className="h-4 w-4" /></button></div>
+                <div className="space-y-4"><label className="block"><span className="mb-1.5 block text-sm font-bold">Tipe layer</span><select value={slot.layer_type} onChange={(event) => updateSlot(slot.id, "layer_type", event.target.value)} className="w-full rounded-xl border border-[#123c28]/15 bg-white px-3.5 py-3 text-sm font-bold outline-none focus:border-[#277f6d]">{manualLayerOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label><label className="block"><span className="mb-1.5 block text-sm font-bold">Nama layer</span><input type="text" value={slot.name} onChange={(event) => updateSlot(slot.id, "name", event.target.value)} className="w-full rounded-xl border border-[#123c28]/15 bg-white px-3.5 py-3 text-sm font-bold outline-none focus:border-[#277f6d]" /></label><label className="block"><span className="mb-1.5 block text-sm font-bold">File GeoTIFF</span><input type="file" accept=".tif,.tiff" onChange={(event) => event.target.files?.[0] && updateSlot(slot.id, "file", event.target.files[0])} className="block w-full text-sm file:mr-3 file:rounded-xl file:border-0 file:bg-[#123c28] file:px-3 file:py-2 file:text-sm file:font-bold file:text-white" /></label><div className="rounded-xl bg-[#f3f6ed] p-3"><div className="mb-2 flex items-center justify-between text-sm font-bold"><span>Opacity</span><span>{Math.round(slot.default_opacity * 100)}%</span></div><input type="range" min="0" max="1" step="0.05" value={slot.default_opacity} onChange={(event) => updateSlot(slot.id, "default_opacity", parseFloat(event.target.value))} className="h-2 w-full cursor-pointer accent-[#123c28]" /></div></div>
+              </div>;
+            })}
+            {!slots.length && <div className="rounded-2xl border border-dashed border-[#123c28]/15 px-4 py-8 text-center text-sm font-semibold">Belum ada layer analisis.</div>}
+          </div>
+        </section>
+
+        <div className="rounded-2xl border border-[#123c28]/10 bg-white p-4 text-sm"><strong>3. Cek sebelum unggah</strong><p className="mt-1">Pastikan Base Ortho RGB dan semua file GeoTIFF sudah dipilih.</p></div>
+      </div>
     </div>
   );
 }
@@ -785,7 +855,7 @@ export default function UploadPage() {
 
         <form
           onSubmit={handleSubmit}
-          className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]"
+          className="mx-auto max-w-6xl space-y-6"
         >
           {/* ===================================================
               LEFT CONTENT
@@ -796,7 +866,7 @@ export default function UploadPage() {
                 FILE INGESTION
             ================================================== */}
 
-            <section className="rounded-3xl border border-[#123c28]/10 bg-white p-5 shadow-sm sm:p-6">
+            <section style={{ zoom: 0.75 }} className="rounded-3xl border border-[#123c28]/10 bg-white p-5 shadow-sm sm:p-6">
               <SectionHeader
                 icon={<Upload className="h-4 w-4" />}
                 title={
@@ -1029,7 +1099,20 @@ export default function UploadPage() {
               ============================================== */}
 
               {uploadMode === "manual" && (
-                <div className="space-y-4">
+                <ManualUploadFlow
+                  baseFile={manualBaseFile}
+                  baseName={manualBaseName}
+                  slots={manualSlots}
+                  setBaseFile={setManualBaseFile}
+                  setBaseName={setManualBaseName}
+                  addSlot={handleAddManualSlot}
+                  removeSlot={handleRemoveManualSlot}
+                  updateSlot={handleUpdateManualSlot}
+                />
+              )}
+
+              {false && uploadMode === "manual" && (
+                <div className="space-y-6">
                   {/* Base */}
 
                   <div className="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-4">
@@ -1040,7 +1123,7 @@ export default function UploadPage() {
                         </span>
 
                         <div>
-                          <p className="text-xs font-bold text-[#123c28]">
+                          <p className="text-sm font-bold text-[#123c28]">
                             Base Layer · Ortho RGB
                           </p>
 
@@ -1055,7 +1138,7 @@ export default function UploadPage() {
                       </span>
                     </div>
 
-                    <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-4">
                       <div>
                         <label className="mb-1.5 block text-xs font-bold text-[#123c28]">
                           Nama Tampilan
@@ -1107,13 +1190,12 @@ export default function UploadPage() {
                   <div className="rounded-2xl border border-[#123c28]/10 bg-[#fbfcfa] p-4">
                     <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div>
-                        <p className="text-xs font-bold text-[#123c28]">
-                          Layer Analisis Tambahan
+                        <p className="text-sm font-bold text-[#123c28]">
+                          2. Layer Analisis
                         </p>
 
                         <p className="mt-0.5 text-xs text-[#123c28]">
-                          Tambahkan indeks vegetasi, kandungan hara, DSM, atau
-                          layer kustom.
+                          Tambahkan layer analisis jika diperlukan.
                         </p>
                       </div>
 
@@ -1160,7 +1242,7 @@ export default function UploadPage() {
                               </button>
                             </div>
 
-                            <div className="grid gap-3 sm:grid-cols-2">
+                            <div className="space-y-4">
                               <div>
                                 <label className="mb-1.5 block text-xs font-bold text-[#123c28]">
                                   Tipe Layer
@@ -1207,7 +1289,7 @@ export default function UploadPage() {
                                 />
                               </div>
 
-                              <div className="sm:col-span-2">
+                              <div>
                                 <label className="mb-1.5 block text-xs font-bold text-[#123c28]">
                                   File TIF / TIFF
                                 </label>
@@ -1559,6 +1641,19 @@ export default function UploadPage() {
               </section>
             )}
 
+            <section className="flex items-start gap-3 rounded-2xl border border-[#123c28]/10 bg-[#eef3e8] p-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-[#123c28] shadow-sm">
+                <Cog className="h-4 w-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold">AMX GeoStream Engine</h3>
+                <p className="mt-1 text-sm leading-relaxed text-[#123c28]">
+                  Mengubah GeoTIFF besar menjadi PMTiles agar peta dapat dimuat
+                  bertahap melalui HTTP Range tanpa mengunduh seluruh dataset.
+                </p>
+              </div>
+            </section>
+
             {/* =================================================
                 SUBMIT
             ================================================== */}
@@ -1586,7 +1681,7 @@ export default function UploadPage() {
               RIGHT SIDEBAR
           ==================================================== */}
 
-          <aside className="space-y-5">
+          <aside className="hidden">
             {/* ===============================================
                 GUIDANCE
             ================================================ */}

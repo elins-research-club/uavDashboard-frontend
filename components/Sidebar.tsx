@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { useUserRole } from "@/context/UserRoleContext";
 import {
@@ -9,7 +9,6 @@ import {
   Map,
   CreditCard,
   Upload,
-  LogOut,
   Settings,
   HelpCircle,
   Users,
@@ -27,16 +26,10 @@ type MenuItem = {
 };
 
 export default function Sidebar() {
-  const router = useRouter();
   const pathname = usePathname();
   const { user } = useUserRole();
 
   const [collapsed, setCollapsed] = useState(false);
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    router.push("/login");
-  };
 
   const isActive = (path: string) => pathname === path;
 
@@ -416,26 +409,6 @@ export default function Sidebar() {
           )}
         </div>
 
-        {/* Logout */}
-        <button
-          type="button"
-          onClick={handleLogout}
-          title={collapsed ? "Logout" : undefined}
-          className={`
-            mt-1 flex h-10 w-full items-center
-            rounded-xl
-            text-sm
-            text-[#6b7280]
-            transition-colors
-            hover:bg-red-50
-            hover:text-red-600
-            ${collapsed ? "justify-center px-0" : "gap-3 px-3"}
-          `}
-        >
-          <LogOut size={18} strokeWidth={1.8} />
-
-          {!collapsed && <span className="font-medium">Logout</span>}
-        </button>
       </div>
     </aside>
   );
