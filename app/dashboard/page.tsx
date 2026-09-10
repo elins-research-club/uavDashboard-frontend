@@ -320,7 +320,7 @@ export default function DashboardHomePage() {
                       href="/dashboard/maps"
                       className="group flex items-center gap-3 rounded-2xl p-2 transition hover:bg-brand-50"
                     >
-                      <span className="icon-ring relative z-10 h-9 w-9 flex-shrink-0">
+                      <span className="icon-ring relative z-10 h-9 w-9 flex-shrink-0 transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:-translate-y-0.5 group-hover:scale-105">
                         <MapPinned
                           className="h-4 w-4"
                           strokeWidth={1.75}
@@ -483,7 +483,7 @@ export default function DashboardHomePage() {
                         }
                         className="group flex items-center gap-4 rounded-2xl p-3 transition hover:bg-brand-50"
                       >
-                        <span className="icon-ring h-10 w-10 flex-shrink-0">
+                        <span className="icon-ring h-10 w-10 flex-shrink-0 transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:-translate-y-0.5 group-hover:scale-105">
                           {layer.locked_for_free ? (
                             <Lock className="h-4 w-4" strokeWidth={1.75} />
                           ) : (
@@ -500,12 +500,12 @@ export default function DashboardHomePage() {
                               {layer.title}
                             </span>
                             {layer.locked_for_free && (
-                              <span className="liquid-badge flex-shrink-0 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#a46800]">
+                              <span className="liquid-badge flex-shrink-0 px-2 py-0.5 !text-2xs font-bold uppercase text-amber-700">
                                 Premium
                               </span>
                             )}
                             {layer.map_type && (
-                              <span className="hidden flex-shrink-0 rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-800 sm:inline-flex">
+                              <span className="liquid-badge hidden flex-shrink-0 px-2 py-0.5 !text-2xs font-bold uppercase text-brand-800 sm:inline-flex">
                                 {layer.map_type}
                               </span>
                             )}
@@ -600,7 +600,7 @@ export default function DashboardHomePage() {
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="flex items-start gap-3 rounded-2xl border border-brand-800/8 bg-white/60 p-4">
-                <span className="icon-ring mt-0.5 h-8 w-8 flex-shrink-0 rounded-full">
+                <span className="icon-ring mt-0.5 h-8 w-8 flex-shrink-0 rounded-full text-brand-700">
                   <CircleCheck className="h-4 w-4" strokeWidth={1.75} />
                 </span>
                 <div>
@@ -615,7 +615,7 @@ export default function DashboardHomePage() {
               </div>
 
               <div className="flex items-start gap-3 rounded-2xl border border-brand-800/8 bg-white/60 p-4">
-                <span className="icon-ring mt-0.5 h-8 w-8 flex-shrink-0 rounded-full">
+                <span className="icon-ring mt-0.5 h-8 w-8 flex-shrink-0 rounded-full text-brand-700">
                   <Layers className="h-4 w-4" strokeWidth={1.75} />
                 </span>
                 <div>

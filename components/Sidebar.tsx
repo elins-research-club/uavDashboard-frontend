@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useUserRole } from "@/context/UserRoleContext";
 import {
   LayoutDashboard,
@@ -25,11 +25,42 @@ type MenuItem = {
   icon: ReactNode;
 };
 
-export default function Sidebar() {
+const COLLAPSE_STORAGE_KEY = "sidebar:collapsed";
+const ICON_STROKE = 1.75;
+
+/** Label tier — satu sumber kebenaran, dipakai konsisten di seluruh app. */
+export const getTierLabel = (tier?: string) => {
+  if (tier === "kecamatan") return "Enterprise";
+  if (tier === "desa") return "Koperasi Desa";
+  return "Kelompok Tani";
+};
+
+export default function Sidebar({
+  collapsible = true,
+}: {
+  /** Mobile drawer sebaiknya selalu expanded — set false di sana. */
+  collapsible?: boolean;
+}) {
   const pathname = usePathname();
   const { user } = useUserRole();
 
   const [collapsed, setCollapsed] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  /* Persist preferensi collapse (sejalan dengan pola localStorage di /settings) */
+  useEffect(() => {
+    if (!collapsible) return;
+    const stored = localStorage.getItem(COLLAPSE_STORAGE_KEY);
+    if (stored === "true") setCollapsed(true);
+    setIsHydrated(true);
+  }, [collapsible]);
+
+  const toggleCollapsed = (next: boolean) => {
+    setCollapsed(next);
+    localStorage.setItem(COLLAPSE_STORAGE_KEY, String(next));
+  };
+
+  const isCollapsed = collapsible && collapsed;
 
   const isActive = (path: string) => pathname === path;
 
@@ -37,378 +68,349 @@ export default function Sidebar() {
     {
       href: "/dashboard",
       label: "Ringkasan",
-      icon: <LayoutDashboard size={18} strokeWidth={1.8} />,
+      icon: <LayoutDashboard size={18} strokeWidth={ICON_STROKE} />,
     },
     {
       href: "/dashboard/maps",
       label: "Peta Saya",
-      icon: <Map size={18} strokeWidth={1.8} />,
+      icon: <Map size={18} strokeWidth={ICON_STROKE} />,
     },
     {
       href: "/dashboard/subscription",
       label: "Langganan",
-      icon: <CreditCard size={18} strokeWidth={1.8} />,
+      icon: <CreditCard size={18} strokeWidth={ICON_STROKE} />,
     },
   ];
 
   const adminMenuItems: MenuItem[] =
     user?.role === "admin"
       ? [
-          {
-            href: "/dashboard/users",
-            label: "Manajemen User",
-            icon: <Users size={18} strokeWidth={1.8} />,
-          },
-          {
-            href: "/dashboard/admin",
-            label: "Admin Panel",
-            icon: <ShieldCheck size={18} strokeWidth={1.8} />,
-          },
-          {
-            href: "/dashboard/upload",
-            label: "Upload Peta",
-            icon: <Upload size={18} strokeWidth={1.8} />,
-          },
-        ]
+        {
+          href: "/dashboard/users",
+          label: "Manajemen User",
+          icon: <Users size={18} strokeWidth={ICON_STROKE} />,
+        },
+        {
+          href: "/dashboard/admin",
+          label: "Admin Panel",
+          icon: <ShieldCheck size={18} strokeWidth={ICON_STROKE} />,
+        },
+        {
+          href: "/dashboard/upload",
+          label: "Upload Peta",
+          icon: <Upload size={18} strokeWidth={ICON_STROKE} />,
+        },
+      ]
       : [];
 
   const settingsMenuItems: MenuItem[] = [
     {
       href: "/dashboard/settings",
       label: "Pengaturan",
-      icon: <Settings size={18} strokeWidth={1.8} />,
+      icon: <Settings size={18} strokeWidth={ICON_STROKE} />,
     },
     {
       href: "/dashboard/help",
       label: "Bantuan",
-      icon: <HelpCircle size={18} strokeWidth={1.8} />,
+      icon: <HelpCircle size={18} strokeWidth={ICON_STROKE} />,
     },
   ];
 
-  const tierLabel =
-    user?.tier === "kecamatan"
-      ? "Enterprise"
-      : user?.tier === "desa"
-      ? "Koperasi Desa"
-      : "Kelompok Tani";
-
+  const tierLabel = getTierLabel(user?.tier);
   const userInitials = (user?.username || "Pengguna").slice(0, 2).toUpperCase();
 
-  /**
-   * Menu item
-   *
-   * Design:
-   * - tinggi kecil
-   * - horizontal padding kecil
-   * - no rounded card besar
-   * - hover background tipis
-   * - active background tipis dengan aksen hijau
-   */
+  /* ============================================================
+     MENU ITEM
+     - Active: glass tipis + accent bar (tetap tampil saat collapsed)
+     - Collapsed: tooltip custom (brand-900), bukan title bawaan browser
+     - Fokus keyboard terlihat jelas
+  ============================================================ */
   const renderMenuItem = (item: MenuItem) => {
     const active = isActive(item.href);
 
     return (
-      <Link
-        key={item.href}
-        href={item.href}
-        title={collapsed ? item.label : undefined}
-        className={`
-          group relative flex h-10 items-center
-          rounded-xl text-sm
-          transition-colors duration-150
-          ${collapsed ? "justify-center px-0" : "gap-3 px-3"}
-          ${
-            active
-              ? "bg-[#edf3ed] text-[#123c28]"
-              : "text-[#1f2933] hover:bg-[#f5f6f5]"
-          }
-        `}
-      >
-        {/* Active indicator */}
-        {active && !collapsed && (
-          <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-[#5f8f38]" />
-        )}
-
-        <span
+      <li key={item.href} className="group/item relative">
+        <Link
+          href={item.href}
+          aria-current={active ? "page" : undefined}
           className={`
-            flex shrink-0 items-center justify-center
-            ${
-              active
-                ? "text-[#123c28]"
-                : "text-[#4b5563] group-hover:text-[#123c28]"
+            relative flex h-10 items-center rounded-xl text-xs font-medium
+            outline-none transition-all duration-200
+            focus-visible:ring-2 focus-visible:ring-brand-600/40
+            ${isCollapsed ? "justify-center px-0" : "gap-3 px-3"}
+            ${active
+              ? "bg-brand-100/80 font-semibold text-brand-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]"
+              : "text-brand-900/70 hover:bg-white/70 hover:text-brand-900"
             }
           `}
         >
-          {item.icon}
-        </span>
+          {/* Accent bar — tampil di kedua mode agar state selalu terbaca */}
+          {active && (
+            <span
+              aria-hidden
+              className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-brand-600"
+            />
+          )}
 
-        {!collapsed && (
           <span
-            className={`
-              truncate font-medium
-              ${active ? "text-[#123c28]" : "text-[#374151]"}
-            `}
+            className={`flex shrink-0 items-center justify-center transition-colors ${active ? "text-brand-700" : "text-brand-900/55"
+              }`}
+          >
+            {item.icon}
+          </span>
+
+          {!isCollapsed && <span className="truncate">{item.label}</span>}
+        </Link>
+
+        {/* Tooltip saat collapsed */}
+        {isCollapsed && (
+          <span
+            role="tooltip"
+            className="
+              pointer-events-none absolute left-[52px] top-1/2 z-50
+              -translate-y-1/2 translate-x-[-4px] whitespace-nowrap
+              rounded-lg bg-brand-900 px-3 py-1.5 text-xs font-semibold text-white
+              opacity-0 shadow-glass transition-all duration-150
+              group-hover/item:translate-x-0 group-hover/item:opacity-100
+            "
           >
             {item.label}
           </span>
         )}
-      </Link>
+      </li>
     );
   };
+
+  /* Section header — saat collapsed diganti divider agar grouping tetap terbaca */
+  const renderSectionLabel = (label: string, id: string) =>
+    isCollapsed ? (
+      <div aria-hidden className="mx-3 mb-2 h-px bg-brand-800/10" />
+    ) : (
+      <p id={id} className="micro-label mb-2 px-3">
+        {label}
+      </p>
+    );
 
   return (
     <aside
       className={`
-        flex h-screen flex-col
-        border-r border-[#123c28]/10
-        bg-white
-        transition-[width] duration-200 ease-out
-        ${collapsed ? "w-[68px]" : "w-[255px]"}
+        flex h-screen flex-col border-r border-brand-800/10
+        bg-white/80 backdrop-blur-xl
+        transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]
+        ${isCollapsed ? "w-[68px]" : "w-[255px]"}
+        ${isHydrated || !collapsible ? "" : "opacity-100"}
       `}
     >
-      {/* =====================================================
-    HEADER
-====================================================== */}
+      {/* ==================================================
+          HEADER
+      =================================================== */}
       <div
-        className={`
-    flex h-[62px] shrink-0 items-center
-    border-b border-[#123c28]/8
-    ${collapsed ? "justify-center" : "justify-between px-4"}
-  `}
+        className={`flex h-[62px] shrink-0 items-center border-b border-brand-800/8 ${isCollapsed ? "justify-center" : "justify-between px-4"
+          }`}
       >
-        {collapsed ? (
-          /* =================================================
-       COLLAPSED:
-       Logo menjadi tombol expand
-    ================================================== */
-          <div className="group relative">
+        {isCollapsed ? (
+          <div className="group/logo relative">
             <button
               type="button"
-              onClick={() => setCollapsed(false)}
+              onClick={() => toggleCollapsed(false)}
               aria-label="Buka sidebar"
               className="
-          relative flex h-10 w-10 items-center justify-center
-          rounded-full
-          bg-[#f1f2f0]
-          text-[#123c28]
-          transition-all duration-150
-          hover:bg-[#e8ebe6]
-        "
+                icon-ring relative h-10 w-10 rounded-full outline-none
+                transition-all duration-200
+                focus-visible:ring-2 focus-visible:ring-brand-600/40
+              "
             >
-              {/* Logo normal */}
               <Drone
                 size={17}
-                strokeWidth={1.9}
-                className="
-            transition-all duration-150
-            group-hover:scale-0
-            group-hover:opacity-0
-          "
+                strokeWidth={ICON_STROKE}
+                className="transition-all duration-200 group-hover/logo:scale-0 group-hover/logo:opacity-0"
               />
-
-              {/* Icon open saat hover */}
               <PanelLeftOpen
                 size={18}
-                strokeWidth={1.8}
-                className="
-            absolute
-            scale-0 opacity-0
-            transition-all duration-150
-            group-hover:scale-100
-            group-hover:opacity-100
-          "
+                strokeWidth={ICON_STROKE}
+                className="absolute scale-0 opacity-0 transition-all duration-200 group-hover/logo:scale-100 group-hover/logo:opacity-100"
               />
             </button>
 
-            {/* Tooltip / label */}
-            <div
+            <span
+              role="tooltip"
               className="
-          pointer-events-none absolute
-          left-[48px] top-1/2
-          z-50
-          -translate-y-1/2
-          translate-x-[-4px]
-          whitespace-nowrap
-          rounded-xl
-          bg-black
-          px-4 py-2.5
-          text-[13px] font-semibold
-          text-white
-          opacity-0
-          shadow-lg
-          transition-all duration-150
-          group-hover:translate-x-0
-          group-hover:opacity-100
-        "
+                pointer-events-none absolute left-[52px] top-1/2 z-50
+                -translate-y-1/2 translate-x-[-4px] whitespace-nowrap
+                rounded-lg bg-brand-900 px-3 py-1.5 text-xs font-semibold text-white
+                opacity-0 shadow-glass transition-all duration-150
+                group-hover/logo:translate-x-0 group-hover/logo:opacity-100
+              "
             >
               Buka sidebar
-            </div>
+            </span>
           </div>
         ) : (
-          /* =================================================
-       EXPANDED
-    ================================================== */
           <>
-            <Link href="/dashboard" className="flex items-center gap-2.5">
-              <div
-                className="
-            flex h-8 w-8 shrink-0 items-center justify-center
-            rounded-lg bg-[#123c28]
-          "
-              >
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-2.5 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-brand-600/40"
+            >
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-800">
                 <Drone size={16} strokeWidth={2} className="text-white" />
-              </div>
+              </span>
 
-              <div className="leading-none">
-                <p className="text-[13px] font-bold tracking-[0.06em] text-[#123c28]">
+              <span className="leading-none">
+                <span className="block text-[13px] font-bold tracking-[0.06em] text-brand-900">
                   UAV
-                </p>
-
-                <p className="mt-1 text-[8px] font-semibold tracking-[0.16em] text-[#123c28]/55">
+                </span>
+                <span className="mt-1 block text-2xs font-semibold text-brand-800/55">
                   DAAS PLATFORM
-                </p>
-              </div>
+                </span>
+              </span>
             </Link>
 
-            {/* Collapse button */}
-            <button
-              type="button"
-              onClick={() => setCollapsed(true)}
-              title="Tutup sidebar"
-              aria-label="Tutup sidebar"
-              className="
-          flex h-8 w-8 shrink-0 items-center justify-center
-          rounded-lg
-          text-[#6b7280]
-          transition-colors
-          hover:bg-[#f3f6ed]
-          hover:text-[#123c28]
-        "
-            >
-              <PanelLeftClose size={18} strokeWidth={1.7} />
-            </button>
+            {collapsible && (
+              <button
+                type="button"
+                onClick={() => toggleCollapsed(true)}
+                aria-label="Tutup sidebar"
+                className="
+                  flex h-8 w-8 shrink-0 items-center justify-center rounded-lg
+                  text-brand-800/50 outline-none transition-colors
+                  hover:bg-brand-100 hover:text-brand-900
+                  focus-visible:ring-2 focus-visible:ring-brand-600/40
+                "
+              >
+                <PanelLeftClose size={18} strokeWidth={ICON_STROKE} />
+              </button>
+            )}
           </>
         )}
       </div>
 
-      {/* =====================================================
-          MAIN CONTENT
-      ====================================================== */}
-      <div className="flex-1 overflow-y-auto px-2 py-4">
-        {/* =====================================================
-            WORKSPACE
-        ====================================================== */}
-        {!collapsed && (
-          <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#9ca3af]">
-            Workspace
-          </p>
-        )}
+      {/* ==================================================
+          NAVIGASI
+      =================================================== */}
+      <nav
+        aria-label="Navigasi utama"
+        className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-4"
+      >
+        {/* Workspace */}
+        {renderSectionLabel("Workspace", "nav-workspace")}
+        <ul
+          aria-labelledby={isCollapsed ? undefined : "nav-workspace"}
+          className="space-y-0.5"
+        >
+          {mainMenuItems.map(renderMenuItem)}
+        </ul>
 
-        <div className="space-y-0.5">{mainMenuItems.map(renderMenuItem)}</div>
-
-        {/* =====================================================
-            ADMINISTRATION
-        ====================================================== */}
+        {/* Administration */}
         {user?.role === "admin" && (
-          <div className="mt-6 border-t border-[#123c28]/8 pt-5">
-            {!collapsed && (
+          <div className="mt-6 border-t border-brand-800/8 pt-5">
+            {isCollapsed ? (
+              <div aria-hidden className="mx-3 mb-2 h-px bg-brand-800/10" />
+            ) : (
               <div className="mb-2 flex items-center justify-between px-3">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#9ca3af]">
+                <p id="nav-admin" className="micro-label">
                   Administration
                 </p>
-
-                <span className="rounded-md bg-[#edf3ed] px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-[#123c28]">
+                <span className="liquid-badge px-2 py-0.5 text-2xs font-bold uppercase text-brand-800">
                   Admin
                 </span>
               </div>
             )}
 
-            <div className="space-y-0.5">
+            <ul
+              aria-labelledby={isCollapsed ? undefined : "nav-admin"}
+              className="space-y-0.5"
+            >
               {adminMenuItems.map(renderMenuItem)}
-            </div>
+            </ul>
           </div>
         )}
 
-        {/* =====================================================
-            PREFERENCES
-        ====================================================== */}
-        <div className="mt-6 border-t border-[#123c28]/8 pt-5">
-          {!collapsed && (
-            <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#9ca3af]">
-              Preferences
-            </p>
-          )}
-
-          <div className="space-y-0.5">
-            {settingsMenuItems.map(renderMenuItem)}
-          </div>
-        </div>
-      </div>
-
-      {/* =====================================================
-          FOOTER / USER
-      ====================================================== */}
-      <div className="shrink-0 border-t border-[#123c28]/8 p-2">
-        {/* User */}
-        <div
-          className={`
-            flex items-center rounded-xl
-            transition-colors hover:bg-[#f5f6f5]
-            ${collapsed ? "justify-center px-0 py-2" : "gap-3 px-2 py-2"}
-          `}
-          title={collapsed ? user?.username || "Pengguna" : undefined}
-        >
-          {/* Avatar */}
-          <div
-            className="
-              relative flex h-8 w-8 shrink-0
-              items-center justify-center
-              rounded-full
-              bg-[#123c28]
-              text-[10px] font-bold text-white
-            "
+        {/* Preferences */}
+        <div className="mt-6 border-t border-brand-800/8 pt-5">
+          {renderSectionLabel("Preferences", "nav-preferences")}
+          <ul
+            aria-labelledby={isCollapsed ? undefined : "nav-preferences"}
+            className="space-y-0.5"
           >
-            {userInitials}
+            {settingsMenuItems.map(renderMenuItem)}
+          </ul>
+        </div>
+      </nav>
 
+      {/* ==================================================
+          FOOTER / USER
+          Interaktif → diarahkan ke /dashboard/settings
+          (logout tetap eksklusif di halaman settings)
+      =================================================== */}
+      <div className="shrink-0 border-t border-brand-800/8 p-2">
+        <div className="group/user relative">
+          <Link
+            href="/dashboard/settings"
+            title={undefined}
+            className={`
+              flex items-center rounded-xl outline-none transition-colors
+              hover:bg-white/70 focus-visible:ring-2 focus-visible:ring-brand-600/40
+              ${isCollapsed ? "justify-center px-0 py-2" : "gap-3 px-2 py-2"}
+            `}
+          >
+            <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-800 text-2xs font-bold text-white">
+              {userInitials}
+              <span
+                aria-hidden
+                className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-brand-400"
+              />
+            </span>
+
+            {!isCollapsed && (
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-xs font-semibold text-brand-900">
+                  {user?.username || "Pengguna"}
+                </span>
+
+                <span className="mt-0.5 flex items-center gap-1">
+                  {user?.role === "admin" ? (
+                    <>
+                      <ShieldCheck
+                        size={11}
+                        strokeWidth={ICON_STROKE}
+                        className="shrink-0 text-brand-700"
+                      />
+                      <span className="truncate text-2xs font-medium text-brand-800/60">
+                        Administrator
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <Leaf
+                        size={11}
+                        strokeWidth={ICON_STROKE}
+                        className="shrink-0 text-brand-500"
+                      />
+                      <span className="truncate text-2xs font-medium text-brand-800/60">
+                        {tierLabel}
+                      </span>
+                    </>
+                  )}
+                </span>
+              </span>
+            )}
+          </Link>
+
+          {isCollapsed && (
             <span
+              role="tooltip"
               className="
-                absolute bottom-0 right-0
-                h-2 w-2 rounded-full
-                border-2 border-white
-                bg-[#91b928]
+                pointer-events-none absolute bottom-1/2 left-[52px] z-50
+                translate-x-[-4px] translate-y-1/2 whitespace-nowrap
+                rounded-lg bg-brand-900 px-3 py-1.5 text-xs font-semibold text-white
+                opacity-0 shadow-glass transition-all duration-150
+                group-hover/user:translate-x-0 group-hover/user:opacity-100
               "
-            />
-          </div>
-
-          {!collapsed && (
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-semibold text-[#1f2933]">
-                {user?.username || "Pengguna"}
-              </p>
-
-              <div className="mt-0.5 flex items-center gap-1">
-                {user?.role === "admin" ? (
-                  <>
-                    <ShieldCheck size={11} className="text-[#123c28]" />
-
-                    <span className="truncate text-[10px] text-[#6b7280]">
-                      Administrator
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <Leaf size={11} className="text-[#5f8f38]" />
-
-                    <span className="truncate text-[10px] text-[#6b7280]">
-                      {tierLabel}
-                    </span>
-                  </>
-                )}
-              </div>
-            </div>
+            >
+              {user?.username || "Pengguna"} · {tierLabel}
+            </span>
           )}
         </div>
-
       </div>
     </aside>
   );
