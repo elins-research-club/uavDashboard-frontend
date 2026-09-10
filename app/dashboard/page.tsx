@@ -132,8 +132,6 @@ export default function DashboardHomePage() {
               <br className="sm:hidden" />{" "}
               <span className="text-[#1a5134]">{username}</span>
             </h1>
-
-
           </div>
 
           <div className="flex items-center gap-3">
@@ -158,8 +156,8 @@ export default function DashboardHomePage() {
         </header>
 
         {/* =====================================================
-    STATS
-===================================================== */}
+            STATS
+        ====================================================== */}
         <section className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat) => {
             const Icon = stat.icon;
@@ -184,7 +182,7 @@ export default function DashboardHomePage() {
                 }}
                 className="group relative min-h-[112px] overflow-hidden rounded-[20px] border border-[#123c28]/10 bg-white px-4 py-4 transition-shadow duration-200 hover:shadow-[0_12px_30px_rgba(18,60,40,0.07)]"
               >
-                {/* Background icon */}
+                {/* Background 3D icon */}
                 <motion.div
                   variants={{
                     rest: {
@@ -192,20 +190,69 @@ export default function DashboardHomePage() {
                       scale: 1,
                       x: 8,
                       y: 8,
+                      boxShadow:
+                        "inset 6px 6px 12px rgba(255,255,255,0.8), inset -7px -7px 14px rgba(18,60,40,0.10)",
                     },
                     hover: {
-                      rotate: -8,
-                      scale: 1.08,
+                      rotate: -12,
+                      scale: 1.12,
                       x: 2,
                       y: 2,
+                      boxShadow:
+                        "inset 10px 8px 16px rgba(255,255,255,0.9), inset -10px -10px 18px rgba(18,60,40,0.18), 0 10px 20px rgba(18,60,40,0.08)",
                     },
                   }}
                   transition={{
-                    duration: 0.35,
+                    duration: 0.45,
                     ease: [0.22, 1, 0.36, 1],
                   }}
-                  className="pointer-events-none absolute -bottom-6 -right-5 flex h-28 w-28 items-center justify-center rounded-full bg-[#f3f6ed]"
-                ></motion.div>
+                  className="
+    pointer-events-none
+    absolute
+    -bottom-6
+    -right-5
+    flex
+    h-28
+    w-28
+    items-center
+    justify-center
+    rounded-full
+    bg-[#f3f6ed]
+  "
+                >
+                  {/* Highlight / light reflection */}
+                  <motion.div
+                    variants={{
+                      rest: {
+                        x: 0,
+                        y: 0,
+                        opacity: 0.35,
+                        scale: 1,
+                      },
+                      hover: {
+                        x: -5,
+                        y: -5,
+                        opacity: 0.75,
+                        scale: 1.15,
+                      },
+                    }}
+                    transition={{
+                      duration: 0.4,
+                      ease: "easeOut",
+                    }}
+                    className="
+      pointer-events-none
+      absolute
+      left-4
+      top-4
+      h-8
+      w-8
+      rounded-full
+      bg-white
+      blur-md
+    "
+                  />
+                </motion.div>
 
                 {/* Content */}
                 <div className="relative z-10 flex min-h-[80px] items-center justify-between">
@@ -239,7 +286,7 @@ export default function DashboardHomePage() {
                       duration: 0.3,
                       ease: "easeOut",
                     }}
-                    className="mr-1 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-white text-[#123c28]/70 border"
+                    className="mr-1 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border bg-white text-[#123c28]/70"
                   >
                     <Icon className="h-4 w-4" strokeWidth={2} />
                   </motion.div>
@@ -298,257 +345,273 @@ export default function DashboardHomePage() {
         </section>
 
         {/* =====================================================
-            MAP DATA
-        ====================================================== */}
+MAP DATA
+====================================================== */}
+
         <section className="mb-6">
-          {/* ================= HEADER ================= */}
-          <div className="mb-5">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              {/* LEFT */}
-              <div className="min-w-0">
-                <div className="mb-2 flex items-center gap-2">
-                  <MapPin className="h-3.5 w-3.5 text-[#123c28]/60" />
+          <div className="overflow-hidden rounded-[28px] border border-[#123c28]/10 bg-white shadow-sm">
+            {/* ================= HEADER ================= */}
+            <div className="border-b border-[#123c28]/10 bg-[#123c28] px-5 py-5 sm:px-6">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                {/* LEFT */}
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2.5">
+                    <MapPin className="h-6 w-6 text-white/80" />
 
-                  <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#123c28]/60">
-                    FIELD DATA
-                  </span>
+                    <h2 className="text-2xl font-bold tracking-[-0.035em] text-white sm:text-[28px]">
+                      Data Lahan Anda
+                    </h2>
+                  </div>
                 </div>
 
-                <h2 className="text-2xl font-bold tracking-[-0.035em] text-[#123c28] sm:text-[28px]">
-                  Data Lahan Anda
-                </h2>
-              </div>
+                {/* RIGHT */}
+                <div className="flex w-full lg:w-auto">
+                  {/* SEARCH */}
 
-              {/* RIGHT */}
-              <div className="flex w-full flex-col gap-2.5 sm:flex-row lg:w-auto">
-                {/* SEARCH */}
-                <div className="relative w-full sm:w-[320px]">
-                  <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#123c28]/40" />
+                  <div className="relative w-full lg:w-[380px]">
+                    <Search className="pointer-events-none absolute left-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#123c28]/40" />
 
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(event) => setSearchQuery(event.target.value)}
-                    placeholder="Cari peta, lokasi, tipe..."
-                    className="h-11 w-full rounded-xl border border-[#123c28]/12 bg-white pl-10 pr-10 text-xs font-medium text-[#123c28] outline-none transition placeholder:text-[#123c28]/35 focus:border-[#123c28]/25 focus:ring-4 focus:ring-[#123c28]/5"
-                  />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(event) => setSearchQuery(event.target.value)}
+                      placeholder="Cari data peta Anda..."
+                      className="h-9 w-full rounded-full border border-white/20 bg-white pl-10 pr-10 text-[11px] font-medium text-[#123c28] outline-none transition placeholder:text-[#123c28]/35 focus:border-white focus:ring-4 focus:ring-white/10"
+                    />
 
-                  {searchQuery && (
-                    <button
-                      type="button"
-                      onClick={() => setSearchQuery("")}
-                      aria-label="Hapus pencarian"
-                      className="absolute right-2.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-[#123c28]/40 transition hover:bg-[#f3f6ed] hover:text-[#123c28]"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  )}
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchQuery("")}
+                        aria-label="Hapus pencarian"
+                        className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-[#123c28]/40 transition hover:bg-[#f3f6ed] hover:text-[#123c28]"
+                      >
+                        {" "}
+                        <X className="h-3 w-3" />{" "}
+                      </button>
+                    )}
+                  </div>
                 </div>
-
-                {/* SEE ALL */}
-                <Link
-                  href="/dashboard/maps"
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#123c28] px-5 text-xs font-bold text-white transition hover:bg-[#1a5134]"
-                >
-                  Lihat Semua
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
               </div>
             </div>
-          </div>
+            {/* ================= CONTENT ================= */}
+            <div className="bg-white/70 px-5 sm:px-6">
+              {/* Loading */}
+              {isLoading && (
+                <div className="divide-y divide-[#123c28]/20">
+                  {[1, 2, 3].map((item) => (
+                    <div key={item} className="min-h-[104px] animate-pulse">
+                      <div className="flex min-h-[104px] items-stretch">
+                        <div className="flex w-[56px] flex-shrink-0 flex-col items-center justify-center">
+                          <div className="h-2 w-7 rounded bg-[#123c28]/10" />
+                          <div className="mt-2 h-4 w-5 rounded bg-[#123c28]/10" />
+                        </div>
 
-          {/* ================= CONTENT ================= */}
-          <div>
-            {/* Loading */}
-            {isLoading && (
-              <div className="space-y-2">
-                {[1, 2, 3].map((item) => (
-                  <div
-                    key={item}
-                    className="min-h-[104px] animate-pulse rounded-[20px] border border-[#123c28]/8 bg-[#fafbf8]"
-                  >
-                    <div className="flex h-full min-h-[104px]">
-                      <div className="flex w-[64px] flex-shrink-0 flex-col items-center justify-center border-r border-[#123c28]/8">
-                        <div className="h-2 w-7 rounded bg-[#123c28]/8" />
-                        <div className="mt-2 h-4 w-5 rounded bg-[#123c28]/8" />
+                        <div className="flex-1 px-4 py-4">
+                          <div className="h-4 w-1/3 rounded bg-[#123c28]/10" />
+                          <div className="mt-2 h-3 w-1/2 rounded bg-[#123c28]/10" />
+                          <div className="mt-4 h-3 w-2/3 rounded bg-[#123c28]/10" />
+                        </div>
+
+                        <div className="hidden w-[130px] md:block" />
                       </div>
-
-                      <div className="flex-1 px-4 py-4">
-                        <div className="h-4 w-1/3 rounded bg-[#123c28]/8" />
-                        <div className="mt-2 h-3 w-1/2 rounded bg-[#123c28]/8" />
-                        <div className="mt-4 h-3 w-2/3 rounded bg-[#123c28]/8" />
-                      </div>
-
-                      <div className="hidden w-[145px] border-l border-[#123c28]/8 md:block" />
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Error */}
-            {error && (
-              <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-600">
-                {error}
-              </div>
-            )}
-
-            {/* No Data */}
-            {!isLoading && !error && !maps.length && (
-              <div className="rounded-[24px] border border-dashed border-[#123c28]/20 bg-[#fafbf8] px-6 py-14 text-center">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm">
-                  <MapPin className="h-5 w-5 text-[#123c28]/60" />
-                </div>
-
-                <h3 className="mt-4 text-sm font-bold text-[#123c28]">
-                  Belum ada peta tersimpan
-                </h3>
-
-                <p className="mx-auto mt-2 max-w-sm text-xs font-medium leading-5 text-[#123c28]/70">
-                  Setelah data pemetaan tersedia, hasilnya akan muncul di
-                  dashboard ini.
-                </p>
-
-                <Link
-                  href="/dashboard/maps"
-                  className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#123c28] px-5 py-2.5 text-xs font-semibold text-white transition hover:bg-[#1a5134]"
-                >
-                  Kelola Peta
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-              </div>
-            )}
-
-            {/* Search Result Empty */}
-            {!isLoading &&
-              !error &&
-              maps.length > 0 &&
-              filteredMaps.length === 0 && (
-                <div className="rounded-[24px] border border-dashed border-[#123c28]/20 bg-[#fafbf8] px-6 py-14 text-center">
-                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm">
-                    <Search className="h-5 w-5 text-[#123c28]/55" />
-                  </div>
-
-                  <h3 className="mt-4 text-sm font-bold text-[#123c28]">
-                    Data tidak ditemukan
-                  </h3>
-
-                  <p className="mx-auto mt-2 max-w-sm text-xs font-medium leading-5 text-[#123c28]/70">
-                    Tidak ada dataset yang cocok dengan pencarian{" "}
-                    <span className="font-bold">"{searchQuery}"</span>.
-                  </p>
-
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery("")}
-                    className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#123c28] px-5 py-2.5 text-xs font-semibold text-white transition hover:bg-[#1a5134]"
-                  >
-                    Reset Pencarian
-                    <X className="h-3.5 w-3.5" />
-                  </button>
+                  ))}
                 </div>
               )}
 
-            {/* Maps */}
-            {!isLoading && !error && filteredMaps.length > 0 && (
-              <div className="space-y-2">
-                {filteredMaps.map((layer, index) => (
-                  <div
-                    key={layer.id}
-                    className="group overflow-hidden rounded-[20px] border border-[#123c28]/10 bg-[#fafbf8] transition duration-200 hover:border-[#123c28]/20 hover:bg-white hover:shadow-[0_10px_28px_rgba(18,60,40,0.06)]"
-                  >
-                    <div className="flex min-h-[104px] items-stretch">
-                      {/* MAP NUMBER */}
-                      <div className="flex w-[64px] flex-shrink-0 flex-col items-center justify-center border-r border-[#123c28]/8">
-                        <span className="text-[8px] font-bold uppercase tracking-[0.15em] text-[#123c28]/40">
-                          MAP
-                        </span>
+              {/* Error */}
+              {error && (
+                <div className="py-5">
+                  <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-600">
+                    {error}
+                  </div>
+                </div>
+              )}
 
-                        <span className="mt-1 text-lg font-bold leading-none tracking-[-0.04em] text-[#123c28]/35">
-                          {String(index + 1).padStart(2, "0")}
-                        </span>
+              {/* No Data */}
+              {!isLoading && !error && !maps.length && (
+                <div className="py-6">
+                  <div className="rounded-[20px] border border-dashed border-[#123c28]/20 bg-white px-6 py-14 text-center">
+                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#f3f6ed]">
+                      <MapPin className="h-5 w-5 text-[#123c28]/60" />
+                    </div>
+
+                    <h3 className="mt-4 text-sm font-bold text-[#123c28]">
+                      Belum ada peta tersimpan
+                    </h3>
+
+                    <p className="mx-auto mt-2 max-w-sm text-xs font-medium leading-5 text-[#123c28]/70">
+                      Setelah data pemetaan tersedia, hasilnya akan muncul di
+                      dashboard ini.
+                    </p>
+
+                    <Link
+                      href="/dashboard/maps"
+                      className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#123c28] px-5 py-2.5 text-xs font-semibold text-white transition hover:bg-[#1a5134]"
+                    >
+                      Kelola Peta
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </div>
+                </div>
+              )}
+
+              {/* Search Result Empty */}
+              {!isLoading &&
+                !error &&
+                maps.length > 0 &&
+                filteredMaps.length === 0 && (
+                  <div className="py-6">
+                    <div className="rounded-[20px] border border-dashed border-[#123c28]/20 bg-white px-6 py-14 text-center">
+                      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#f3f6ed]">
+                        <Search className="h-5 w-5 text-[#123c28]/55" />
                       </div>
 
-                      {/* MAIN CONTENT */}
-                      <div className="min-w-0 flex-1 px-4 py-3.5">
-                        <div className="flex flex-col gap-3">
-                          {/* TITLE */}
-                          <div className="flex min-w-0 items-center gap-2">
-                            <h3 className="min-w-0 truncate text-sm font-bold text-[#123c28]">
-                              {layer.title}
-                            </h3>
+                      <h3 className="mt-4 text-sm font-bold text-[#123c28]">
+                        Data tidak ditemukan
+                      </h3>
 
-                            {layer.locked_for_free && (
-                              <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-[#fff3d9] px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.08em] text-[#a46800]">
-                                <Lock className="h-2.5 w-2.5" />
-                                Premium
-                              </span>
-                            )}
+                      <p className="mx-auto mt-2 max-w-sm text-xs font-medium leading-5 text-[#123c28]/70">
+                        Tidak ada dataset yang cocok dengan pencarian{" "}
+                        <span className="font-bold">"{searchQuery}"</span>.
+                      </p>
 
-                            {layer.map_type && (
-                              <span className="hidden flex-shrink-0 rounded-full bg-[#eef3e8] px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.08em] text-[#123c28] sm:inline-flex">
-                                {layer.map_type}
-                              </span>
-                            )}
+                      <button
+                        type="button"
+                        onClick={() => setSearchQuery("")}
+                        className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#123c28] px-5 py-2.5 text-xs font-semibold text-white transition hover:bg-[#1a5134]"
+                      >
+                        Reset Pencarian
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+              {/* Maps */}
+              {!isLoading && !error && filteredMaps.length > 0 && (
+                <>
+                  <div className="divide-y divide-[#123c28]/20">
+                    {filteredMaps.slice(0, 4).map((layer, index) => (
+                      <div
+                        key={layer.id}
+                        className="group -mx-5 px-5 transition-colors duration-200 hover:bg-[#f3f6ed] sm:-mx-6 sm:px-6"
+                      >
+                        <div className="flex min-h-[104px] items-stretch py-1">
+                          {/* MAP NUMBER */}
+                          <div className="flex w-[56px] flex-shrink-0 flex-col items-center justify-center">
+                            <span className="text-[8px] font-bold uppercase tracking-[0.15em] text-[#123c28]/40">
+                              MAP
+                            </span>
+
+                            <span className="mt-1 text-lg font-bold leading-none tracking-[-0.04em] text-[#123c28]/35">
+                              {String(index + 1).padStart(2, "0")}
+                            </span>
                           </div>
 
-                          {/* DESCRIPTION */}
-                          <p className="truncate text-xs font-medium text-[#123c28]/70">
-                            {layer.description || layer.location}
-                          </p>
+                          {/* MAIN CONTENT */}
+                          <div className="min-w-0 flex-1 px-4 py-4">
+                            <div className="flex min-w-0 flex-col gap-3">
+                              {/* TITLE */}
+                              <div className="flex min-w-0 items-center gap-2">
+                                <h3 className="min-w-0 truncate text-sm font-bold text-[#123c28]">
+                                  {layer.title}
+                                </h3>
 
-                          {/* METADATA */}
-                          <div className="flex min-w-0 items-center gap-4 overflow-hidden text-[9px] font-semibold text-[#123c28]/60">
-                            <div className="flex flex-shrink-0 items-center gap-1.5">
-                              <Calendar className="h-3 w-3" />
-
-                              <span>
-                                {new Date(layer.survey_date).toLocaleDateString(
-                                  "id-ID"
+                                {layer.locked_for_free && (
+                                  <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-[#fff3d9] px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.08em] text-[#a46800]">
+                                    <Lock className="h-2.5 w-2.5" />
+                                    Premium
+                                  </span>
                                 )}
-                              </span>
+
+                                {layer.map_type && (
+                                  <span className="hidden flex-shrink-0 rounded-full bg-[#eef3e8] px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.08em] text-[#123c28] sm:inline-flex">
+                                    {layer.map_type}
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* DESCRIPTION */}
+                              <p className="truncate text-xs font-medium text-[#123c28]/70">
+                                {layer.description || layer.location}
+                              </p>
+
+                              {/* METADATA */}
+                              <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 overflow-hidden text-[9px] font-semibold text-[#123c28]/60">
+                                <div className="flex flex-shrink-0 items-center gap-1.5">
+                                  <Calendar className="h-3 w-3" />
+
+                                  <span>
+                                    {new Date(
+                                      layer.survey_date
+                                    ).toLocaleDateString("id-ID")}
+                                  </span>
+                                </div>
+
+                                <div className="flex flex-shrink-0 items-center gap-1.5">
+                                  <Database className="h-3 w-3" />
+
+                                  <span>{formatSize(layer.file_size)}</span>
+                                </div>
+
+                                <div className="flex min-w-0 items-center gap-1.5">
+                                  <MapPin className="h-3 w-3 flex-shrink-0" />
+
+                                  <span className="truncate">
+                                    {layer.location}
+                                  </span>
+                                </div>
+                              </div>
                             </div>
+                          </div>
 
-                            <div className="flex flex-shrink-0 items-center gap-1.5">
-                              <Database className="h-3 w-3" />
-
-                              <span>{formatSize(layer.file_size)}</span>
-                            </div>
-
-                            <div className="flex min-w-0 items-center gap-1.5">
-                              <MapPin className="h-3 w-3 flex-shrink-0" />
-
-                              <span className="truncate">{layer.location}</span>
-                            </div>
+                          {/* ACTION */}
+                          <div className="flex w-[130px] flex-shrink-0 items-center justify-center pl-4 pr-1">
+                            {layer.locked_for_free ? (
+                              <Link
+                                href="/dashboard/subscription"
+                                className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#D99A2B] px-3 py-2.5 text-[10px] font-bold text-white transition hover:bg-[#C68920]"
+                              >
+                                <Lock className="h-3 w-3" />
+                                Upgrade
+                              </Link>
+                            ) : (
+                              <Link
+                                href="/dashboard/maps"
+                                className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#123c28] px-3 py-2.5 text-[10px] font-bold text-white transition hover:bg-[#1a5134]"
+                              >
+                                <Eye className="h-3 w-3" />
+                                Lihat Peta
+                              </Link>
+                            )}
                           </div>
                         </div>
                       </div>
+                    ))}
+                  </div>
 
-                      {/* ACTION */}
-                      <div className="flex w-[145px] flex-shrink-0 items-center justify-center border-l border-[#123c28]/8 px-4">
-                        {layer.locked_for_free ? (
-                          <Link
-                            href="/dashboard/subscription"
-                            className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#f0ad25] px-3 py-2.5 text-[10px] font-bold text-white transition hover:bg-[#df9b16]"
-                          >
-                            <Lock className="h-3 w-3" />
-                            Upgrade
-                          </Link>
-                        ) : (
-                          <Link
-                            href="/dashboard/maps"
-                            className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#123c28] px-3 py-2.5 text-[10px] font-bold text-white transition hover:bg-[#1a5134]"
-                          >
-                            <Eye className="h-3 w-3" />
-                            Lihat Peta
-                          </Link>
-                        )}
-                      </div>
+                  {/* INFO */}
+
+                  <div className="border-t border-[#123c28]/10 py-4">
+                    <div className="flex flex-col gap-1 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
+                      <p className="text-[10px] font-medium text-[#123c28]/50">
+                        Dashboard menampilkan maksimal 4 data lahan.
+                      </p>
+
+                      <Link
+                        href="/dashboard/maps"
+                        className="inline-flex items-center justify-center gap-1.5 text-[10px] font-bold text-[#123c28] transition hover:text-[#1a5134]"
+                      >
+                        Lihat semua peta
+                        <ArrowRight className="h-3 w-3" />
+                      </Link>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
+                </>
+              )}
+            </div>
           </div>
         </section>
 
@@ -685,8 +748,6 @@ export default function DashboardHomePage() {
               <h3 className="mt-2 text-2xl font-bold tracking-[-0.035em] text-[#123c28]">
                 Kembangkan data lahan Anda.
               </h3>
-
-
             </div>
 
             <Link
