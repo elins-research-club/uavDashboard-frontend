@@ -1,7 +1,9 @@
 .sidebar {
-    --neu-surface: #edf2ee;
-    --neu-raised: 5px 5px 12px #d4ddd6, -5px -5px 12px #ffffff;
-    --neu-inset: inset 3px 3px 7px #d0dad3, inset -3px -3px 7px #ffffff;
+    /* Liquid glass ala tombol "Jelajahi Teknologi":
+       bg putih dominan + blur + border terang, tidak setransparan aslinya. */
+    --glass-surface: linear-gradient(135deg, rgba(255, 255, 255, .9), rgba(255, 255, 255, .6));
+    --glass-raised: 0 6px 18px rgba(18, 60, 40, .07), inset 0 1px 0 rgba(255, 255, 255, .95);
+    --glass-pressed: 0 2px 8px rgba(18, 60, 40, .06), inset 0 1px 0 rgba(255, 255, 255, .85);
     position: relative;
     display: flex;
     flex-direction: column;
@@ -9,8 +11,10 @@
     width: 264px;
     height: 100dvh;
     color: #123c28;
-    background: var(--neu-surface);
-    border-right: 1px solid #d9e2dc;
+    background: rgba(255, 255, 255, .92);
+    background-image: radial-gradient(ellipse at 0% 0%, rgba(255, 255, 255, .95), transparent 70%);
+    border-right: 1px solid rgba(18, 60, 40, .1);
+    box-shadow: 8px 0 32px rgba(18, 60, 40, .07), inset -1px 0 0 rgba(255, 255, 255, .9);
     transition: width 280ms cubic-bezier(.22, 1, .36, 1);
 }
 
@@ -62,12 +66,13 @@
     width: 42px;
     height: 42px;
     border-radius: 15px;
-    background: var(--neu-surface);
-    box-shadow: var(--neu-raised);
+    background: var(--glass-surface);
+    border: 1px solid rgba(255, 255, 255, .8);
+    box-shadow: var(--glass-raised);
 }
 
 .logo {
-    color: #226842;
+    color: #123c28;
 }
 
 .toggle {
@@ -83,7 +88,7 @@
 
 .toggle:active {
     transform: scale(.94);
-    box-shadow: var(--neu-inset);
+    box-shadow: var(--glass-pressed);
 }
 
 .expand {
@@ -131,15 +136,17 @@
     font-size: 10px;
     padding: 3px 7px;
     border-radius: 6px;
-    box-shadow: var(--neu-inset);
+    background: rgba(255, 255, 255, .5);
+    border: 1px solid rgba(255, 255, 255, .8);
+    box-shadow: var(--glass-pressed);
 }
 
 .divider {
     height: 2px;
     margin: 10px 12px 18px;
     border-radius: 2px;
-    background: #d5dfd7;
-    box-shadow: 0 1px 0 #fff;
+    background: linear-gradient(90deg, transparent, rgba(18, 60, 40, .15), transparent);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, .7);
 }
 
 .list {
@@ -161,12 +168,14 @@
     font-weight: 500;
     color: #435e4e;
     isolation: isolate;
-    transition: color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+    transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
 }
 
 .item:hover {
     color: #123c28;
-    box-shadow: var(--neu-raised);
+    background: var(--glass-surface);
+    border-color: rgba(255, 255, 255, .85);
+    box-shadow: var(--glass-raised);
     transform: translateY(-1px);
 }
 
@@ -187,12 +196,13 @@
 .active:hover {
     color: #123c28;
     font-weight: 700;
-    box-shadow: var(--neu-inset);
-    border-color: #d8e3da;
+    background: linear-gradient(120deg, rgba(255, 255, 255, .88), rgba(238, 243, 232, .65));
+    box-shadow: var(--glass-raised), inset 3px 0 0 #123c28;
+    border-color: rgba(255, 255, 255, .95);
 }
 
 .active svg {
-    color: #226842;
+    color: #123c28;
 }
 
 .active::after {
@@ -202,8 +212,8 @@
     width: 5px;
     height: 5px;
     border-radius: 50%;
-    background: #2e7d54;
-    box-shadow: 0 0 0 3px #2e7d5412;
+    background: #123c28;
+    box-shadow: 0 0 0 3px rgba(18, 60, 40, .08);
 }
 
 .label {
@@ -229,7 +239,8 @@
 
 .footer {
     padding: 16px;
-    border-top: 1px solid #d9e2dc;
+    border-top: 1px solid rgba(255, 255, 255, .7);
+    background: linear-gradient(120deg, rgba(255, 255, 255, .25), transparent);
 }
 
 .profile {
@@ -238,7 +249,9 @@
     gap: 12px;
     padding: 10px;
     border-radius: 18px;
-    box-shadow: var(--neu-raised);
+    background: var(--glass-surface);
+    border: 1px solid rgba(255, 255, 255, .8);
+    box-shadow: var(--glass-raised);
     transition: transform 180ms ease, box-shadow 180ms ease;
 }
 
@@ -247,7 +260,7 @@
 }
 
 .profile:active {
-    box-shadow: var(--neu-inset);
+    box-shadow: var(--glass-pressed);
     transform: scale(.98);
 }
 
@@ -255,8 +268,8 @@
     width: 34px;
     height: 34px;
     border-radius: 12px;
-    box-shadow: var(--neu-inset);
-    color: #226842;
+    box-shadow: var(--glass-pressed);
+    color: #123c28;
     font-size: 12px;
     font-weight: 700;
 }
@@ -292,7 +305,7 @@
 
 .sidebar a:focus-visible,
 .sidebar button:focus-visible {
-    outline: 2px solid #226842;
+    outline: 2px solid #123c28;
     outline-offset: 4px;
 }
 
@@ -303,12 +316,28 @@
     transform: translateY(-50%);
     padding: 8px 12px;
     border-radius: 10px;
-    background: #123c28;
+    /* Portal berada di luar sidebar: gunakan warna mandiri, bukan variabel warisan. */
+    background: rgba(18, 60, 40, .94);
+    border: 1px solid rgba(255, 255, 255, .3);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    backdrop-filter: blur(16px) saturate(140%);
     color: #fff;
+    max-width: calc(100vw - 24px);
+    overflow-wrap: anywhere;
     font-size: 12px;
     font-weight: 600;
     box-shadow: 0 5px 16px #123c2826;
     animation: reveal 140ms ease-out;
+}
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .sidebar {
+        /* Blur kaca aktif: putih tetap dominan (~62%) sehingga kesan bg putih
+           masih terlihat, tapi ada efek liquid glass dari konten di belakang. */
+        background-color: rgba(255, 255, 255, .62);
+        -webkit-backdrop-filter: blur(22px) saturate(150%);
+        backdrop-filter: blur(22px) saturate(150%);
+    }
 }
 
 @keyframes reveal {
@@ -334,6 +363,8 @@
 
     .sidebar a:hover,
     .sidebar button:hover,
+    .sidebar a:active,
+    .sidebar button:active,
     .sidebar svg {
         transform: none !important;
     }

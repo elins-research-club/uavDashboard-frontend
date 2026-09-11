@@ -81,19 +81,12 @@ body {
 }
 
 /* ============================================================
-   PAGE BACKGROUND — subtle radial tint, bukan flat white.
-   Bikin glass card "keluar" tanpa noisy gradient.
+   PAGE BACKGROUND — putih bersih sesuai permintaan user.
+   Glass card tetap "keluar" lewat border + shadow, bukan tint.
 ============================================================ */
 @layer utilities {
   .bg-page {
-    background:
-      radial-gradient(1200px 600px at 85% -10%,
-        rgba(46, 125, 84, 0.08),
-        transparent 60%),
-      radial-gradient(900px 500px at -10% 20%,
-        rgba(18, 60, 40, 0.05),
-        transparent 55%),
-      #f7f9f6;
+    background: #ffffff;
   }
 
   /* Icon container — liquid glass, konsisten dengan .liquid-badge:

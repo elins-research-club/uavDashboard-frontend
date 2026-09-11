@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import styles from "./Sidebar.module.css";
 import { useUserRole } from "@/context/UserRoleContext";
 import {
   LayoutDashboard,
@@ -35,6 +37,54 @@ export const getTierLabel = (tier?: string) => {
   return "Kelompok Tani";
 };
 
+function SidebarTooltip({ label, children, enabled = true }: { label: string; children: ReactNode; enabled?: boolean }) {
+  const id = useId();
+  const anchor = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
+
+  const show = () => {
+    if (!enabled) return;
+    const rect = anchor.current?.getBoundingClientRect();
+    if (rect) setPosition({ left: rect.right + 12, top: rect.top + rect.height / 2 });
+  };
+
+  useEffect(() => {
+    const hide = () => setPosition(null);
+    window.addEventListener("resize", hide);
+    window.addEventListener("scroll", hide, true);
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") hide();
+    };
+    window.addEventListener("keydown", escape);
+    return () => {
+      window.removeEventListener("resize", hide);
+      window.removeEventListener("scroll", hide, true);
+      window.removeEventListener("keydown", escape);
+    };
+  }, []);
+
+  return (
+    <div
+      ref={anchor}
+      onMouseEnter={show}
+      onMouseLeave={() => {
+        if (!anchor.current?.contains(document.activeElement)) setPosition(null);
+      }}
+      onFocus={show}
+      onBlur={() => setPosition(null)}
+      onClick={() => setPosition(null)}
+    >
+      {children}
+      {enabled && position && createPortal(
+        <span id={id} role="tooltip" className={styles.tooltip} style={position}>
+          {label}
+        </span>,
+        document.body,
+      )}
+    </div>
+  );
+}
+
 export default function Sidebar({
   collapsible = true,
 }: {
@@ -45,14 +95,12 @@ export default function Sidebar({
   const { user } = useUserRole();
 
   const [collapsed, setCollapsed] = useState(false);
-  const [isHydrated, setIsHydrated] = useState(false);
 
   /* Persist preferensi collapse (sejalan dengan pola localStorage di /settings) */
   useEffect(() => {
     if (!collapsible) return;
     const stored = localStorage.getItem(COLLAPSE_STORAGE_KEY);
     if (stored === "true") setCollapsed(true);
-    setIsHydrated(true);
   }, [collapsible]);
 
   const toggleCollapsed = (next: boolean) => {
@@ -128,55 +176,21 @@ export default function Sidebar({
   const renderMenuItem = (item: MenuItem) => {
     const active = isActive(item.href);
 
+    const link = (
+      <Link
+        href={item.href}
+        aria-current={active ? "page" : undefined}
+        aria-label={isCollapsed ? item.label : undefined}
+        className={`${styles.item} ${active ? styles.active : ""}`}
+      >
+        {item.icon}
+        {!isCollapsed && <span className={styles.label}>{item.label}</span>}
+      </Link>
+
+    );
     return (
-      <li key={item.href} className="group/item relative">
-        <Link
-          href={item.href}
-          aria-current={active ? "page" : undefined}
-          className={`
-            relative flex h-10 items-center rounded-xl text-xs font-medium
-            outline-none transition-all duration-200
-            focus-visible:ring-2 focus-visible:ring-brand-600/40
-            ${isCollapsed ? "justify-center px-0" : "gap-3 px-3"}
-            ${active
-              ? "bg-brand-100/80 font-semibold text-brand-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]"
-              : "text-brand-900/70 hover:bg-white/70 hover:text-brand-900"
-            }
-          `}
-        >
-          {/* Accent bar — tampil di kedua mode agar state selalu terbaca */}
-          {active && (
-            <span
-              aria-hidden
-              className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-brand-600"
-            />
-          )}
-
-          <span
-            className={`flex shrink-0 items-center justify-center transition-colors ${active ? "text-brand-700" : "text-brand-900/55"
-              }`}
-          >
-            {item.icon}
-          </span>
-
-          {!isCollapsed && <span className="truncate">{item.label}</span>}
-        </Link>
-
-        {/* Tooltip saat collapsed */}
-        {isCollapsed && (
-          <span
-            role="tooltip"
-            className="
-              pointer-events-none absolute left-[52px] top-1/2 z-50
-              -translate-y-1/2 translate-x-[-4px] whitespace-nowrap
-              rounded-lg bg-brand-900 px-3 py-1.5 text-xs font-semibold text-white
-              opacity-0 shadow-glass transition-all duration-150
-              group-hover/item:translate-x-0 group-hover/item:opacity-100
-            "
-          >
-            {item.label}
-          </span>
-        )}
+      <li key={item.href}>
+        {isCollapsed ? <SidebarTooltip label={item.label}>{link}</SidebarTooltip> : link}
       </li>
     );
   };
@@ -184,84 +198,52 @@ export default function Sidebar({
   /* Section header — saat collapsed diganti divider agar grouping tetap terbaca */
   const renderSectionLabel = (label: string, id: string) =>
     isCollapsed ? (
-      <div aria-hidden className="mx-3 mb-2 h-px bg-brand-800/10" />
+      <div aria-hidden className={styles.divider} />
     ) : (
-      <p id={id} className="micro-label mb-2 px-3">
+      <p id={id} className={styles.sectionLabel}>
         {label}
       </p>
     );
 
   return (
     <aside
-      className={`
-        flex h-screen flex-col border-r border-brand-800/10
-        bg-white/80 backdrop-blur-xl
-        transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]
-        ${isCollapsed ? "w-[68px]" : "w-[255px]"}
-        ${isHydrated || !collapsible ? "" : "opacity-100"}
-      `}
+      className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ""}`}
     >
       {/* ==================================================
           HEADER
       =================================================== */}
       <div
-        className={`flex h-[62px] shrink-0 items-center border-b border-brand-800/8 ${isCollapsed ? "justify-center" : "justify-between px-4"
-          }`}
+        className={styles.header}
       >
         {isCollapsed ? (
-          <div className="group/logo relative">
+          <SidebarTooltip label="Buka sidebar">
             <button
               type="button"
               onClick={() => toggleCollapsed(false)}
               aria-label="Buka sidebar"
-              className="
-                icon-ring relative h-10 w-10 rounded-full outline-none
-                transition-all duration-200
-                focus-visible:ring-2 focus-visible:ring-brand-600/40
-              "
+              aria-expanded={false}
+              className={`${styles.toggle} ${styles.expand}`}
             >
-              <Drone
-                size={17}
-                strokeWidth={ICON_STROKE}
-                className="transition-all duration-200 group-hover/logo:scale-0 group-hover/logo:opacity-0"
-              />
               <PanelLeftOpen
                 size={18}
                 strokeWidth={ICON_STROKE}
-                className="absolute scale-0 opacity-0 transition-all duration-200 group-hover/logo:scale-100 group-hover/logo:opacity-100"
               />
             </button>
 
-            <span
-              role="tooltip"
-              className="
-                pointer-events-none absolute left-[52px] top-1/2 z-50
-                -translate-y-1/2 translate-x-[-4px] whitespace-nowrap
-                rounded-lg bg-brand-900 px-3 py-1.5 text-xs font-semibold text-white
-                opacity-0 shadow-glass transition-all duration-150
-                group-hover/logo:translate-x-0 group-hover/logo:opacity-100
-              "
-            >
-              Buka sidebar
-            </span>
-          </div>
+          </SidebarTooltip>
         ) : (
           <>
             <Link
               href="/dashboard"
-              className="flex items-center gap-2.5 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-brand-600/40"
+              className={styles.brand}
             >
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-800">
-                <Drone size={16} strokeWidth={2} className="text-white" />
+              <span className={styles.logo}>
+                <Drone size={20} strokeWidth={ICON_STROKE} />
               </span>
 
-              <span className="leading-none">
-                <span className="block text-[13px] font-bold tracking-[0.06em] text-brand-900">
-                  UAV
-                </span>
-                <span className="mt-1 block text-2xs font-semibold text-brand-800/55">
-                  DAAS PLATFORM
-                </span>
+              <span className={styles.brandCopy}>
+                <strong>UAV</strong>
+                <small>DAAS PLATFORM</small>
               </span>
             </Link>
 
@@ -270,12 +252,8 @@ export default function Sidebar({
                 type="button"
                 onClick={() => toggleCollapsed(true)}
                 aria-label="Tutup sidebar"
-                className="
-                  flex h-8 w-8 shrink-0 items-center justify-center rounded-lg
-                  text-brand-800/50 outline-none transition-colors
-                  hover:bg-brand-100 hover:text-brand-900
-                  focus-visible:ring-2 focus-visible:ring-brand-600/40
-                "
+                aria-expanded={true}
+                className={styles.toggle}
               >
                 <PanelLeftClose size={18} strokeWidth={ICON_STROKE} />
               </button>
@@ -289,28 +267,28 @@ export default function Sidebar({
       =================================================== */}
       <nav
         aria-label="Navigasi utama"
-        className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-4"
+        className={styles.nav}
       >
         {/* Workspace */}
         {renderSectionLabel("Workspace", "nav-workspace")}
         <ul
           aria-labelledby={isCollapsed ? undefined : "nav-workspace"}
-          className="space-y-0.5"
+          className={styles.list}
         >
           {mainMenuItems.map(renderMenuItem)}
         </ul>
 
         {/* Administration */}
         {user?.role === "admin" && (
-          <div className="mt-6 border-t border-brand-800/8 pt-5">
+          <div className={styles.section} style={{ marginTop: 26 }}>
             {isCollapsed ? (
-              <div aria-hidden className="mx-3 mb-2 h-px bg-brand-800/10" />
+              <div aria-hidden className={styles.divider} />
             ) : (
-              <div className="mb-2 flex items-center justify-between px-3">
-                <p id="nav-admin" className="micro-label">
+              <div className={styles.sectionLabel}>
+                <p id="nav-admin">
                   Administration
                 </p>
-                <span className="liquid-badge px-2 py-0.5 text-2xs font-bold uppercase text-brand-800">
+                <span className={styles.sectionBadge}>
                   Admin
                 </span>
               </div>
@@ -318,7 +296,7 @@ export default function Sidebar({
 
             <ul
               aria-labelledby={isCollapsed ? undefined : "nav-admin"}
-              className="space-y-0.5"
+              className={styles.list}
             >
               {adminMenuItems.map(renderMenuItem)}
             </ul>
@@ -326,11 +304,11 @@ export default function Sidebar({
         )}
 
         {/* Preferences */}
-        <div className="mt-6 border-t border-brand-800/8 pt-5">
+        <div className={styles.section} style={{ marginTop: 26 }}>
           {renderSectionLabel("Preferences", "nav-preferences")}
           <ul
             aria-labelledby={isCollapsed ? undefined : "nav-preferences"}
-            className="space-y-0.5"
+            className={styles.list}
           >
             {settingsMenuItems.map(renderMenuItem)}
           </ul>
@@ -342,27 +320,20 @@ export default function Sidebar({
           Interaktif → diarahkan ke /dashboard/settings
           (logout tetap eksklusif di halaman settings)
       =================================================== */}
-      <div className="shrink-0 border-t border-brand-800/8 p-2">
-        <div className="group/user relative">
+      <div className={styles.footer}>
+        <SidebarTooltip enabled={isCollapsed} label={`${user?.username || "Pengguna"} · ${tierLabel}`}>
           <Link
             href="/dashboard/settings"
             title={undefined}
-            className={`
-              flex items-center rounded-xl outline-none transition-colors
-              hover:bg-white/70 focus-visible:ring-2 focus-visible:ring-brand-600/40
-              ${isCollapsed ? "justify-center px-0 py-2" : "gap-3 px-2 py-2"}
-            `}
+            aria-label={isCollapsed ? `${user?.username || "Pengguna"} · ${tierLabel}` : undefined}
+            className={styles.profile}
           >
-            <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-800 text-2xs font-bold text-white">
+            <span className={styles.avatar}>
               {userInitials}
-              <span
-                aria-hidden
-                className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-brand-400"
-              />
             </span>
 
             {!isCollapsed && (
-              <span className="min-w-0 flex-1">
+              <span className={styles.profileCopy}>
                 <span className="block truncate text-xs font-semibold text-brand-900">
                   {user?.username || "Pengguna"}
                 </span>
@@ -396,21 +367,7 @@ export default function Sidebar({
             )}
           </Link>
 
-          {isCollapsed && (
-            <span
-              role="tooltip"
-              className="
-                pointer-events-none absolute bottom-1/2 left-[52px] z-50
-                translate-x-[-4px] translate-y-1/2 whitespace-nowrap
-                rounded-lg bg-brand-900 px-3 py-1.5 text-xs font-semibold text-white
-                opacity-0 shadow-glass transition-all duration-150
-                group-hover/user:translate-x-0 group-hover/user:opacity-100
-              "
-            >
-              {user?.username || "Pengguna"} · {tierLabel}
-            </span>
-          )}
-        </div>
+        </SidebarTooltip>
       </div>
     </aside>
   );
