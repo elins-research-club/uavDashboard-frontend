@@ -522,7 +522,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         }
 
         const baseUrl =
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
 
         removeUavLayers();
 
@@ -682,7 +682,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       setLoading(true);
 
       const baseUrl =
-        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
 
       const headers: Record<string, string> = {};
 
@@ -1388,7 +1388,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             }
 
             const baseUrl =
-              process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+              process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
 
             const headers: Record<string, string> = {};
 
@@ -1426,7 +1426,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             }
 
             const baseUrl =
-              process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+              process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
 
             const headers: Record<string, string> = {};
 

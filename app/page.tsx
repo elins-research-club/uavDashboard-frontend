@@ -82,7 +82,8 @@ export default function UAVLandingPage() {
   const [pricingPlans, setPricingPlans] = useState<PricingPlan[]>([]);
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/admin/plans")
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
+    fetch(`${apiUrl}/admin/plans`)
       .then((res) => {
         if (!res.ok) {
           throw new Error("Gagal mengambil paket");

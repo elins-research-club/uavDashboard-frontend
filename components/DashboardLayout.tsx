@@ -19,18 +19,28 @@ export default function DashboardLayout({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const { user, setAuthenticatedUser } = useUserRole();
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
 
     if (!token) {
-      router.push("/login");
+      window.location.href = "/login";
       setIsLoading(false);
       return;
     }
 
+    let isMounted = true;
+    const timeoutTimer = setTimeout(() => {
+      if (isMounted && isLoading) {
+        setLoadError("Koneksi ke server backend memakan waktu terlalu lama. Pastikan server backend aktif di port 8001.");
+        setIsLoading(false);
+      }
+    }, 12000);
+
     Promise.all([api.get("/users/me"), api.get("/subscriptions/current")])
       .then(([profileResponse, subscriptionResponse]) => {
+        if (!isMounted) return;
         setAuthenticatedUser({
           ...profileResponse.data,
           tier: subscriptionResponse.data.tier,
@@ -38,14 +48,32 @@ export default function DashboardLayout({
 
         setIsAuthenticated(true);
       })
-      .catch(() => {
-        localStorage.removeItem("token");
-        router.push("/login");
+      .catch((err) => {
+        if (!isMounted) return;
+        console.error("Gagal memuat sesi:", err);
+        if (err.response?.status === 401) {
+          localStorage.removeItem("token");
+          window.location.href = "/login";
+        } else {
+          setLoadError(
+            err.code === "ECONNABORTED" || err.message?.includes("timeout")
+              ? "Koneksi ke backend timeout (port 8001 tidak merespon)."
+              : "Gagal terhubung ke backend UAV DaaS. Silakan periksa koneksi server."
+          );
+        }
       })
       .finally(() => {
-        setIsLoading(false);
+        if (isMounted) {
+          clearTimeout(timeoutTimer);
+          setIsLoading(false);
+        }
       });
-  }, [router, setAuthenticatedUser]);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutTimer);
+    };
+  }, [setAuthenticatedUser]);
 
   if (isLoading) {
     return (
@@ -66,6 +94,43 @@ export default function DashboardLayout({
           <p className="text-xs font-semibold tracking-wide text-[#123c28]/80">
             Memuat platform...
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#f7f8f4] p-4">
+        <div className="max-w-md rounded-2xl border border-red-200 bg-white p-6 text-center shadow-lg">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-600">
+            <span className="text-xl font-bold">!</span>
+          </div>
+          <h2 className="text-base font-bold text-[#123c28]">Gagal Memuat Platform</h2>
+          <p className="mt-2 text-xs text-gray-600 leading-relaxed">{loadError}</p>
+          <div className="mt-5 flex items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setLoadError(null);
+                setIsLoading(true);
+                window.location.reload();
+              }}
+              className="rounded-full bg-[#123c28] px-4 py-2 text-xs font-bold text-white shadow hover:bg-[#1a5134]"
+            >
+              Coba Lagi
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                localStorage.removeItem("token");
+                window.location.href = "/login";
+              }}
+              className="rounded-full border border-[#123c28]/20 bg-white px-4 py-2 text-xs font-bold text-[#123c28] hover:bg-gray-50"
+            >
+              Login Ulang
+            </button>
+          </div>
         </div>
       </div>
     );
