@@ -43,6 +43,8 @@ type MapDisplayProps = {
   mapFormat?: string;
   mapTitle?: string;
   mapLocation?: string;
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
 };
 
 const Map = dynamic(() => import("@/components/MapDisplay"), {
@@ -774,233 +776,10 @@ export default function MapsPage() {
         )}
 
         {/* ===================================================
-            MAIN WORKSPACE
+            MAIN WORKSPACE (FULL WIDTH)
         ==================================================== */}
-        <div className="grid grid-cols-12 gap-4">
-          {/* =================================================
-              LAYER PANEL
-          ================================================== */}
-          {isLayerPanelOpen && (
-            <aside className="col-span-12 lg:col-span-3">
-              <div className="overflow-hidden rounded-[22px] border border-[#123c28]/10 bg-white shadow-sm">
-                {/* =================================================
-    PANEL HEADER
-================================================= */}
-                <div className="border-b border-[#123c28]/10 px-4 py-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#123c28]/55">
-                        MAP LAYERS
-                      </p>
-
-                      <h2 className="mt-1 text-sm font-bold text-[#123c28]">
-                        Pilih Peta Anda
-                      </h2>
-                    </div>
-
-                    <span className="shrink-0 text-[10px] font-semibold text-[#123c28]/50">
-                      {searchQuery
-                        ? `${filteredMapLayers.length} / ${maps.length}`
-                        : `${maps.length} Peta`}
-                    </span>
-                  </div>
-                </div>
-
-                {/* LAYERS */}
-                <div className="max-h-[620px] space-y-2 overflow-y-auto p-3">
-                  {/* LOADING */}
-                  {loading && (
-                    <div className="rounded-2xl bg-[#f7f8f4] px-4 py-8 text-center">
-                      <div className="mx-auto mb-3 h-6 w-6 animate-spin rounded-full border-2 border-[#123c28]/20 border-t-[#123c28]" />
-
-                      <p className="text-xs font-semibold text-[#123c28]/70">
-                        Memuat data peta...
-                      </p>
-                    </div>
-                  )}
-
-                  {/* ERROR */}
-                  {!loading && error && (
-                    <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-xs font-medium text-red-700">
-                      {error}
-                    </div>
-                  )}
-
-                  {/* EMPTY */}
-                  {!loading && !error && maps.length === 0 && (
-                    <div className="rounded-2xl border border-dashed border-[#123c28]/15 bg-[#fafbf8] px-4 py-8 text-center">
-                      <MapIcon className="mx-auto h-5 w-5 text-[#123c28]/45" />
-
-                      <p className="mt-3 text-xs font-bold text-[#123c28]">
-                        Belum ada peta
-                      </p>
-
-                      <p className="mt-1 text-[10px] font-medium leading-5 text-[#123c28]/60">
-                        Upload peta pertama Anda untuk mulai melakukan analisis.
-                      </p>
-                    </div>
-                  )}
-
-                  {/* SEARCH EMPTY */}
-                  {!loading &&
-                    !error &&
-                    maps.length > 0 &&
-                    filteredMapLayers.length === 0 && (
-                      <div className="rounded-2xl border border-dashed border-[#123c28]/15 bg-[#fafbf8] px-4 py-8 text-center">
-                        <MapIcon className="mx-auto h-5 w-5 text-[#123c28]/40" />
-
-                        <p className="mt-3 text-xs font-bold text-[#123c28]">
-                          Peta tidak ditemukan
-                        </p>
-
-                        <p className="mt-1 text-[10px] font-medium leading-5 text-[#123c28]/60">
-                          Coba gunakan kata kunci lain untuk pencarian.
-                        </p>
-                      </div>
-                    )}
-
-                  {/* LAYER LIST */}
-                  {filteredMapLayers.map((layer) => {
-                    const raw = maps.find((map) => map.id === layer.id)!;
-
-                    const active = selectedLayer === layer.id;
-
-                    return (
-                      <div
-                        key={layer.id}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => {
-                          if (layer.locked) {
-                            triggerToast(
-                              "Peta ini terkunci untuk Member Free. Silakan Upgrade Tier Anda."
-                            );
-                          } else {
-                            setSelectedLayer(layer.id);
-                          }
-                        }}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter" || event.key === " ") {
-                            event.preventDefault();
-
-                            if (layer.locked) {
-                              triggerToast(
-                                "Peta ini terkunci untuk Member Free. Silakan Upgrade Tier Anda."
-                              );
-                            } else {
-                              setSelectedLayer(layer.id);
-                            }
-                          }
-                        }}
-                        className={`
-                            group
-                            rounded-2xl
-                            border
-                            p-3
-                            transition
-                            ${active
-                            ? "border-[#123c28]/25 bg-[#f3f6ed]"
-                            : "border-[#123c28]/10 bg-white hover:border-[#123c28]/20 hover:bg-[#fafbf8]"
-                          }
-                            ${layer.locked
-                            ? "cursor-not-allowed opacity-70"
-                            : "cursor-pointer"
-                          }
-                          `}
-                      >
-                        <div className="flex items-start gap-2.5">
-                          <span
-                            className={`
-                                mt-1
-                                h-2 w-2
-                                shrink-0
-                                rounded-full
-                                ${layer.color}
-                              `}
-                          />
-
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5">
-                              <h3 className="truncate text-[11px] font-bold text-[#123c28]">
-                                {layer.name}
-                              </h3>
-
-                              {layer.locked && (
-                                <span className="inline-flex shrink-0 items-center gap-1 text-[8px] font-bold text-[#b27518]">
-                                  <Lock className="h-2.5 w-2.5" />
-                                  Pro
-                                </span>
-                              )}
-                            </div>
-
-                            <div className="mt-2 flex items-center gap-1.5 text-[9px] font-semibold text-[#123c28]/65">
-                              <Calendar className="h-3 w-3" />
-                              {layer.date}
-                            </div>
-
-                            <div className="mt-1 flex items-center gap-1.5 text-[9px] font-medium text-[#123c28]/65">
-                              <MapPin className="h-3 w-3" />
-
-                              <span className="truncate">{layer.location}</span>
-                            </div>
-                          </div>
-
-                          {(isAdmin || !layer.locked) && (
-                            <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
-                              <button
-                                type="button"
-                                onClick={(event) => openEditModal(raw, event)}
-                                className="
-                                    flex h-7 w-7
-                                    items-center justify-center
-                                    rounded-lg
-                                    text-[#123c28]/55
-                                    transition
-                                    hover:bg-white
-                                    hover:text-[#123c28]
-                                  "
-                                title="Edit peta"
-                              >
-                                <Pencil className="h-3.5 w-3.5" />
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={(event) =>
-                                  openDeleteConfirm(raw, event)
-                                }
-                                className="
-                                    flex h-7 w-7
-                                    items-center justify-center
-                                    rounded-lg
-                                    text-[#123c28]/55
-                                    transition
-                                    hover:bg-red-50
-                                    hover:text-red-600
-                                  "
-                                title="Hapus peta"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </aside>
-          )}
-
-          {/* =================================================
-              MAP
-          ================================================== */}
-          <div
-            className={
-              isLayerPanelOpen ? "col-span-12 lg:col-span-9" : "col-span-12"
-            }
-          >
+        <div className="w-full">
+          <div className="w-full">
             <div className="overflow-hidden rounded-[20px] border border-[#123c28]/10 bg-white shadow-sm">
               {/* =================================================
                   ACTIVE LAYER HEADER
@@ -1178,11 +957,13 @@ export default function MapsPage() {
               </div>
 
               {/* =================================================
-                  MAP
+                  MAP & FLOATING MAP LAYERS
               ================================================== */}
               <div
                 ref={mapContainerRef}
-                className="relative h-[460px] w-full bg-[#f1f3ed] sm:h-[600px]"
+                className={`relative w-full bg-[#f1f3ed] ${
+                  isFullscreen ? "h-screen w-screen" : "h-[480px] sm:h-[620px]"
+                }`}
               >
                 <Map
                   ref={mapRef}
@@ -1195,7 +976,249 @@ export default function MapsPage() {
                   mapFormat={selectedMap?.format}
                   mapTitle={selectedMap?.name}
                   mapLocation={selectedMap?.location}
+                  isFullscreen={isFullscreen}
+                  onToggleFullscreen={handleFullscreen}
                 />
+
+                {/* =================================================
+                    FLOATING TOGGLE BUTTON (WHEN PANEL CLOSED)
+                ================================================== */}
+                {!isLayerPanelOpen && (
+                  <button
+                    type="button"
+                    onClick={() => setIsLayerPanelOpen(true)}
+                    className="absolute top-3 left-3 z-30 inline-flex items-center gap-2 rounded-full border border-[#123c28]/15 bg-white/95 px-3.5 py-2 text-xs font-bold text-[#123c28] shadow-lg backdrop-blur-md transition hover:bg-[#f3f6ed] hover:shadow-xl"
+                  >
+                    <Layers className="h-3.5 w-3.5 text-[#123c28]" />
+                    <span>Daftar Peta</span>
+                    <span className="rounded-full bg-[#123c28]/10 px-1.5 py-0.5 text-[9px] font-extrabold text-[#123c28]">
+                      {maps.length}
+                    </span>
+                  </button>
+                )}
+
+                {/* =================================================
+                    FLOATING MAP LAYERS PANEL (OVERLAY INSIDE MAP)
+                ================================================== */}
+                {isLayerPanelOpen && (
+                  <aside className="absolute top-3 left-3 z-30 flex max-h-[calc(100%-140px)] w-72 flex-col overflow-hidden rounded-2xl border border-[#123c28]/15 bg-white/95 shadow-2xl backdrop-blur-md sm:w-80 animate-in fade-in slide-in-from-left-2 duration-200">
+                    {/* PANEL HEADER */}
+                    <div className="border-b border-[#123c28]/10 px-4 py-3.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#123c28]/55">
+                            MAP LAYERS
+                          </p>
+
+                          <h2 className="mt-0.5 text-sm font-bold text-[#123c28]">
+                            Pilih Peta Anda
+                          </h2>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="shrink-0 text-[10px] font-semibold text-[#123c28]/50">
+                            {searchQuery
+                              ? `${filteredMapLayers.length} / ${maps.length}`
+                              : `${maps.length} Peta`}
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={() => setIsLayerPanelOpen(false)}
+                            className="flex h-7 w-7 items-center justify-center rounded-lg text-[#123c28]/60 transition hover:bg-[#123c28]/10 hover:text-[#123c28]"
+                            title="Sembunyikan daftar peta"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* LAYERS LIST */}
+                    <div className="flex-1 space-y-2 overflow-y-auto p-3 overscroll-contain">
+                      {/* LOADING */}
+                      {loading && (
+                        <div className="rounded-2xl bg-[#f7f8f4] px-4 py-8 text-center">
+                          <div className="mx-auto mb-3 h-6 w-6 animate-spin rounded-full border-2 border-[#123c28]/20 border-t-[#123c28]" />
+
+                          <p className="text-xs font-semibold text-[#123c28]/70">
+                            Memuat data peta...
+                          </p>
+                        </div>
+                      )}
+
+                      {/* ERROR */}
+                      {!loading && error && (
+                        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-xs font-medium text-red-700">
+                          {error}
+                        </div>
+                      )}
+
+                      {/* EMPTY */}
+                      {!loading && !error && maps.length === 0 && (
+                        <div className="rounded-2xl border border-dashed border-[#123c28]/15 bg-[#fafbf8] px-4 py-8 text-center">
+                          <MapIcon className="mx-auto h-5 w-5 text-[#123c28]/45" />
+
+                          <p className="mt-3 text-xs font-bold text-[#123c28]">
+                            Belum ada peta
+                          </p>
+
+                          <p className="mt-1 text-[10px] font-medium leading-5 text-[#123c28]/60">
+                            Upload peta pertama Anda untuk mulai melakukan analisis.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* SEARCH EMPTY */}
+                      {!loading &&
+                        !error &&
+                        maps.length > 0 &&
+                        filteredMapLayers.length === 0 && (
+                          <div className="rounded-2xl border border-dashed border-[#123c28]/15 bg-[#fafbf8] px-4 py-8 text-center">
+                            <MapIcon className="mx-auto h-5 w-5 text-[#123c28]/40" />
+
+                            <p className="mt-3 text-xs font-bold text-[#123c28]">
+                              Peta tidak ditemukan
+                            </p>
+
+                            <p className="mt-1 text-[10px] font-medium leading-5 text-[#123c28]/60">
+                              Coba gunakan kata kunci lain untuk pencarian.
+                            </p>
+                          </div>
+                        )}
+
+                      {/* LAYER LIST */}
+                      {filteredMapLayers.map((layer) => {
+                        const raw = maps.find((map) => map.id === layer.id)!;
+
+                        const active = selectedLayer === layer.id;
+
+                        return (
+                          <div
+                            key={layer.id}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => {
+                              if (layer.locked) {
+                                triggerToast(
+                                  "Peta ini terkunci untuk Member Free. Silakan Upgrade Tier Anda."
+                                );
+                              } else {
+                                setSelectedLayer(layer.id);
+                              }
+                            }}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+
+                                if (layer.locked) {
+                                  triggerToast(
+                                    "Peta ini terkunci untuk Member Free. Silakan Upgrade Tier Anda."
+                                  );
+                                } else {
+                                  setSelectedLayer(layer.id);
+                                }
+                              }
+                            }}
+                            className={`
+                                group
+                                rounded-2xl
+                                border
+                                p-3
+                                transition
+                                ${active
+                                ? "border-[#123c28]/25 bg-[#f3f6ed]"
+                                : "border-[#123c28]/10 bg-white hover:border-[#123c28]/20 hover:bg-[#fafbf8]"
+                              }
+                                ${layer.locked
+                                ? "cursor-not-allowed opacity-70"
+                                : "cursor-pointer"
+                              }
+                              `}
+                          >
+                            <div className="flex items-start gap-2.5">
+                              <span
+                                className={`
+                                    mt-1
+                                    h-2 w-2
+                                    shrink-0
+                                    rounded-full
+                                    ${layer.color}
+                                  `}
+                              />
+
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5">
+                                  <h3 className="truncate text-[11px] font-bold text-[#123c28]">
+                                    {layer.name}
+                                  </h3>
+
+                                  {layer.locked && (
+                                    <span className="inline-flex shrink-0 items-center gap-1 text-[8px] font-bold text-[#b27518]">
+                                      <Lock className="h-2.5 w-2.5" />
+                                      Pro
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div className="mt-2 flex items-center gap-1.5 text-[9px] font-semibold text-[#123c28]/65">
+                                  <Calendar className="h-3 w-3" />
+                                  {layer.date}
+                                </div>
+
+                                <div className="mt-1 flex items-center gap-1.5 text-[9px] font-medium text-[#123c28]/65">
+                                  <MapPin className="h-3 w-3" />
+
+                                  <span className="truncate">{layer.location}</span>
+                                </div>
+                              </div>
+
+                              {(isAdmin || !layer.locked) && (
+                                <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
+                                  <button
+                                    type="button"
+                                    onClick={(event) => openEditModal(raw, event)}
+                                    className="
+                                        flex h-7 w-7
+                                        items-center justify-center
+                                        rounded-lg
+                                        text-[#123c28]/55
+                                        transition
+                                        hover:bg-white
+                                        hover:text-[#123c28]
+                                      "
+                                    title="Edit peta"
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={(event) =>
+                                      openDeleteConfirm(raw, event)
+                                    }
+                                    className="
+                                        flex h-7 w-7
+                                        items-center justify-center
+                                        rounded-lg
+                                        text-[#123c28]/55
+                                        transition
+                                        hover:bg-red-50
+                                        hover:text-red-600
+                                      "
+                                    title="Hapus peta"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </aside>
+                )}
               </div>
 
               {/* =================================================

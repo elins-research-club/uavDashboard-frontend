@@ -3,7 +3,16 @@
  * Perubahan di sini akan mempengaruhi seluruh situs.
  */
 import "./globals.css";
+import { Inter } from "next/font/google";
 import { UserRoleProvider } from "@/context/UserRoleContext";
+
+/* Sans-serif geometris seperti desain referensi sidebar
+   (Inter + fitur cv11 untuk 'a' satu tingkat, letter-spacing ketat). */
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+});
 
 export const metadata = {
   title: "UAV Dashboard - AMX",
@@ -14,7 +23,7 @@ export default function RootLayout({ children }) {
   return (
     // TAMBAHKAN 'suppressHydrationWarning' DI KEDUA BARIS INI
     <html lang="en" suppressHydrationWarning={true}>
-      <body suppressHydrationWarning={true}>
+      <body suppressHydrationWarning={true} className={inter.variable}>
         <UserRoleProvider>{children}</UserRoleProvider>
       </body>
     </html>

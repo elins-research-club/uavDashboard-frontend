@@ -1,20 +1,35 @@
+/* ============================================================
+   SIDEBAR — mengacu desain referensi:
+   rail putih mengambang, sudut sangat membulat, bayangan lembut,
+   ikon minimalis, item aktif = pill abu lembut. Aksen brand hijau.
+   Komponen & class API tidak berubah (Sidebar.tsx utuh).
+============================================================ */
+
 .sidebar {
-    /* Liquid glass ala tombol "Jelajahi Teknologi":
-       bg putih dominan + blur + border terang, tidak setransparan aslinya. */
-    --glass-surface: linear-gradient(135deg, rgba(255, 255, 255, .9), rgba(255, 255, 255, .6));
-    --glass-raised: 0 6px 18px rgba(18, 60, 40, .07), inset 0 1px 0 rgba(255, 255, 255, .95);
-    --glass-pressed: 0 2px 8px rgba(18, 60, 40, .06), inset 0 1px 0 rgba(255, 255, 255, .85);
+    --rail-bg: #ffffff;
+    --ink: #123c28;
+    /* teks/aksen brand */
+    --ink-soft: #5a6f63;
+    /* ikon & label inaktif */
+    --pill: #f1f3ee;
+    /* pill item aktif (abu kehijauan lembut) */
+    --hover: #f7f9f5;
+    --ring: rgba(18, 60, 40, .12);
+    --shadow: 0 10px 30px rgba(18, 60, 40, .10), 0 2px 8px rgba(18, 60, 40, .06);
+    --radius: 20px;
+
     position: relative;
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
     width: 264px;
-    height: 100dvh;
-    color: #123c28;
-    background: rgba(255, 255, 255, .92);
-    background-image: radial-gradient(ellipse at 0% 0%, rgba(255, 255, 255, .95), transparent 70%);
-    border-right: 1px solid rgba(18, 60, 40, .1);
-    box-shadow: 8px 0 32px rgba(18, 60, 40, .07), inset -1px 0 0 rgba(255, 255, 255, .9);
+    height: calc(100dvh - 24px);
+    margin: 12px;
+    color: var(--ink);
+    background: var(--rail-bg);
+    border: 1px solid rgba(18, 60, 40, .07);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
     transition: width 280ms cubic-bezier(.22, 1, .36, 1);
 }
 
@@ -22,12 +37,13 @@
     width: 84px;
 }
 
+/* ---------------- HEADER ---------------- */
 .header {
     display: flex;
     align-items: center;
     gap: 12px;
-    min-height: 94px;
-    padding: 20px;
+    min-height: 88px;
+    padding: 18px 18px 10px;
 }
 
 .brand {
@@ -47,54 +63,63 @@
 .brandCopy strong {
     display: block;
     font-size: 15px;
-    letter-spacing: -.025em;
+    letter-spacing: -.02em;
 }
 
 .brandCopy small {
     display: block;
-    margin-top: 3px;
+    margin-top: 2px;
     font-size: 11px;
-    color: #526b5d;
+    color: var(--ink-soft);
+    letter-spacing: .04em;
 }
 
+/* Logo — aksen brand hijau pada tile putih membulat (gaya ikon oranye referensi,
+   disesuaikan ke palet hijau aplikasi). */
 .logo,
 .toggle,
 .avatar {
     display: grid;
     place-items: center;
     flex-shrink: 0;
-    width: 42px;
-    height: 42px;
-    border-radius: 15px;
-    background: var(--glass-surface);
-    border: 1px solid rgba(255, 255, 255, .8);
-    box-shadow: var(--glass-raised);
+    width: 40px;
+    height: 40px;
+    border-radius: 13px;
+    background: #ffffff;
+    border: 1px solid rgba(18, 60, 40, .08);
+    box-shadow: 0 2px 8px rgba(18, 60, 40, .06);
+    color: var(--ink);
 }
 
 .logo {
-    color: #123c28;
+    background: linear-gradient(150deg, #1a5134, #123c28);
+    color: #fff;
+    border-color: rgba(18, 60, 40, .2);
+    box-shadow: 0 6px 16px rgba(18, 60, 40, .25);
 }
 
 .toggle {
     width: 32px;
     height: 32px;
     border-radius: 11px;
-    transition: transform 180ms ease, box-shadow 180ms ease;
+    color: var(--ink-soft);
+    transition: transform 180ms ease, background-color 180ms ease, color 180ms ease;
 }
 
 .toggle:hover {
-    transform: translateY(-2px);
+    background: var(--hover);
+    color: var(--ink);
+    transform: translateY(-1px);
 }
 
 .toggle:active {
     transform: scale(.94);
-    box-shadow: var(--glass-pressed);
 }
 
 .expand {
     width: 44px;
     height: 44px;
-    border-radius: 15px;
+    border-radius: 14px;
 }
 
 .expand svg {
@@ -105,106 +130,104 @@
     transform: translateX(2px);
 }
 
+/* ---------------- NAV ---------------- */
 .nav {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    padding: 8px 16px 20px;
+    padding: 6px 14px 18px;
     scrollbar-width: thin;
-    scrollbar-color: #bdcbc0 transparent;
+    scrollbar-color: #d3dcd4 transparent;
 }
 
 .section+.section {
-    margin-top: 26px;
+    margin-top: 24px;
 }
 
 .sectionLabel {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    min-height: 24px;
-    margin: 0 10px 12px;
+    min-height: 22px;
+    margin: 0 8px 10px;
     font-size: 11px;
     font-weight: 700;
-    letter-spacing: .09em;
+    letter-spacing: .08em;
     text-transform: uppercase;
-    color: #526b5d;
+    color: var(--ink-soft);
 }
 
 .sectionBadge {
     letter-spacing: 0;
     font-size: 10px;
-    padding: 3px 7px;
-    border-radius: 6px;
-    background: rgba(255, 255, 255, .5);
-    border: 1px solid rgba(255, 255, 255, .8);
-    box-shadow: var(--glass-pressed);
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: var(--pill);
+    color: var(--ink);
+    border: 1px solid rgba(18, 60, 40, .06);
 }
 
 .divider {
-    height: 2px;
-    margin: 10px 12px 18px;
+    height: 1px;
+    margin: 12px 10px 16px;
     border-radius: 2px;
-    background: linear-gradient(90deg, transparent, rgba(18, 60, 40, .15), transparent);
-    box-shadow: 0 1px 0 rgba(255, 255, 255, .7);
+    background: rgba(18, 60, 40, .1);
 }
 
 .list {
     display: flex;
     flex-direction: column;
-    gap: 9px;
+    gap: 4px;
 }
 
+/* Item — minimalis; aktif = pill abu lembut (seperti "My profile" pada referensi) */
 .item {
     position: relative;
     display: flex;
     align-items: center;
     gap: 12px;
-    min-height: 46px;
-    padding: 0 14px;
+    min-height: 44px;
+    padding: 0 12px;
     border: 1px solid transparent;
-    border-radius: 15px;
+    border-radius: 12px;
     font-size: 13px;
     font-weight: 500;
-    color: #435e4e;
+    color: var(--ink-soft);
     isolation: isolate;
-    transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+    transition: color 160ms ease, background-color 160ms ease, transform 160ms ease;
 }
 
 .item:hover {
-    color: #123c28;
-    background: var(--glass-surface);
-    border-color: rgba(255, 255, 255, .85);
-    box-shadow: var(--glass-raised);
-    transform: translateY(-1px);
+    color: var(--ink);
+    background: var(--hover);
 }
 
 .item:active {
-    transform: scale(.97);
+    transform: scale(.98);
 }
 
 .item svg {
     flex-shrink: 0;
-    transition: transform 220ms cubic-bezier(.22, 1, .36, 1);
+    transition: transform 200ms cubic-bezier(.22, 1, .36, 1);
 }
 
 .item:hover svg {
-    transform: translateY(-1px) rotate(-5deg);
+    transform: translateY(-1px);
 }
 
 .active,
 .active:hover {
-    color: #123c28;
-    font-weight: 700;
-    background: linear-gradient(120deg, rgba(255, 255, 255, .88), rgba(238, 243, 232, .65));
-    box-shadow: var(--glass-raised), inset 3px 0 0 #123c28;
-    border-color: rgba(255, 255, 255, .95);
+    color: var(--ink);
+    font-weight: 600;
+    background: var(--pill);
+    border-color: rgba(18, 60, 40, .06);
 }
 
 .active svg {
-    color: #123c28;
+    color: var(--ink);
 }
 
+/* Titik aksen kecil di kanan item aktif (halus, tetap gaya referensi yang bersih) */
 .active::after {
     content: "";
     position: absolute;
@@ -212,8 +235,8 @@
     width: 5px;
     height: 5px;
     border-radius: 50%;
-    background: #123c28;
-    box-shadow: 0 0 0 3px rgba(18, 60, 40, .08);
+    background: var(--ink);
+    opacity: .85;
 }
 
 .label {
@@ -226,7 +249,7 @@
 .collapsed .item {
     justify-content: center;
     padding: 0;
-    min-height: 48px;
+    min-height: 46px;
 }
 
 .collapsed .active::after {
@@ -234,44 +257,41 @@
     top: 7px;
     width: 4px;
     height: 4px;
-    box-shadow: none;
 }
 
+/* ---------------- FOOTER / PROFILE ---------------- */
 .footer {
-    padding: 16px;
-    border-top: 1px solid rgba(255, 255, 255, .7);
-    background: linear-gradient(120deg, rgba(255, 255, 255, .25), transparent);
+    padding: 14px;
+    border-top: 1px solid rgba(18, 60, 40, .07);
 }
 
 .profile {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 10px;
-    border-radius: 18px;
-    background: var(--glass-surface);
-    border: 1px solid rgba(255, 255, 255, .8);
-    box-shadow: var(--glass-raised);
-    transition: transform 180ms ease, box-shadow 180ms ease;
+    padding: 8px;
+    border-radius: 14px;
+    transition: background-color 160ms ease, transform 160ms ease;
 }
 
 .profile:hover {
-    transform: translateY(-2px);
+    background: var(--hover);
 }
 
 .profile:active {
-    box-shadow: var(--glass-pressed);
     transform: scale(.98);
 }
 
 .avatar {
-    width: 34px;
-    height: 34px;
-    border-radius: 12px;
-    box-shadow: var(--glass-pressed);
-    color: #123c28;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--pill);
+    color: var(--ink);
     font-size: 12px;
     font-weight: 700;
+    border: 1px solid rgba(18, 60, 40, .08);
+    box-shadow: none;
 }
 
 .profileCopy {
@@ -280,33 +300,16 @@
     animation: reveal 220ms ease-out;
 }
 
-.profileCopy strong {
-    display: block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 13px;
-}
-
-.profileCopy small {
-    display: block;
-    margin-top: 3px;
-    color: #526b5d;
-    font-size: 12px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
 .collapsed .profile {
     justify-content: center;
-    padding: 8px 0;
+    padding: 4px 0;
 }
 
+/* ---------------- FOCUS & TOOLTIP ---------------- */
 .sidebar a:focus-visible,
 .sidebar button:focus-visible {
-    outline: 2px solid #123c28;
-    outline-offset: 4px;
+    outline: 2px solid var(--ink);
+    outline-offset: 3px;
 }
 
 .tooltip {
@@ -316,28 +319,16 @@
     transform: translateY(-50%);
     padding: 8px 12px;
     border-radius: 10px;
-    /* Portal berada di luar sidebar: gunakan warna mandiri, bukan variabel warisan. */
-    background: rgba(18, 60, 40, .94);
-    border: 1px solid rgba(255, 255, 255, .3);
-    -webkit-backdrop-filter: blur(16px) saturate(140%);
-    backdrop-filter: blur(16px) saturate(140%);
+    /* Portal di luar sidebar: warna mandiri, bukan variabel warisan. */
+    background: rgba(18, 60, 40, .96);
+    border: 1px solid rgba(255, 255, 255, .18);
     color: #fff;
     max-width: calc(100vw - 24px);
     overflow-wrap: anywhere;
     font-size: 12px;
     font-weight: 600;
-    box-shadow: 0 5px 16px #123c2826;
+    box-shadow: 0 6px 18px rgba(18, 60, 40, .28);
     animation: reveal 140ms ease-out;
-}
-
-@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    .sidebar {
-        /* Blur kaca aktif: putih tetap dominan (~62%) sehingga kesan bg putih
-           masih terlihat, tapi ada efek liquid glass dari konten di belakang. */
-        background-color: rgba(255, 255, 255, .62);
-        -webkit-backdrop-filter: blur(22px) saturate(150%);
-        backdrop-filter: blur(22px) saturate(150%);
-    }
 }
 
 @keyframes reveal {

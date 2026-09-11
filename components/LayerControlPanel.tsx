@@ -3,16 +3,23 @@
 import React, { useEffect, useRef, useState } from "react";
 
 import {
+  Activity,
+  Aperture,
+  Atom,
   Eye,
   EyeOff,
+  Flame,
   Globe,
+  Grid,
   Layers,
   Map as MapIcon,
   Maximize2,
   Minimize2,
   Mountain,
   RefreshCw,
+  Shield,
   Sliders,
+  Sprout,
   Trash2,
   X,
 } from "lucide-react";
@@ -30,6 +37,8 @@ interface LayerControlPanelProps {
   onToggleVisibility: (layerId: string, visible: boolean) => void;
 
   onChangeOpacity: (layerId: string, opacity: number) => void;
+
+  onChangeColormap?: (layerId: string, colormap: string) => void;
 
   onLayerUploaded?: () => void;
 
@@ -60,59 +69,94 @@ interface LayerControlPanelProps {
    LAYER TYPE CONFIG
 ========================================================= */
 
-const LAYER_TYPE_CONFIG: Record<
-  string,
-  {
-    label: string;
-    badgeClass: string;
-    gradient: string;
-  }
-> = {
+interface LayerTypeMeta {
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  bgSolid: string;
+  bgTint: string;
+  textColor: string;
+  borderColor: string;
+  gradient: string;
+}
+
+const LAYER_TYPE_CONFIG: Record<string, LayerTypeMeta> = {
   ortho: {
     label: "Citra Ortho RGB",
-    badgeClass: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    icon: Aperture,
+    bgSolid: "bg-emerald-700",
+    bgTint: "bg-emerald-50/80",
+    textColor: "text-emerald-900",
+    borderColor: "border-emerald-700/25",
     gradient: "from-emerald-600 via-green-500 to-lime-500",
   },
 
   ndvi: {
     label: "Indeks Vegetasi (NDVI)",
-    badgeClass: "border-lime-200 bg-lime-50 text-lime-700",
+    icon: Sprout,
+    bgSolid: "bg-lime-700",
+    bgTint: "bg-lime-50/80",
+    textColor: "text-lime-950",
+    borderColor: "border-lime-700/25",
     gradient: "from-red-500 via-amber-400 to-green-600",
   },
 
   vari: {
     label: "Indeks VARI",
-    badgeClass: "border-teal-200 bg-teal-50 text-teal-700",
+    icon: Activity,
+    bgSolid: "bg-teal-700",
+    bgTint: "bg-teal-50/80",
+    textColor: "text-teal-950",
+    borderColor: "border-teal-700/25",
     gradient: "from-amber-500 via-teal-400 to-emerald-600",
   },
 
   spectral: {
     label: "Multispektral",
-    badgeClass: "border-sky-200 bg-sky-50 text-sky-700",
+    icon: Layers,
+    bgSolid: "bg-sky-700",
+    bgTint: "bg-sky-50/80",
+    textColor: "text-sky-950",
+    borderColor: "border-sky-700/25",
     gradient: "from-blue-600 via-cyan-400 to-teal-400",
   },
 
   nitrogen: {
     label: "Hara Nitrogen (N)",
-    badgeClass: "border-amber-200 bg-amber-50 text-amber-700",
+    icon: Atom,
+    bgSolid: "bg-amber-600",
+    bgTint: "bg-amber-50/80",
+    textColor: "text-amber-950",
+    borderColor: "border-amber-600/25",
     gradient: "from-indigo-900 via-teal-600 to-amber-300",
   },
 
   phosphorus: {
     label: "Hara Fosfor (P)",
-    badgeClass: "border-orange-200 bg-orange-50 text-orange-700",
+    icon: Flame,
+    bgSolid: "bg-orange-600",
+    bgTint: "bg-orange-50/80",
+    textColor: "text-orange-950",
+    borderColor: "border-orange-600/25",
     gradient: "from-purple-900 via-pink-600 to-orange-400",
   },
 
   kalium: {
     label: "Hara Kalium (K)",
-    badgeClass: "border-purple-200 bg-purple-50 text-purple-700",
+    icon: Shield,
+    bgSolid: "bg-purple-700",
+    bgTint: "bg-purple-50/80",
+    textColor: "text-purple-950",
+    borderColor: "border-purple-700/25",
     gradient: "from-black via-rose-700 to-yellow-300",
   },
 
   dsm: {
     label: "Elevasi Permukaan (DSM)",
-    badgeClass: "border-stone-200 bg-stone-50 text-stone-700",
+    icon: Mountain,
+    bgSolid: "bg-stone-700",
+    bgTint: "bg-stone-100/80",
+    textColor: "text-stone-900",
+    borderColor: "border-stone-600/25",
     gradient: "from-stone-800 via-stone-400 to-stone-100",
   },
 };
@@ -126,6 +170,7 @@ export default function LayerControlPanel({
   layers,
   onToggleVisibility,
   onChangeOpacity,
+  onChangeColormap,
   onDeleteLayer,
   basemap,
   onChangeBasemap,
@@ -143,6 +188,23 @@ export default function LayerControlPanel({
   const hasLayers = layers.length > 0;
 
   const activeCount = layers.filter((layer) => layer.is_visible).length;
+
+  const isAllVisible =
+    layers.length > 0 && layers.every((l) => l.is_visible);
+  const isAllHidden =
+    layers.length > 0 && layers.every((l) => !l.is_visible);
+  const isOnlyBase =
+    layers.length > 0 &&
+    layers.some((l) => l.is_base_layer && l.is_visible) &&
+    layers.every((l) => (l.is_base_layer ? l.is_visible : !l.is_visible));
+
+  const activeTab: "all" | "ortho" | "none" | null = isAllVisible
+    ? "all"
+    : isOnlyBase
+    ? "ortho"
+    : isAllHidden
+    ? "none"
+    : null;
 
   /* =======================================================
      CLOSE OUTSIDE
@@ -423,7 +485,7 @@ export default function LayerControlPanel({
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="rounded-full bg-gray-100 px-2 py-1 text-[8px] font-bold text-gray-600">
+              <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-[9.5px] font-semibold text-gray-600 border border-gray-200/50">
                 {activeCount}/{layers.length}
               </span>
 
@@ -464,11 +526,15 @@ export default function LayerControlPanel({
               ============================================== */}
 
               <div className="border-b border-gray-100 px-4 py-3">
-                <div className="flex rounded-lg bg-gray-100 p-1">
+                <div className="flex rounded-xl bg-gray-100 p-1 border border-gray-200/50">
                   <button
                     type="button"
                     onClick={() => handleToggleAll(true)}
-                    className="flex-1 rounded-md py-1.5 text-[9px] font-semibold text-gray-600 transition hover:bg-white hover:text-gray-900"
+                    className={`flex-1 rounded-lg py-1.5 text-[10px] font-bold transition-all duration-150 outline-none ${
+                      activeTab === "all"
+                        ? "bg-[#123c28] text-white shadow-sm"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
+                    }`}
                   >
                     Semua
                   </button>
@@ -476,7 +542,11 @@ export default function LayerControlPanel({
                   <button
                     type="button"
                     onClick={handleShowOnlyBase}
-                    className="flex-1 rounded-md py-1.5 text-[9px] font-semibold text-gray-600 transition hover:bg-white hover:text-gray-900"
+                    className={`flex-1 rounded-lg py-1.5 text-[10px] font-bold transition-all duration-150 outline-none ${
+                      activeTab === "ortho"
+                        ? "bg-[#123c28] text-white shadow-sm"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
+                    }`}
                   >
                     Ortho
                   </button>
@@ -484,7 +554,11 @@ export default function LayerControlPanel({
                   <button
                     type="button"
                     onClick={() => handleToggleAll(false)}
-                    className="flex-1 rounded-md py-1.5 text-[9px] font-semibold text-gray-600 transition hover:bg-white hover:text-gray-900"
+                    className={`flex-1 rounded-lg py-1.5 text-[10px] font-bold transition-all duration-150 outline-none ${
+                      activeTab === "none"
+                        ? "bg-[#123c28] text-white shadow-sm"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
+                    }`}
                   >
                     Sembunyikan
                   </button>
@@ -501,9 +575,11 @@ export default function LayerControlPanel({
                     layer.layer_type.toLowerCase()
                   ] || {
                     label: layer.name,
-
-                    badgeClass: "border-gray-200 bg-gray-50 text-gray-600",
-
+                    icon: Layers,
+                    bgSolid: "bg-gray-600",
+                    bgTint: "bg-gray-50/80",
+                    textColor: "text-gray-800",
+                    borderColor: "border-gray-300/40",
                     gradient: "from-gray-500 to-gray-300",
                   };
 
@@ -531,45 +607,51 @@ export default function LayerControlPanel({
                         ================================== */}
 
                       <div className="flex items-center justify-between gap-2">
-                        <div className="flex min-w-0 items-center gap-2">
-                          {/* EYE */}
-
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          {/* MODERN GHOST EYE BUTTON */}
                           <button
                             type="button"
                             onClick={() =>
                               onToggleVisibility(layer.id, !layer.is_visible)
                             }
                             title={
-                              layer.is_visible ? "Sembunyikan" : "Tampilkan"
+                              layer.is_visible
+                                ? "Sembunyikan layer"
+                                : "Tampilkan layer"
                             }
-                            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border transition ${layer.is_visible
-                                ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                                : "border-gray-200 bg-gray-100 text-gray-400 hover:bg-gray-200"
-                              }`}
+                            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-all duration-150 active:scale-90 ${
+                              layer.is_visible
+                                ? "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                                : "text-gray-300 hover:bg-gray-100 hover:text-gray-500"
+                            }`}
                           >
                             {layer.is_visible ? (
-                              <Eye className="h-3.5 w-3.5" />
+                              <Eye className="h-4 w-4 stroke-[2.2]" />
                             ) : (
-                              <EyeOff className="h-3.5 w-3.5" />
+                              <EyeOff className="h-4 w-4 stroke-[1.8]" />
                             )}
                           </button>
 
                           {/* INFO */}
-
                           <div className="min-w-0">
-                            <p className="truncate text-[10px] font-bold text-gray-900">
+                            <p className="truncate text-xs font-bold text-gray-900 leading-tight">
                               {layer.name}
                             </p>
 
-                            <div className="mt-0.5 flex min-w-0 items-center gap-1">
+                            <div className="mt-1 flex flex-wrap items-center gap-1.5">
                               <span
-                                className={`max-w-[190px] truncate rounded border px-1.5 py-0.5 text-[8px] font-bold ${cfg.badgeClass}`}
+                                className={`inline-flex items-center overflow-hidden rounded-full border ${cfg.borderColor} bg-white shadow-xs transition hover:shadow-sm`}
                               >
-                                {cfg.label}
+                                <span className={`flex items-center justify-center ${cfg.bgSolid} pl-2 pr-1.5 py-1 text-white`}>
+                                  <cfg.icon className="h-3 w-3 stroke-[2.2]" />
+                                </span>
+                                <span className={`${cfg.bgTint} pl-1.5 pr-2.5 py-1 text-[9px] font-bold tracking-tight ${cfg.textColor}`}>
+                                  <span className="max-w-[170px] truncate">{cfg.label}</span>
+                                </span>
                               </span>
 
                               {layer.is_base_layer && (
-                                <span className="shrink-0 rounded bg-gray-100 px-1 py-0.5 text-[7px] font-bold text-gray-500">
+                                <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[8.5px] font-bold tracking-wider text-gray-400 uppercase border border-gray-200/50">
                                   BASE
                                 </span>
                               )}
@@ -577,22 +659,39 @@ export default function LayerControlPanel({
                           </div>
                         </div>
 
-                        {/* STATUS */}
-
-                        <div className="flex shrink-0 items-center gap-1">
+                        {/* STATUS & CONTROLS */}
+                        <div className="flex shrink-0 items-center gap-1.5">
                           {isPmtiles ? (
-                            <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[7px] font-bold text-emerald-700">
-                              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
-                              PMTiles
+                            <span
+                              title="Format Cloud-Native PMTiles v3 (Protomaps Tile Archive)"
+                              className="inline-flex items-center overflow-hidden rounded-full border border-[#2525C5]/30 bg-white shadow-xs transition hover:border-[#2525C5]/60 hover:shadow-sm"
+                            >
+                              <span className="flex items-center justify-center bg-[#2525C5] pl-2 pr-1.5 py-1">
+                                <img
+                                  src="/pmtiles-logo.png"
+                                  alt="PMTiles Logo"
+                                  className="h-4 w-4 rounded-full"
+                                />
+                              </span>
+                              <span className="bg-[#2525C5]/5 pl-1.5 pr-2.5 py-1 font-mono text-[9.5px] font-bold tracking-tight text-[#2222D4]">
+                                PMTiles
+                              </span>
                             </span>
                           ) : isProcessing ? (
-                            <span className="flex items-center gap-1 rounded-full bg-amber-50 px-1.5 py-0.5 text-[7px] font-bold text-amber-700">
+                            <span
+                              title="Sedang mengonversi GeoTIFF ke PMTiles"
+                              className="inline-flex items-center gap-1.5 rounded-md bg-amber-50 px-2 py-0.5 text-[9.5px] font-medium text-amber-700 border border-amber-200/60"
+                            >
                               <RefreshCw className="h-2.5 w-2.5 animate-spin" />
                               Bake
                             </span>
                           ) : (
-                            <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[7px] font-bold text-gray-500">
-                              XYZ
+                            <span
+                              title="Standar Raster XYZ Tile"
+                              className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-2 py-0.5 text-[9px] font-medium text-gray-500 border border-gray-200/50"
+                            >
+                              <Grid className="h-2.5 w-2.5 text-gray-400" />
+                              <span className="font-mono">XYZ</span>
                             </span>
                           )}
 
@@ -601,9 +700,9 @@ export default function LayerControlPanel({
                               type="button"
                               onClick={() => onDeleteLayer(layer.id)}
                               title="Hapus layer"
-                              className="rounded p-1 text-gray-400 transition hover:bg-red-50 hover:text-red-600"
+                              className="rounded-lg p-1 text-gray-400 transition hover:bg-red-50 hover:text-red-600 active:scale-95"
                             >
-                              <Trash2 className="h-3 w-3" />
+                              <Trash2 className="h-3.5 w-3.5" />
                             </button>
                           )}
                         </div>
@@ -657,6 +756,25 @@ export default function LayerControlPanel({
                                     <span>{layer.max_value?.toFixed(2)}</span>
                                   </div>
                                 )}
+
+                              {onChangeColormap && (
+                                <div className="mt-2 flex items-center justify-between gap-1.5 pt-1 border-t border-gray-100">
+                                  <span className="text-[7.5px] font-semibold text-gray-400">Palette:</span>
+                                  <select
+                                    value={layer.color_map || "rdylgn"}
+                                    onChange={(e) => onChangeColormap(layer.id, e.target.value)}
+                                    className="rounded border border-gray-200 bg-gray-50 px-1 py-0.5 text-[8px] font-medium text-gray-700 outline-none hover:border-gray-300"
+                                  >
+                                    <option value="rdylgn">Red-Yellow-Green (NDVI)</option>
+                                    <option value="viridis">Viridis (Standard)</option>
+                                    <option value="plasma">Plasma (Phosphorus)</option>
+                                    <option value="inferno">Inferno (Kalium)</option>
+                                    <option value="spectral">Spectral (Multispektral)</option>
+                                    <option value="terrain">Terrain (Elevasi DSM)</option>
+                                    <option value="turbo">Turbo (Kontras Tinggi)</option>
+                                  </select>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
