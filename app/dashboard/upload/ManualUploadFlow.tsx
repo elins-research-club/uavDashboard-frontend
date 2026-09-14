@@ -26,8 +26,8 @@ import {
 import { fileError, type manualReadiness } from "./upload-helpers";
 
 // Keep in sync with the cap enforced in UploadPage.tsx's batch flow.
-const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024 * 1024; // 5 GB
-const MAX_FILE_SIZE_LABEL = "5 GB";
+const MAX_FILE_SIZE_BYTES = 3 * 1024 * 1024 * 1024; // 3 GB
+const MAX_FILE_SIZE_LABEL = "3 GB";
 
 export const inputClass =
   "w-full rounded-lg border border-brand-800/10 bg-white px-3.5 py-2.5 text-xs font-semibold text-brand-900 outline-none transition placeholder:text-brand-800/30 hover:border-brand-800/20 focus:border-brand-600/30 focus:ring-2 focus:ring-brand-600/10";

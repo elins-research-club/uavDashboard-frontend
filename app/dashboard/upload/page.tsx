@@ -61,8 +61,8 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 // reverse proxy / storage layer in front of it) must accept request
 // bodies up to this size as well, or large uploads will still fail
 // server-side even though the client lets them through.
-const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024 * 1024; // 5 GB
-const MAX_FILE_SIZE_LABEL = "5 GB";
+const MAX_FILE_SIZE_BYTES = 3 * 1024 * 1024 * 1024; // 3 GB
+const MAX_FILE_SIZE_LABEL = "3 GB";
 
 /* ============================================================
    STEP RAIL — sticky sidebar guide showing the 4-step sequence
