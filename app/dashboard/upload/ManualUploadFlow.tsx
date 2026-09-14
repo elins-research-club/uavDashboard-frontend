@@ -25,11 +25,15 @@ import {
 
 import { fileError, type manualReadiness } from "./upload-helpers";
 
+// Keep in sync with the cap enforced in UploadPage.tsx's batch flow.
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024 * 1024; // 5 GB
+const MAX_FILE_SIZE_LABEL = "5 GB";
+
 export const inputClass =
-  "w-full rounded-xl border border-brand-800/10 bg-white px-3.5 py-2.5 text-xs font-semibold text-brand-900 outline-none transition placeholder:text-brand-800/30 hover:border-brand-800/20 focus:border-brand-600/30 focus:ring-2 focus:ring-brand-600/10";
+  "w-full rounded-lg border border-brand-800/10 bg-white px-3.5 py-2.5 text-xs font-semibold text-brand-900 outline-none transition placeholder:text-brand-800/30 hover:border-brand-800/20 focus:border-brand-600/30 focus:ring-2 focus:ring-brand-600/10";
 
 const buttonClass =
-  "inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-brand-800/10 px-3.5 py-2 text-xs font-bold text-brand-900 transition hover:-translate-y-0.5 hover:border-brand-800/20 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 disabled:pointer-events-none disabled:opacity-50";
+  "inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-brand-800/10 px-3.5 py-2 text-xs font-bold text-brand-900 transition hover:-translate-y-0.5 hover:border-brand-800/20 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 disabled:pointer-events-none disabled:opacity-50";
 
 type Readiness = ReturnType<typeof manualReadiness>;
 
@@ -68,9 +72,9 @@ export function ManualSubNav({ readiness }: { readiness: Readiness }) {
           <a
             key={id}
             href={`#${id}`}
-            className="group flex items-center gap-3 rounded-2xl border border-brand-800/10 bg-white/70 px-3.5 py-3 transition hover:-translate-y-0.5 hover:border-brand-800/15 hover:bg-white"
+            className="group flex items-center gap-3 rounded-lg border border-brand-800/10 bg-white/70 px-3.5 py-3 transition hover:-translate-y-0.5 hover:border-brand-800/15 hover:bg-white"
           >
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand-900 text-xs font-black text-white shadow-sm">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-900 text-xs font-black text-white shadow-sm">
               {index + 1}
             </span>
 
@@ -119,6 +123,9 @@ function MiniDropzone({
   const [selectionError, setSelectionError] = useState("");
 
   const error = selectionError || fileError(file);
+  const capacityPct = file
+    ? Math.min(100, (file.size / MAX_FILE_SIZE_BYTES) * 100)
+    : 0;
 
   const select = (files: File[]) => {
     if (disabled || !files.length) return;
@@ -129,14 +136,26 @@ function MiniDropzone({
       return;
     }
 
+    const [candidate] = files;
+
+    if (candidate.size > MAX_FILE_SIZE_BYTES) {
+      setSelectionError(
+        `Ukuran file (${formatFileSize(
+          candidate.size
+        )}) melebihi batas ${MAX_FILE_SIZE_LABEL}.`
+      );
+      onChange(null);
+      return;
+    }
+
     setSelectionError("");
-    onChange(files[0]);
+    onChange(candidate);
   };
 
   return (
     <div>
       <div
-        className={`relative overflow-hidden rounded-2xl border border-dashed p-4 transition ${
+        className={`relative overflow-hidden rounded-lg border border-dashed p-4 transition ${
           dragging
             ? "border-brand-600 bg-brand-600/5"
             : file
@@ -179,8 +198,8 @@ function MiniDropzone({
                 {file ? "GeoTIFF terpilih" : "Unggah GeoTIFF"}
               </p>
 
-              <p className="mt-0.5 text-2xs font-medium text-brand-800/50">
-                .tif / .tiff · satu file
+              <p className="mt-0.5 font-mono text-2xs font-medium text-brand-800/50">
+                .tif / .tiff · maks {MAX_FILE_SIZE_LABEL}
               </p>
             </div>
           </div>
@@ -204,36 +223,45 @@ function MiniDropzone({
         )}
 
         {file && (
-          <div className="mt-3 flex items-center gap-3 rounded-xl border border-brand-800/8 bg-white px-3 py-2.5">
-            <span className="icon-ring flex h-8 w-8 shrink-0 items-center justify-center bg-brand-50">
-              <FileText
-                className="h-3.5 w-3.5 text-brand-600"
-                aria-hidden="true"
-              />
-            </span>
+          <div className="mt-3 rounded-lg border border-brand-800/8 bg-white px-3 py-2.5">
+            <div className="flex items-center gap-3">
+              <span className="icon-ring flex h-8 w-8 shrink-0 items-center justify-center bg-brand-50">
+                <FileText
+                  className="h-3.5 w-3.5 text-brand-600"
+                  aria-hidden="true"
+                />
+              </span>
 
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-bold text-brand-900">
-                {file.name}
-              </p>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-bold text-brand-900">
+                  {file.name}
+                </p>
 
-              <p className="mt-0.5 text-2xs font-medium text-brand-800/45">
-                {formatFileSize(file.size)}
-              </p>
+                <p className="mt-0.5 font-mono text-2xs font-medium text-brand-800/45">
+                  {formatFileSize(file.size)}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                disabled={disabled}
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-brand-800/40 transition hover:bg-red-50 hover:text-red-600"
+                aria-label="Hapus file dari slot"
+                onClick={() => {
+                  setSelectionError("");
+                  onChange(null);
+                }}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
             </div>
 
-            <button
-              type="button"
-              disabled={disabled}
-              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-brand-800/40 transition hover:bg-red-50 hover:text-red-600"
-              aria-label="Hapus file dari slot"
-              onClick={() => {
-                setSelectionError("");
-                onChange(null);
-              }}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
+            <div className="mt-2 h-1 overflow-hidden rounded-full bg-brand-800/8">
+              <div
+                className="h-full rounded-full bg-brand-600/60"
+                style={{ width: `${capacityPct}%` }}
+              />
+            </div>
           </div>
         )}
       </div>
@@ -303,7 +331,7 @@ export function ManualUploadFlow({
       <section
         id="manual-base"
         tabIndex={-1}
-        className="scroll-mt-6 rounded-2xl border border-brand-800/8 bg-white/60 p-4 sm:p-5"
+        className="scroll-mt-6 rounded-lg border border-brand-800/8 bg-white/60 p-4 sm:p-5"
       >
         <div className="mb-4 flex items-start gap-3">
           <span className="icon-ring flex h-9 w-9 shrink-0 items-center justify-center bg-brand-50">
@@ -393,7 +421,7 @@ export function ManualUploadFlow({
         </div>
 
         {!slots.length && (
-          <div className="flex items-center gap-3 rounded-2xl border border-dashed border-brand-800/10 bg-brand-50/30 px-4 py-4">
+          <div className="flex items-center gap-3 rounded-lg border border-dashed border-brand-800/10 bg-brand-50/30 px-4 py-4">
             <span className="icon-ring flex h-9 w-9 shrink-0 items-center justify-center bg-white">
               <Layers
                 className="h-4 w-4 text-brand-800/50"
@@ -417,11 +445,11 @@ export function ManualUploadFlow({
           {slots.map((slot, index) => (
             <article
               key={slot.id}
-              className="rounded-2xl border border-brand-800/8 bg-white/60 p-4"
+              className="rounded-lg border border-brand-800/8 bg-white/60 p-4"
             >
               <div className="mb-4 flex items-start justify-between gap-3">
                 <div className="flex min-w-0 items-start gap-3">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand-900 text-2xs font-black text-white">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-900 text-2xs font-black text-white">
                     {index + 1}
                   </span>
 
@@ -431,7 +459,7 @@ export function ManualUploadFlow({
                     </h4>
 
                     <span
-                      className={`mt-1.5 inline-flex rounded-full border px-2 py-1 text-2xs font-bold ${
+                      className={`mt-1.5 inline-flex rounded border px-2 py-1 font-mono text-2xs font-bold uppercase tracking-wide ${
                         LAYER_TYPE_CONFIG[slot.layer_type].badgeClass
                       }`}
                     >
@@ -500,11 +528,11 @@ export function ManualUploadFlow({
                 />
               </div>
 
-              <label className="mt-3 block rounded-xl bg-brand-50/60 px-3.5 py-3.5 text-2xs font-bold text-brand-900">
+              <label className="mt-3 block rounded-lg bg-brand-50/60 px-3.5 py-3.5 text-2xs font-bold text-brand-900">
                 <span className="mb-2.5 flex items-center justify-between gap-3">
                   <span>Opasitas awal</span>
 
-                  <span className="rounded-full bg-white px-2 py-1 text-brand-600">
+                  <span className="rounded-full bg-white px-2 py-1 font-mono text-brand-600">
                     {Math.round(slot.default_opacity * 100)}%
                   </span>
                 </span>
@@ -591,14 +619,14 @@ export function UploadReview({
             Tinjau sebelum mengunggah
           </h2>
 
-          <p className="mt-1 text-2xs font-medium text-brand-800/50">
+          <p className="mt-1 font-mono text-2xs font-medium text-brand-800/50">
             {files.length} file · {formatFileSize(totalBytes)} total
           </p>
         </div>
       </div>
 
       {files.length > 0 && (
-        <div className="rounded-2xl border border-brand-800/8 bg-brand-50/30 p-2.5">
+        <div className="rounded-lg border border-brand-800/8 bg-brand-50/30 p-2.5">
           <ul
             className="max-h-44 space-y-1 overflow-y-auto pr-1"
             aria-label="Daftar file"
@@ -606,18 +634,18 @@ export function UploadReview({
             {files.map((file, index) => (
               <li
                 key={index}
-                className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-2xs"
+                className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-2xs"
               >
                 <FileText
                   className="h-3.5 w-3.5 shrink-0 text-brand-600"
                   aria-hidden="true"
                 />
 
-                <span className="min-w-0 flex-1 truncate font-semibold text-brand-900">
+                <span className="min-w-0 flex-1 truncate font-mono font-semibold text-brand-900">
                   {file.name}
                 </span>
 
-                <span className="shrink-0 font-medium text-brand-800/45">
+                <span className="shrink-0 font-mono font-medium text-brand-800/45">
                   {formatFileSize(file.size)}
                 </span>
               </li>
@@ -632,7 +660,7 @@ export function UploadReview({
         </p>
 
         <ul
-          className="space-y-2 rounded-2xl border border-brand-800/8 bg-white/70 p-3.5 text-xs font-semibold text-brand-900"
+          className="space-y-2 rounded-lg border border-brand-800/8 bg-white/70 p-3.5 text-xs font-semibold text-brand-900"
           aria-label="Checklist kesiapan"
           aria-live="polite"
         >
@@ -659,7 +687,7 @@ export function UploadReview({
       <div
         id="submit-readiness"
         role="status"
-        className={`mt-4 flex items-center gap-2 rounded-2xl px-3.5 py-3 text-2xs font-bold ${
+        className={`mt-4 flex items-center gap-2 rounded-lg px-3.5 py-3 text-2xs font-bold ${
           loading
             ? "bg-brand-900 text-white"
             : ready
@@ -705,7 +733,8 @@ export function UploadGuide() {
       text: (
         <>
           <strong>GeoTIFF (.tif/.tiff)</strong> adalah raster hasil pengolahan
-          drone seperti Pix4D atau DroneDeploy.
+          drone seperti Pix4D atau DroneDeploy. Ukuran maksimum{" "}
+          <strong>{MAX_FILE_SIZE_LABEL}</strong> per file.
         </>
       ),
     },

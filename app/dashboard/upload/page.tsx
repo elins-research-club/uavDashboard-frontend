@@ -13,10 +13,10 @@ import {
   ChevronRight,
   Eye,
   Folder,
-  Info,
   Layers,
+  Lock,
   MapPin,
-  Plus,
+  Pencil,
   RefreshCw,
   Settings2,
   ShieldCheck,
@@ -57,63 +57,195 @@ import {
 const ICON_STROKE = 1.75;
 const EASE = [0.22, 1, 0.36, 1] as const;
 
+// Hard cap enforced client-side. NOTE: the backend endpoint (and any
+// reverse proxy / storage layer in front of it) must accept request
+// bodies up to this size as well, or large uploads will still fail
+// server-side even though the client lets them through.
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024 * 1024; // 5 GB
+const MAX_FILE_SIZE_LABEL = "5 GB";
+
 /* ============================================================
-   WORKFLOW STEPPER
+   STEP RAIL — sticky sidebar guide showing the 4-step sequence
 ============================================================ */
 
-function WorkflowStepper({
+function StepRail({
   currentStep,
-  complete,
+  isSuccess,
 }: {
   currentStep: number;
-  complete: boolean;
+  isSuccess: boolean;
 }) {
-  const steps = ["Upload", "Dataset Details", "Review & Confirm", "Done"];
+  const steps = [
+    { label: "Upload file", hint: "Pilih file GeoTIFF", icon: Upload },
+    { label: "Detail dataset", hint: "Judul, lokasi, tanggal", icon: Calendar },
+    {
+      label: "Review & kirim",
+      hint: "Periksa sebelum submit",
+      icon: ShieldCheck,
+    },
+    { label: "Selesai", hint: "Dataset tersimpan", icon: CheckCircle2 },
+  ];
 
   return (
-    <div className="border-b border-brand-800/8 bg-white">
-      <div className="mx-auto flex max-w-7xl overflow-x-auto">
-        {steps.map((label, index) => {
-          const step = index + 1;
-          const active = currentStep === step;
-          const done = complete || currentStep > step;
+    <div className="rounded-lg border border-brand-800/10 bg-white p-4">
+      <p className="mb-4 font-mono text-[10px] uppercase tracking-wide text-brand-800/40">
+        Upload sequence
+      </p>
+
+      <ol>
+        {steps.map((step, index) => {
+          const num = index + 1;
+          const done = isSuccess || currentStep > num;
+          const active = !isSuccess && currentStep === num;
+          const last = index === steps.length - 1;
+          const Icon = step.icon;
 
           return (
-            <div
-              key={label}
-              className={`relative flex min-w-[150px] flex-1 items-center justify-center gap-2.5 border-r border-brand-800/8 px-4 py-3.5 last:border-r-0 ${
-                active ? "bg-brand-50/60" : "bg-white"
-              }`}
-            >
+            <li key={step.label} className="relative flex gap-3 pb-6 last:pb-0">
+              {!last && (
+                <span
+                  className={`absolute left-[15px] top-8 h-full w-px ${
+                    done ? "bg-brand-900" : "bg-brand-800/12"
+                  }`}
+                />
+              )}
+
               <span
-                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
-                  done || active
-                    ? "bg-brand-900 text-white"
-                    : "bg-brand-800/10 text-brand-800/45"
+                className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${
+                  done
+                    ? "border-brand-900 bg-brand-900 text-white"
+                    : active
+                    ? "border-brand-600 bg-white text-brand-900"
+                    : "border-brand-800/15 bg-white text-brand-800/30"
                 }`}
               >
-                {done && !active ? (
-                  <Check className="h-3.5 w-3.5" strokeWidth={2.25} />
+                {done ? (
+                  <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
                 ) : (
-                  step
+                  <Icon className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} />
+                )}
+
+                {active && (
+                  <span className="pointer-events-none absolute -inset-1 rounded-full border border-brand-600/40 animate-pulse" />
                 )}
               </span>
 
-              <span
-                className={`whitespace-nowrap text-[10px] font-semibold ${
-                  active ? "text-brand-900" : "text-brand-800/45"
-                }`}
-              >
-                {label}
-              </span>
+              <div className="min-w-0 pt-0.5">
+                <p
+                  className={`text-xs font-bold ${
+                    active || done ? "text-brand-900" : "text-brand-800/40"
+                  }`}
+                >
+                  {step.label}
+                </p>
 
-              {active && (
-                <span className="absolute inset-x-0 bottom-0 h-0.5 bg-brand-600" />
-              )}
-            </div>
+                <p className="mt-0.5 text-[10px] font-medium text-brand-800/45">
+                  {step.hint}
+                </p>
+              </div>
+            </li>
           );
         })}
+      </ol>
+    </div>
+  );
+}
+
+/* ============================================================
+   SYSTEM STATUS PANEL — console-style live readout
+============================================================ */
+
+function SystemStatusPanel({
+  fileCount,
+  totalBytes,
+  loading,
+  uploadProgress,
+}: {
+  fileCount: number;
+  totalBytes: number;
+  loading: boolean;
+  uploadProgress: number;
+}) {
+  const capPct = Math.min(100, (totalBytes / MAX_FILE_SIZE_BYTES) * 100);
+  const totalMB = totalBytes / (1024 * 1024);
+
+  return (
+    <div className="rounded-lg bg-brand-900 p-4 text-white">
+      <div className="flex items-center justify-between">
+        <span className="flex items-center gap-1.5">
+          <Layers className="h-3 w-3 text-brand-300" strokeWidth={2} />
+          <span className="font-mono text-[10px] uppercase tracking-wide text-brand-300">
+            Engine
+          </span>
+        </span>
+
+        <span className="flex items-center gap-1.5">
+          <span
+            className={`h-1.5 w-1.5 rounded-full ${
+              loading ? "animate-pulse bg-amber-400" : "bg-emerald-400"
+            }`}
+          />
+          <span className="font-mono text-[10px] text-white/50">
+            {loading ? "processing" : "idle"}
+          </span>
+        </span>
       </div>
+
+      <p className="mt-1.5 text-xs font-bold">AMX GeoStream Engine</p>
+
+      <div className="my-3.5 h-px bg-white/10" />
+
+      <div className="space-y-2.5 font-mono text-[10px]">
+        <div className="flex items-center justify-between">
+          <span className="text-white/45">files</span>
+          <span className="text-white">{fileCount}</span>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <span className="text-white/45">ukuran</span>
+          <span className="text-white">
+            {totalMB.toFixed(1)} MB / {MAX_FILE_SIZE_LABEL}
+          </span>
+        </div>
+
+        <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+          <div
+            className="h-full rounded-full bg-brand-300 transition-all"
+            style={{ width: `${capPct}%` }}
+          />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <span className="text-white/45">format</span>
+          <span className="text-white">.tif / .tiff</span>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <span className="text-white/45">batas per file</span>
+          <span className="text-white">{MAX_FILE_SIZE_LABEL}</span>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <span className="text-white/45">output</span>
+          <span className="text-brand-300">PMTiles</span>
+        </div>
+      </div>
+
+      {loading && (
+        <div className="mt-3.5 border-t border-white/10 pt-3">
+          <div className="mb-1 flex items-center justify-between font-mono text-[10px]">
+            <span className="text-white/45">upload</span>
+            <span className="text-white">{uploadProgress}%</span>
+          </div>
+
+          <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+            <div
+              className="h-full rounded-full bg-white transition-all duration-300"
+              style={{ width: `${uploadProgress}%` }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -183,20 +315,64 @@ function FieldLabel({
 }
 
 /* ============================================================
-   INFO ROW
+   COLLAPSED SUMMARY — a completed step, tucked out of the way
 ============================================================ */
 
-function InfoRow({ children }: { children: React.ReactNode }) {
+function CollapsedSummary({
+  title,
+  detail,
+  onEdit,
+}: {
+  title: string;
+  detail: string;
+  onEdit: () => void;
+}) {
   return (
-    <div className="flex items-start gap-2">
-      <CheckCircle2
-        className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-600"
-        strokeWidth={2}
-      />
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50/60 px-4 py-3.5">
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white">
+          <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+        </span>
 
-      <span className="text-[10px] font-medium leading-4 text-brand-800/65">
-        {children}
-      </span>
+        <div className="min-w-0">
+          <p className="text-xs font-bold text-brand-900">{title}</p>
+          <p className="mt-0.5 truncate font-mono text-[10px] text-brand-800/55">
+            {detail}
+          </p>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={onEdit}
+        className="inline-flex shrink-0 items-center gap-1 rounded-md border border-brand-800/15 bg-white px-2.5 py-1.5 text-[10px] font-bold text-brand-800/70 transition hover:border-brand-800/25 hover:text-brand-900"
+      >
+        <Pencil className="h-3 w-3" strokeWidth={2} />
+        Ubah
+      </button>
+    </div>
+  );
+}
+
+/* ============================================================
+   LOCKED SECTION — a step the user can't reach yet
+============================================================ */
+
+function LockedSection({ title, reason }: { title: string; reason: string }) {
+  return (
+    <div className="rounded-lg border border-dashed border-brand-800/15 bg-brand-50/30 px-4 py-5">
+      <div className="flex items-center gap-3">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-brand-800/15 bg-white text-brand-800/30">
+          <Lock className="h-3.5 w-3.5" strokeWidth={1.75} />
+        </span>
+
+        <div>
+          <p className="text-xs font-bold text-brand-800/50">{title}</p>
+          <p className="mt-0.5 text-[10px] font-medium text-brand-800/40">
+            {reason}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -234,6 +410,12 @@ export default function UploadPage() {
   const [manualBaseName, setManualBaseName] = useState("Citra Ortho RGB Utama");
 
   const [manualSlots, setManualSlots] = useState<ManualSlotItem[]>([]);
+
+  // Guided-flow UI state — which step is expanded for editing right now.
+  // A step auto-expands again if it becomes incomplete, so users can't
+  // get stuck behind a collapsed card that no longer satisfies its step.
+  const [editingFiles, setEditingFiles] = useState(true);
+  const [editingDetails, setEditingDetails] = useState(true);
 
   // Submit
   const [loading, setLoading] = useState(false);
@@ -291,6 +473,11 @@ export default function UploadPage() {
 
   const currentStep = isSuccess ? 4 : !filesReady ? 1 : !detailReady ? 2 : 3;
 
+  const showFilesEditor = editingFiles || !filesReady;
+  const showDetailsEditor = editingDetails || !detailReady;
+  const detailsUnlocked = filesReady;
+  const reviewUnlocked = filesReady && detailReady;
+
   const reviewChecklist: ReviewChecklistItem[] =
     uploadMode === "batch"
       ? [
@@ -332,13 +519,7 @@ export default function UploadPage() {
     0
   );
 
-  const totalSizeMB =
-    uploadMode === "batch"
-      ? batchFiles.reduce((total, item) => total + item.file.size, 0) /
-        (1024 * 1024)
-      : (manualBaseFile?.size || 0) / (1024 * 1024) +
-        manualSlots.reduce((total, item) => total + (item.file?.size || 0), 0) /
-          (1024 * 1024);
+  const totalSizeMB = reviewTotalBytes / (1024 * 1024);
 
   /* ============================================================
      FILE HANDLING
@@ -349,14 +530,31 @@ export default function UploadPage() {
       return;
     }
 
-    const validFiles = Array.from(incoming).filter((file) => {
-      const lowerName = file.name.toLowerCase();
+    const candidates = Array.from(incoming);
 
+    const isTiff = (file: File) => {
+      const lowerName = file.name.toLowerCase();
       return lowerName.endsWith(".tif") || lowerName.endsWith(".tiff");
-    });
+    };
+
+    const rightFormat = candidates.filter(isTiff);
+    const wrongFormatCount = candidates.length - rightFormat.length;
+
+    const tooLarge = rightFormat.filter(
+      (file) => file.size > MAX_FILE_SIZE_BYTES
+    );
+    const validFiles = rightFormat.filter(
+      (file) => file.size <= MAX_FILE_SIZE_BYTES
+    );
 
     if (!validFiles.length) {
-      setMessage("Hanya file .tif atau .tiff yang didukung.");
+      if (tooLarge.length) {
+        setMessage(
+          `${tooLarge.length} file melebihi batas ${MAX_FILE_SIZE_LABEL} per file dan tidak ditambahkan.`
+        );
+      } else {
+        setMessage("Hanya file .tif atau .tiff yang didukung.");
+      }
       return;
     }
 
@@ -388,7 +586,24 @@ export default function UploadPage() {
       }
     }
 
-    setMessage("");
+    if (tooLarge.length || wrongFormatCount) {
+      const parts: string[] = [];
+
+      if (tooLarge.length) {
+        parts.push(
+          `${tooLarge.length} file melebihi ${MAX_FILE_SIZE_LABEL} dan dilewati`
+        );
+      }
+
+      if (wrongFormatCount) {
+        parts.push(`${wrongFormatCount} file bukan .tif/.tiff dan dilewati`);
+      }
+
+      setMessage(`${parts.join(", ")}.`);
+    } else {
+      setMessage("");
+    }
+
     setGeoError(null);
   };
 
@@ -554,6 +769,25 @@ export default function UploadPage() {
         return updated;
       })
     );
+  };
+
+  /* ============================================================
+     RESET (after a successful upload)
+  ============================================================ */
+
+  const resetForNewUpload = () => {
+    setIsSuccess(false);
+    setGeoSuccess(null);
+    setMessage("");
+    setGeoError(null);
+    setTitle("");
+    setLocation("");
+    setDescription("");
+    setSurveyDate(new Date().toISOString().split("T")[0]);
+    setLockedForFree(false);
+    setPurchasable(false);
+    setEditingFiles(true);
+    setEditingDetails(true);
   };
 
   /* ============================================================
@@ -728,11 +962,6 @@ export default function UploadPage() {
 
   return (
     <main className="bg-page min-h-screen text-brand-900">
-      {/* =====================================================
-          TOP WORKFLOW
-      ===================================================== */}
-      <WorkflowStepper currentStep={currentStep} complete={isSuccess} />
-
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         {/* =====================================================
             HEADER
@@ -767,19 +996,10 @@ export default function UploadPage() {
 
             {!isSuccess && (geoError || message) && (
               <motion.section
-                initial={{
-                  opacity: 0,
-                  y: -8,
-                }}
-                animate={{
-                  opacity: 1,
-                  y: 0,
-                }}
-                transition={{
-                  duration: 0.4,
-                  ease: EASE,
-                }}
-                className="mb-4 rounded-3xl border border-red-200 bg-red-50 p-4"
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: EASE }}
+                className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4"
               >
                 <div className="flex items-start gap-3">
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-red-600">
@@ -818,19 +1038,10 @@ export default function UploadPage() {
 
             {isSuccess && geoSuccess && (
               <motion.section
-                initial={{
-                  opacity: 0,
-                  y: -8,
-                }}
-                animate={{
-                  opacity: 1,
-                  y: 0,
-                }}
-                transition={{
-                  duration: 0.4,
-                  ease: EASE,
-                }}
-                className="mb-4 rounded-3xl border border-brand-800/15 bg-brand-50 p-4"
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: EASE }}
+                className="mb-4 rounded-lg border border-brand-800/15 bg-brand-50 p-4"
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                   <div className="flex min-w-0 flex-1 items-start gap-3">
@@ -851,812 +1062,697 @@ export default function UploadPage() {
                     </div>
                   </div>
 
-                  <Link
-                    href={`/dashboard/maps?id=${geoSuccess.mapId}`}
-                    className="btn-brand shrink-0"
-                  >
-                    Buka di Map Viewer
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </Link>
+                  <div className="flex shrink-0 gap-2">
+                    <button
+                      type="button"
+                      onClick={resetForNewUpload}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-brand-800/15 bg-white px-4 py-2.5 text-xs font-bold text-brand-800/70 transition hover:border-brand-800/25 hover:text-brand-900"
+                    >
+                      Upload dataset lain
+                    </button>
+
+                    <Link
+                      href={`/dashboard/maps?id=${geoSuccess.mapId}`}
+                      className="btn-brand"
+                    >
+                      Buka di Map Viewer
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </div>
                 </div>
               </motion.section>
             )}
 
-            {/* =================================================
-                STEP 1
-                Compact, NOT part of the main bento grid
-            ================================================= */}
+            {!isSuccess && (
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+                {/* ===============================================
+                    GUIDE RAIL (sticky)
+                =============================================== */}
 
-            <motion.section
-              initial={{
-                opacity: 0,
-                y: 8,
-              }}
-              animate={{
-                opacity: 1,
-                y: 0,
-              }}
-              transition={{
-                duration: 0.4,
-                ease: EASE,
-              }}
-              className="mb-4"
-            >
-              <div className="glass flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-2.5">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-900 text-[9px] font-black text-white">
-                    1
-                  </span>
+                <aside className="lg:col-span-4 lg:order-2">
+                  <div className="space-y-4 lg:sticky lg:top-6">
+                    <StepRail currentStep={currentStep} isSuccess={isSuccess} />
 
-                  <div>
-                    <h2 className="text-sm font-bold text-brand-900">
-                      Pilih cara upload
-                    </h2>
-
-                    <p className="text-[10px] font-medium text-brand-800/55">
-                      Mode Mudah disarankan
-                    </p>
-                  </div>
-                </div>
-
-                <div className="inline-flex w-fit rounded-full border border-brand-800/12 bg-brand-50/50 p-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setUploadMode("batch");
-                      setMessage("");
-                      setGeoError(null);
-                    }}
-                    className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[10px] font-bold transition ${
-                      uploadMode === "batch"
-                        ? "bg-brand-900 text-white shadow-card"
-                        : "text-brand-800/60 hover:text-brand-900"
-                    }`}
-                  >
-                    <Wand2 className="h-3.5 w-3.5" strokeWidth={1.75} />
-                    Mudah
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setUploadMode("manual");
-                      setMessage("");
-                      setGeoError(null);
-                    }}
-                    className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[10px] font-bold transition ${
-                      uploadMode === "manual"
-                        ? "bg-brand-900 text-white shadow-card"
-                        : "text-brand-800/60 hover:text-brand-900"
-                    }`}
-                  >
-                    <SlidersHorizontal
-                      className="h-3.5 w-3.5"
-                      strokeWidth={1.75}
+                    <SystemStatusPanel
+                      fileCount={reviewFiles.length}
+                      totalBytes={reviewTotalBytes}
+                      loading={loading}
+                      uploadProgress={uploadProgress}
                     />
-                    Manual
-                  </button>
-                </div>
-              </div>
-            </motion.section>
+                  </div>
+                </aside>
 
-            {/* =================================================
-                BENTO GRID
-            ================================================= */}
+                {/* ===============================================
+                    MAIN GUIDED FLOW
+                =============================================== */}
 
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-              {/* ===============================================
-                  ROW 1 / LEFT: UPLOAD
-              =============================================== */}
-
-              <motion.section
-                initial={{
-                  opacity: 0,
-                  y: 10,
-                }}
-                animate={{
-                  opacity: 1,
-                  y: 0,
-                }}
-                transition={{
-                  duration: 0.45,
-                  delay: 0.05,
-                  ease: EASE,
-                }}
-                className="glass flex min-h-[470px] flex-col p-5 lg:col-span-8"
-              >
-                <div className="mb-4 flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-2.5">
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-900 text-[9px] font-black text-white">
-                      2
-                    </span>
-
+                <div className="space-y-4 lg:col-span-8 lg:order-1">
+                  {/* Upload method toggle */}
+                  <div className="flex flex-col gap-3 rounded-lg border border-brand-800/10 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <h2 className="text-sm font-bold text-brand-900">
-                        Upload file
-                      </h2>
+                      <p className="text-xs font-bold text-brand-900">
+                        Metode upload
+                      </p>
 
-                      <p className="mt-0.5 text-[10px] font-medium text-brand-800/55">
-                        {uploadMode === "batch"
-                          ? "Pilih file hasil survei Anda."
-                          : "Susun layer secara manual."}
+                      <p className="mt-0.5 text-[10px] font-medium text-brand-800/50">
+                        Mode Mudah disarankan untuk sebagian besar survei
                       </p>
                     </div>
-                  </div>
-                </div>
 
-                {uploadMode === "batch" && (
-                  <div className="flex min-h-0 flex-1 flex-col">
-                    <div
-                      onDragEnter={handleDrag}
-                      onDragLeave={handleDrag}
-                      onDragOver={handleDrag}
-                      onDrop={handleDrop}
-                      className={`flex min-h-[190px] flex-col items-center justify-center rounded-3xl border-2 border-dashed px-5 py-7 text-center transition ${
-                        dragActive
-                          ? "border-brand-600 bg-brand-50"
-                          : "border-brand-800/15 bg-white hover:border-brand-800/25 hover:bg-brand-50/20"
-                      }`}
-                    >
-                      <input
-                        ref={fileInputRef}
-                        id="multiFileInput"
-                        type="file"
-                        multiple
-                        accept=".tif,.tiff"
-                        className="hidden"
-                        onChange={handleFileInputChange}
-                      />
+                    <div className="inline-flex w-fit rounded-md border border-brand-800/12 bg-brand-50/50 p-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUploadMode("batch");
+                          setMessage("");
+                          setGeoError(null);
+                          setEditingFiles(true);
+                        }}
+                        className={`inline-flex items-center gap-1.5 rounded-[5px] px-4 py-2 text-[10px] font-bold transition ${
+                          uploadMode === "batch"
+                            ? "bg-brand-900 text-white shadow-card"
+                            : "text-brand-800/60 hover:text-brand-900"
+                        }`}
+                      >
+                        <Wand2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+                        Mudah
+                      </button>
 
-                      <span className="icon-ring h-11 w-11 bg-brand-50">
-                        <Upload
-                          className="h-5 w-5 text-brand-700"
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUploadMode("manual");
+                          setMessage("");
+                          setGeoError(null);
+                          setEditingFiles(true);
+                        }}
+                        className={`inline-flex items-center gap-1.5 rounded-[5px] px-4 py-2 text-[10px] font-bold transition ${
+                          uploadMode === "manual"
+                            ? "bg-brand-900 text-white shadow-card"
+                            : "text-brand-800/60 hover:text-brand-900"
+                        }`}
+                      >
+                        <SlidersHorizontal
+                          className="h-3.5 w-3.5"
                           strokeWidth={1.75}
                         />
-                      </span>
-
-                      <h3 className="mt-3 text-sm font-bold text-brand-900">
-                        Pilih file GeoTIFF
-                      </h3>
-
-                      <p className="mt-1 text-[10px] font-medium text-brand-800/55">
-                        atau tarik file ke sini
-                      </p>
-
-                      <label
-                        htmlFor="multiFileInput"
-                        className="btn-brand mt-3 cursor-pointer"
-                      >
-                        <Folder className="h-3.5 w-3.5" />
-                        Pilih File
-                      </label>
-
-                      <p className="mt-2 text-2xs font-medium text-brand-800/40">
-                        .TIF / .TIFF
-                      </p>
+                        Manual
+                      </button>
                     </div>
+                  </div>
 
-                    {batchFiles.length > 0 && (
-                      <div className="mt-4 min-h-0 flex-1">
-                        <div className="mb-2 flex items-center justify-between">
-                          <div>
-                            <p className="text-[11px] font-bold text-brand-900">
-                              {batchFiles.length} file dipilih
+                  {/* ---------------------------------------------
+                      STEP 1 — UPLOAD FILE
+                  --------------------------------------------- */}
+
+                  {showFilesEditor ? (
+                    <motion.section
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.35, ease: EASE }}
+                      className="rounded-lg border border-brand-800/10 bg-white p-5"
+                    >
+                      <SectionTitle
+                        number={1}
+                        title="Upload file"
+                        description={
+                          uploadMode === "batch"
+                            ? "Pilih file hasil survei Anda."
+                            : "Susun layer secara manual."
+                        }
+                      />
+
+                      {uploadMode === "batch" && (
+                        <div>
+                          <div
+                            onDragEnter={handleDrag}
+                            onDragLeave={handleDrag}
+                            onDragOver={handleDrag}
+                            onDrop={handleDrop}
+                            className={`flex min-h-[190px] flex-col items-center justify-center rounded-2xl border-2 border-dashed px-5 py-7 text-center transition ${
+                              dragActive
+                                ? "border-brand-600 bg-brand-50"
+                                : "border-brand-800/15 bg-white hover:border-brand-800/25 hover:bg-brand-50/20"
+                            }`}
+                          >
+                            <input
+                              ref={fileInputRef}
+                              id="multiFileInput"
+                              type="file"
+                              multiple
+                              accept=".tif,.tiff"
+                              className="hidden"
+                              onChange={handleFileInputChange}
+                            />
+
+                            <span className="icon-ring h-11 w-11 bg-brand-50">
+                              <Upload
+                                className="h-5 w-5 text-brand-700"
+                                strokeWidth={1.75}
+                              />
+                            </span>
+
+                            <h3 className="mt-3 text-sm font-bold text-brand-900">
+                              Pilih file GeoTIFF
+                            </h3>
+
+                            <p className="mt-1 text-[10px] font-medium text-brand-800/55">
+                              atau tarik file ke sini
                             </p>
 
-                            <p className="text-2xs font-medium text-brand-800/50">
-                              {totalSizeMB.toFixed(1)} MB
+                            <label
+                              htmlFor="multiFileInput"
+                              className="btn-brand mt-3 cursor-pointer"
+                            >
+                              <Folder className="h-3.5 w-3.5" />
+                              Pilih File
+                            </label>
+
+                            <p className="mt-2 font-mono text-2xs font-medium text-brand-800/40">
+                              .TIF / .TIFF · maks {MAX_FILE_SIZE_LABEL} per file
                             </p>
                           </div>
 
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setBatchFiles([]);
-                              setExpandedBatchItems(new Set());
-                            }}
-                            className="text-2xs font-bold text-brand-800/55 transition hover:text-red-600"
-                          >
-                            Hapus semua
-                          </button>
-                        </div>
+                          {batchFiles.length > 0 && (
+                            <div className="mt-4">
+                              <div className="mb-2 flex items-center justify-between">
+                                <div>
+                                  <p className="text-[11px] font-bold text-brand-900">
+                                    {batchFiles.length} file dipilih
+                                  </p>
 
-                        <div className="max-h-[175px] overflow-y-auto rounded-2xl border border-brand-800/10 bg-white shadow-card">
-                          {batchFiles.map((item, index) => {
-                            const config =
-                              LAYER_TYPE_CONFIG[item.layer_type] ||
-                              LAYER_TYPE_CONFIG.custom;
-
-                            const expanded = expandedBatchItems.has(item.id);
-
-                            return (
-                              <div
-                                key={item.id}
-                                className={
-                                  index < batchFiles.length - 1
-                                    ? "border-b border-brand-800/8"
-                                    : ""
-                                }
-                              >
-                                <div className="flex items-center gap-2.5 px-3 py-2.5">
-                                  <span
-                                    className={`h-2 w-2 shrink-0 rounded-full ${
-                                      item.is_base
-                                        ? "bg-brand-500"
-                                        : "bg-brand-800/20"
-                                    }`}
-                                  />
-
-                                  <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-1.5">
-                                      <span
-                                        className={`rounded-full border px-1.5 py-0.5 text-2xs font-bold ${config.badgeClass}`}
-                                      >
-                                        {config.label}
-                                      </span>
-
-                                      {item.is_base && (
-                                        <span className="liquid-badge px-1.5 py-0.5 !text-2xs font-bold text-brand-700">
-                                          UTAMA
-                                        </span>
-                                      )}
-
-                                      <span className="truncate text-2xs text-brand-800/45">
-                                        {item.file.name}
-                                      </span>
-                                    </div>
-
-                                    <input
-                                      type="text"
-                                      value={item.name}
-                                      aria-label="Nama layer"
-                                      onChange={(event) =>
-                                        handleUpdateBatchItem(
-                                          item.id,
-                                          "name",
-                                          event.target.value
-                                        )
-                                      }
-                                      className="mt-1 w-full max-w-sm border-0 bg-transparent p-0 text-[10px] font-bold text-brand-900 outline-none placeholder:text-brand-800/25"
-                                      placeholder="Nama layer"
-                                    />
-                                  </div>
-
-                                  <span className="hidden text-2xs font-medium text-brand-800/45 sm:block">
-                                    {formatFileSize(item.file.size)}
-                                  </span>
-
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      toggleBatchItemExpanded(item.id)
-                                    }
-                                    className="icon-ring h-7 w-7 shrink-0"
-                                  >
-                                    <Settings2
-                                      className="h-3.5 w-3.5"
-                                      strokeWidth={1.75}
-                                    />
-                                  </button>
-
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      handleRemoveBatchItem(item.id)
-                                    }
-                                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl text-brand-800/30 transition hover:bg-red-50 hover:text-red-600"
-                                  >
-                                    <X
-                                      className="h-3.5 w-3.5"
-                                      strokeWidth={1.75}
-                                    />
-                                  </button>
+                                  <p className="font-mono text-2xs font-medium text-brand-800/50">
+                                    {totalSizeMB.toFixed(1)} MB
+                                  </p>
                                 </div>
 
-                                {expanded && (
-                                  <div className="border-t border-brand-800/8 bg-brand-50/50 px-3 py-2.5">
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <select
-                                        value={item.layer_type}
-                                        onChange={(event) =>
-                                          handleUpdateBatchItem(
-                                            item.id,
-                                            "layer_type",
-                                            event.target.value
-                                          )
-                                        }
-                                        className="rounded-xl border border-brand-800/10 bg-white px-2.5 py-1.5 text-2xs font-bold text-brand-900 outline-none"
-                                      >
-                                        {layerOptions.map((option) => (
-                                          <option
-                                            key={option.value}
-                                            value={option.value}
-                                          >
-                                            {option.label}
-                                          </option>
-                                        ))}
-                                      </select>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setBatchFiles([]);
+                                    setExpandedBatchItems(new Set());
+                                  }}
+                                  className="text-2xs font-bold text-brand-800/55 transition hover:text-red-600"
+                                >
+                                  Hapus semua
+                                </button>
+                              </div>
 
-                                      {!item.is_base && (
+                              <div className="max-h-[240px] overflow-y-auto rounded-lg border border-brand-800/10 bg-white">
+                                {batchFiles.map((item, index) => {
+                                  const config =
+                                    LAYER_TYPE_CONFIG[item.layer_type] ||
+                                    LAYER_TYPE_CONFIG.custom;
+
+                                  const expanded = expandedBatchItems.has(
+                                    item.id
+                                  );
+
+                                  return (
+                                    <div
+                                      key={item.id}
+                                      className={
+                                        index < batchFiles.length - 1
+                                          ? "border-b border-brand-800/8"
+                                          : ""
+                                      }
+                                    >
+                                      <div className="flex items-center gap-2.5 px-3 py-2.5">
+                                        <span
+                                          className={`h-2 w-2 shrink-0 rounded-full ${
+                                            item.is_base
+                                              ? "bg-brand-500"
+                                              : "bg-brand-800/20"
+                                          }`}
+                                        />
+
+                                        <div className="min-w-0 flex-1">
+                                          <div className="flex items-center gap-1.5">
+                                            <span
+                                              className={`rounded border px-1.5 py-0.5 font-mono text-2xs font-bold uppercase tracking-wide ${config.badgeClass}`}
+                                            >
+                                              {config.label}
+                                            </span>
+
+                                            {item.is_base && (
+                                              <span className="rounded border border-brand-600/25 bg-brand-50 px-1.5 py-0.5 font-mono text-2xs font-bold uppercase tracking-wide text-brand-700">
+                                                utama
+                                              </span>
+                                            )}
+
+                                            <span className="truncate font-mono text-2xs text-brand-800/45">
+                                              {item.file.name}
+                                            </span>
+                                          </div>
+
+                                          <input
+                                            type="text"
+                                            value={item.name}
+                                            aria-label="Nama layer"
+                                            onChange={(event) =>
+                                              handleUpdateBatchItem(
+                                                item.id,
+                                                "name",
+                                                event.target.value
+                                              )
+                                            }
+                                            className="mt-1 w-full max-w-sm border-0 bg-transparent p-0 text-[10px] font-bold text-brand-900 outline-none placeholder:text-brand-800/25"
+                                            placeholder="Nama layer"
+                                          />
+                                        </div>
+
+                                        <span className="hidden font-mono text-2xs font-medium text-brand-800/45 sm:block">
+                                          {formatFileSize(item.file.size)}
+                                        </span>
+
                                         <button
                                           type="button"
                                           onClick={() =>
-                                            handleSetBaseLayer(item.id)
+                                            toggleBatchItemExpanded(item.id)
                                           }
-                                          className="rounded-xl border border-brand-800/10 bg-white px-2.5 py-1.5 text-2xs font-bold text-brand-800"
+                                          className="icon-ring h-7 w-7 shrink-0"
                                         >
-                                          Jadikan utama
+                                          <Settings2
+                                            className="h-3.5 w-3.5"
+                                            strokeWidth={1.75}
+                                          />
                                         </button>
-                                      )}
 
-                                      <div className="flex min-w-[160px] flex-1 items-center gap-2">
-                                        <span className="text-2xs text-brand-800/50">
-                                          Opasitas
-                                        </span>
-
-                                        <input
-                                          type="range"
-                                          min="0"
-                                          max="1"
-                                          step="0.05"
-                                          value={item.default_opacity}
-                                          onChange={(event) =>
-                                            handleUpdateBatchItem(
-                                              item.id,
-                                              "default_opacity",
-                                              parseFloat(event.target.value)
-                                            )
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            handleRemoveBatchItem(item.id)
                                           }
-                                          className="w-full accent-brand-900"
-                                        />
-
-                                        <span className="w-8 text-right text-2xs font-bold">
-                                          {Math.round(
-                                            item.default_opacity * 100
-                                          )}
-                                          %
-                                        </span>
+                                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl text-brand-800/30 transition hover:bg-red-50 hover:text-red-600"
+                                        >
+                                          <X
+                                            className="h-3.5 w-3.5"
+                                            strokeWidth={1.75}
+                                          />
+                                        </button>
                                       </div>
+
+                                      {expanded && (
+                                        <div className="border-t border-brand-800/8 bg-brand-50/50 px-3 py-2.5">
+                                          <div className="flex flex-wrap items-center gap-2">
+                                            <select
+                                              value={item.layer_type}
+                                              onChange={(event) =>
+                                                handleUpdateBatchItem(
+                                                  item.id,
+                                                  "layer_type",
+                                                  event.target.value
+                                                )
+                                              }
+                                              className="rounded-lg border border-brand-800/10 bg-white px-2.5 py-1.5 text-2xs font-bold text-brand-900 outline-none"
+                                            >
+                                              {layerOptions.map((option) => (
+                                                <option
+                                                  key={option.value}
+                                                  value={option.value}
+                                                >
+                                                  {option.label}
+                                                </option>
+                                              ))}
+                                            </select>
+
+                                            {!item.is_base && (
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  handleSetBaseLayer(item.id)
+                                                }
+                                                className="rounded-lg border border-brand-800/10 bg-white px-2.5 py-1.5 text-2xs font-bold text-brand-800"
+                                              >
+                                                Jadikan utama
+                                              </button>
+                                            )}
+
+                                            <div className="flex min-w-[160px] flex-1 items-center gap-2">
+                                              <span className="text-2xs text-brand-800/50">
+                                                Opasitas
+                                              </span>
+
+                                              <input
+                                                type="range"
+                                                min="0"
+                                                max="1"
+                                                step="0.05"
+                                                value={item.default_opacity}
+                                                onChange={(event) =>
+                                                  handleUpdateBatchItem(
+                                                    item.id,
+                                                    "default_opacity",
+                                                    parseFloat(
+                                                      event.target.value
+                                                    )
+                                                  )
+                                                }
+                                                className="w-full accent-brand-900"
+                                              />
+
+                                              <span className="w-8 text-right font-mono text-2xs font-bold">
+                                                {Math.round(
+                                                  item.default_opacity * 100
+                                                )}
+                                                %
+                                              </span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      )}
                                     </div>
-                                  </div>
-                                )}
+                                  );
+                                })}
                               </div>
-                            );
-                          })}
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    )}
+                      )}
 
-                    {loading && (
-                      <div className="mt-3">
-                        <div className="mb-1.5 flex items-center justify-between">
-                          <div className="flex items-center gap-1.5">
-                            <RefreshCw className="h-3.5 w-3.5 animate-spin text-brand-600" />
+                      {uploadMode === "manual" && (
+                        <ManualUploadFlow
+                          disabled={loading}
+                          readiness={readiness}
+                          baseFile={manualBaseFile}
+                          baseName={manualBaseName}
+                          slots={manualSlots}
+                          setBaseFile={setManualBaseFile}
+                          setBaseName={setManualBaseName}
+                          addSlot={handleAddManualSlot}
+                          removeSlot={handleRemoveManualSlot}
+                          updateSlot={handleUpdateManualSlot}
+                        />
+                      )}
 
-                            <span className="text-2xs font-bold text-brand-900">
-                              {uploadProgress >= 99
-                                ? "Memeriksa file..."
-                                : "Mengunggah..."}
+                      {filesReady && (
+                        <div className="mt-5 flex justify-end border-t border-brand-800/8 pt-4">
+                          <button
+                            type="button"
+                            onClick={() => setEditingFiles(false)}
+                            className="btn-brand"
+                          >
+                            Lanjutkan ke detail dataset
+                            <ChevronRight className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      )}
+                    </motion.section>
+                  ) : (
+                    <CollapsedSummary
+                      title="Upload file"
+                      detail={`${
+                        reviewFiles.length
+                      } file · ${totalSizeMB.toFixed(1)} MB`}
+                      onEdit={() => setEditingFiles(true)}
+                    />
+                  )}
+
+                  {/* ---------------------------------------------
+                      STEP 2 — DATASET DETAILS
+                  --------------------------------------------- */}
+
+                  {!detailsUnlocked ? (
+                    <LockedSection
+                      title="Detail dataset"
+                      reason="Selesaikan upload file terlebih dahulu"
+                    />
+                  ) : showDetailsEditor ? (
+                    <motion.section
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.35, ease: EASE }}
+                      className="rounded-lg border border-brand-800/10 bg-white p-5"
+                    >
+                      <SectionTitle
+                        number={2}
+                        title="Detail dataset"
+                        description="Tambahkan informasi dasar survei."
+                      />
+
+                      <div className="space-y-4">
+                        <div>
+                          <FieldLabel required>Judul peta / sesi</FieldLabel>
+
+                          <input
+                            id="field-title"
+                            type="text"
+                            value={title}
+                            onChange={(event) => setTitle(event.target.value)}
+                            required
+                            placeholder="Contoh: Survei Perkebunan Paca - Blok A"
+                            className={`${inputClass} h-9 text-xs text-brand-900 placeholder:text-brand-800/30 focus:border-brand-600 focus:ring-brand-600/20`}
+                          />
+                        </div>
+
+                        <div>
+                          <FieldLabel required>Lokasi survei</FieldLabel>
+
+                          <div className="mb-2 flex flex-wrap gap-1.5">
+                            {locationPresets.map((preset) => {
+                              const active = location === preset;
+
+                              return (
+                                <button
+                                  key={preset}
+                                  type="button"
+                                  onClick={() => {
+                                    setLocation(preset);
+
+                                    if (!title) {
+                                      setTitle(`Survei Pertanian ${preset}`);
+                                    }
+                                  }}
+                                  className={`rounded-full border px-2.5 py-1.5 text-2xs font-bold transition ${
+                                    active
+                                      ? "border-brand-900 bg-brand-900 text-white"
+                                      : "border-brand-800/10 bg-white text-brand-800/60 hover:border-brand-800/20 hover:text-brand-900"
+                                  }`}
+                                >
+                                  {preset.split(",")[0]}
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          <div className="relative">
+                            <MapPin className="absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-brand-800/35" />
+
+                            <input
+                              id="field-location"
+                              type="text"
+                              value={location}
+                              onChange={(event) =>
+                                setLocation(event.target.value)
+                              }
+                              required
+                              placeholder="Paca, Halmahera Utara"
+                              className={`${inputClass} h-9 pl-10 text-xs text-brand-900 placeholder:text-brand-800/30 focus:border-brand-600 focus:ring-brand-600/20`}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div>
+                            <FieldLabel required>
+                              Tanggal penerbangan
+                            </FieldLabel>
+
+                            <div className="relative">
+                              <Calendar className="absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-brand-800/35" />
+
+                              <input
+                                id="field-date"
+                                type="date"
+                                value={surveyDate}
+                                onChange={(event) =>
+                                  setSurveyDate(event.target.value)
+                                }
+                                required
+                                className={`${inputClass} h-9 pl-10 text-xs text-brand-900 focus:border-brand-600 focus:ring-brand-600/20`}
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <FieldLabel>Deskripsi</FieldLabel>
+
+                            <input
+                              id="field-description"
+                              type="text"
+                              value={description}
+                              onChange={(event) =>
+                                setDescription(event.target.value)
+                              }
+                              placeholder="Opsional"
+                              className={`${inputClass} h-9 text-xs text-brand-900 placeholder:text-brand-800/30 focus:border-brand-600 focus:ring-brand-600/20`}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="border-t border-brand-800/8 pt-3.5">
+                          <div className="mb-2 flex items-center gap-2">
+                            <ShieldCheck
+                              className="h-3.5 w-3.5 text-brand-600"
+                              strokeWidth={1.75}
+                            />
+
+                            <span className="text-xs font-bold text-brand-900">
+                              Pengaturan akses
                             </span>
                           </div>
 
-                          <span className="text-2xs font-bold text-brand-800/55">
-                            {uploadProgress}%
-                          </span>
+                          <div className="flex flex-wrap gap-2">
+                            <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-brand-800/8 bg-white px-3 py-2">
+                              <input
+                                type="checkbox"
+                                checked={lockedForFree}
+                                onChange={(event) =>
+                                  setLockedForFree(event.target.checked)
+                                }
+                                className="h-3.5 w-3.5 rounded border-brand-800/20 text-brand-900 focus:ring-brand-600"
+                              />
+
+                              <span className="text-2xs font-medium text-brand-800/65">
+                                Batasi untuk member berbayar
+                              </span>
+                            </label>
+
+                            <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-brand-800/8 bg-white px-3 py-2">
+                              <input
+                                type="checkbox"
+                                checked={purchasable}
+                                onChange={(event) =>
+                                  setPurchasable(event.target.checked)
+                                }
+                                className="h-3.5 w-3.5 rounded border-brand-800/20 text-brand-900 focus:ring-brand-600"
+                              />
+
+                              <span className="text-2xs font-medium text-brand-800/65">
+                                Izinkan pembelian satuan
+                              </span>
+                            </label>
+                          </div>
                         </div>
-
-                        <div className="h-1.5 overflow-hidden rounded-full bg-brand-800/10">
-                          <div
-                            className="h-full rounded-full bg-brand-900 transition-all duration-300"
-                            style={{
-                              width: `${uploadProgress}%`,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {uploadMode === "manual" && (
-                  <ManualUploadFlow
-                    disabled={loading}
-                    readiness={readiness}
-                    baseFile={manualBaseFile}
-                    baseName={manualBaseName}
-                    slots={manualSlots}
-                    setBaseFile={setManualBaseFile}
-                    setBaseName={setManualBaseName}
-                    addSlot={handleAddManualSlot}
-                    removeSlot={handleRemoveManualSlot}
-                    updateSlot={handleUpdateManualSlot}
-                  />
-                )}
-              </motion.section>
-
-              {/* ===============================================
-                  ROW 1 / RIGHT: GEOSTREAM
-              =============================================== */}
-
-              <motion.section
-                initial={{
-                  opacity: 0,
-                  y: 10,
-                }}
-                animate={{
-                  opacity: 1,
-                  y: 0,
-                }}
-                transition={{
-                  duration: 0.45,
-                  delay: 0.1,
-                  ease: EASE,
-                }}
-                className="lg:col-span-4"
-              >
-                <div className="glass flex h-full min-h-[470px] flex-col p-5">
-                  <div className="flex items-start gap-2.5">
-                    <span className="icon-ring h-9 w-9">
-                      <Layers
-                        className="h-4 w-4 text-brand-700"
-                        strokeWidth={1.75}
-                      />
-                    </span>
-
-                    <div>
-                      <p className="micro-label">Processing Engine</p>
-
-                      <h3 className="mt-1 text-base font-bold tracking-[-0.02em] text-brand-900">
-                        AMX GeoStream Engine
-                      </h3>
-
-                      <p className="mt-1 text-[10px] font-medium leading-4 text-brand-800/55">
-                        Proses dataset secara bertahap agar peta tetap
-                        responsif.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="my-5 h-px bg-brand-800/8" />
-
-                  <div className="space-y-2.5">
-                    <InfoRow>GeoTIFF diperiksa otomatis</InfoRow>
-
-                    <InfoRow>CRS dan metadata divalidasi</InfoRow>
-
-                    <InfoRow>Bounds spasial diperiksa</InfoRow>
-
-                    <InfoRow>Dataset dikonversi ke PMTiles</InfoRow>
-                  </div>
-
-                  <div className="mt-auto rounded-2xl bg-brand-900 p-4 text-white">
-                    <p className="text-2xs font-bold uppercase tracking-[0.15em] text-brand-300">
-                      Data Pipeline
-                    </p>
-
-                    <div className="mt-3 flex items-center justify-between">
-                      <div>
-                        <p className="text-[10px] font-medium text-white/50">
-                          Input
-                        </p>
-
-                        <p className="mt-0.5 text-xs font-bold">GeoTIFF</p>
                       </div>
 
-                      <ArrowRight
-                        className="h-4 w-4 text-brand-400"
-                        strokeWidth={1.75}
-                      />
-
-                      <div className="text-right">
-                        <p className="text-[10px] font-medium text-white/50">
-                          Output
-                        </p>
-
-                        <p className="mt-0.5 text-xs font-bold text-brand-300">
-                          PMTiles
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 flex items-start gap-2">
-                    <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-800/35" />
-
-                    <p className="text-2xs font-medium leading-4 text-brand-800/50">
-                      Dataset diproses setelah validasi berhasil.
-                    </p>
-                  </div>
-                </div>
-              </motion.section>
-
-              {/* ===============================================
-                  ROW 2 / LEFT: DETAILS
-              =============================================== */}
-
-              <motion.section
-                initial={{
-                  opacity: 0,
-                  y: 10,
-                }}
-                animate={{
-                  opacity: 1,
-                  y: 0,
-                }}
-                transition={{
-                  duration: 0.45,
-                  delay: 0.12,
-                  ease: EASE,
-                }}
-                className="glass min-h-[430px] p-5 lg:col-span-8"
-              >
-                <SectionTitle
-                  number={3}
-                  title="Dataset Details"
-                  description="Tambahkan informasi dasar survei."
-                  right={
-                    detailReady && (
-                      <span className="liquid-badge px-2.5 py-1 text-2xs font-bold text-brand-700">
-                        <Check className="mr-1 inline h-3 w-3" />
-                        Lengkap
-                      </span>
-                    )
-                  }
-                />
-
-                <div className="space-y-4">
-                  <div>
-                    <FieldLabel required>Judul peta / sesi</FieldLabel>
-
-                    <input
-                      id="field-title"
-                      type="text"
-                      value={title}
-                      onChange={(event) => setTitle(event.target.value)}
-                      required
-                      placeholder="Contoh: Survei Perkebunan Paca - Blok A"
-                      className={`${inputClass} h-9 rounded-xl border-brand-800/12 bg-white text-xs text-brand-900 placeholder:text-brand-800/30 focus:border-brand-600 focus:ring-brand-600/20`}
-                    />
-                  </div>
-
-                  <div>
-                    <FieldLabel required>Lokasi survei</FieldLabel>
-
-                    <div className="mb-2 flex flex-wrap gap-1.5">
-                      {locationPresets.map((preset) => {
-                        const active = location === preset;
-
-                        return (
+                      {detailReady && (
+                        <div className="mt-5 flex justify-end border-t border-brand-800/8 pt-4">
                           <button
-                            key={preset}
                             type="button"
-                            onClick={() => {
-                              setLocation(preset);
-
-                              if (!title) {
-                                setTitle(`Survei Pertanian ${preset}`);
-                              }
-                            }}
-                            className={`rounded-full border px-2.5 py-1.5 text-2xs font-bold transition ${
-                              active
-                                ? "border-brand-900 bg-brand-900 text-white"
-                                : "border-brand-800/10 bg-white text-brand-800/60 hover:border-brand-800/20 hover:text-brand-900"
-                            }`}
+                            onClick={() => setEditingDetails(false)}
+                            className="btn-brand"
                           >
-                            {preset.split(",")[0]}
+                            Lanjutkan ke review
+                            <ChevronRight className="h-3.5 w-3.5" />
                           </button>
-                        );
-                      })}
-                    </div>
-
-                    <div className="relative">
-                      <MapPin className="absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-brand-800/35" />
-
-                      <input
-                        id="field-location"
-                        type="text"
-                        value={location}
-                        onChange={(event) => setLocation(event.target.value)}
-                        required
-                        placeholder="Paca, Halmahera Utara"
-                        className={`${inputClass} h-9 rounded-xl border-brand-800/12 bg-white pl-10 text-xs text-brand-900 placeholder:text-brand-800/30 focus:border-brand-600 focus:ring-brand-600/20`}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div>
-                      <FieldLabel required>Tanggal penerbangan</FieldLabel>
-
-                      <div className="relative">
-                        <Calendar className="absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-brand-800/35" />
-
-                        <input
-                          id="field-date"
-                          type="date"
-                          value={surveyDate}
-                          onChange={(event) =>
-                            setSurveyDate(event.target.value)
-                          }
-                          required
-                          className={`${inputClass} h-9 rounded-xl border-brand-800/12 bg-white pl-10 text-xs text-brand-900 focus:border-brand-600 focus:ring-brand-600/20`}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <FieldLabel>Deskripsi</FieldLabel>
-
-                      <input
-                        id="field-description"
-                        type="text"
-                        value={description}
-                        onChange={(event) => setDescription(event.target.value)}
-                        placeholder="Opsional"
-                        className={`${inputClass} h-9 rounded-xl border-brand-800/12 bg-white text-xs text-brand-900 placeholder:text-brand-800/30 focus:border-brand-600 focus:ring-brand-600/20`}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="border-t border-brand-800/8 pt-3.5">
-                    <div className="mb-2 flex items-center gap-2">
-                      <ShieldCheck
-                        className="h-3.5 w-3.5 text-brand-600"
-                        strokeWidth={1.75}
-                      />
-
-                      <span className="text-xs font-bold text-brand-900">
-                        Pengaturan akses
-                      </span>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-brand-800/8 bg-white px-3 py-2">
-                        <input
-                          type="checkbox"
-                          checked={lockedForFree}
-                          onChange={(event) =>
-                            setLockedForFree(event.target.checked)
-                          }
-                          className="h-3.5 w-3.5 rounded border-brand-800/20 text-brand-900 focus:ring-brand-600"
-                        />
-
-                        <span className="text-2xs font-medium text-brand-800/65">
-                          Batasi untuk member berbayar
-                        </span>
-                      </label>
-
-                      <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-brand-800/8 bg-white px-3 py-2">
-                        <input
-                          type="checkbox"
-                          checked={purchasable}
-                          onChange={(event) =>
-                            setPurchasable(event.target.checked)
-                          }
-                          className="h-3.5 w-3.5 rounded border-brand-800/20 text-brand-900 focus:ring-brand-600"
-                        />
-
-                        <span className="text-2xs font-medium text-brand-800/65">
-                          Izinkan pembelian satuan
-                        </span>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              </motion.section>
-
-              {/* ===============================================
-                  ROW 2 / RIGHT: REVIEW
-              =============================================== */}
-
-              <motion.section
-                initial={{
-                  opacity: 0,
-                  y: 10,
-                }}
-                animate={{
-                  opacity: 1,
-                  y: 0,
-                }}
-                transition={{
-                  duration: 0.45,
-                  delay: 0.16,
-                  ease: EASE,
-                }}
-                className="glass min-h-[430px] p-5 lg:col-span-4"
-              >
-                <SectionTitle
-                  number={4}
-                  title="Review"
-                  description="Periksa sebelum upload."
-                  right={
-                    submitErrors.length === 0 && (
-                      <span className="icon-ring h-8 w-8 bg-brand-50 text-brand-600">
-                        <Check className="h-4 w-4" strokeWidth={2} />
-                      </span>
-                    )
-                  }
-                />
-
-                <div className="rounded-2xl border border-brand-800/8 bg-white p-4">
-                  <UploadReview
-                    files={reviewFiles}
-                    totalBytes={reviewTotalBytes}
-                    checklist={reviewChecklist}
-                    loading={loading}
-                  />
-                </div>
-
-                <div className="mt-4 grid grid-cols-2 gap-2">
-                  <div className="rounded-2xl bg-brand-50 p-3">
-                    <p className="micro-label">File</p>
-
-                    <p className="mt-1 text-lg font-bold tracking-[-0.03em] text-brand-900">
-                      {reviewFiles.length}
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl bg-brand-50 p-3">
-                    <p className="micro-label">Ukuran</p>
-
-                    <p className="mt-1 truncate text-lg font-bold tracking-[-0.03em] text-brand-900">
-                      {(reviewTotalBytes / 1024 / 1024).toFixed(1)}{" "}
-                      <span className="text-xs font-bold">MB</span>
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-auto pt-4">
-                  {submitErrors.length > 0 ? (
-                    <div className="rounded-2xl bg-brand-50 px-3.5 py-3">
-                      <p className="text-[10px] font-medium leading-4 text-brand-800/60">
-                        Lengkapi bagian yang masih diperlukan sebelum upload.
-                      </p>
-                    </div>
+                        </div>
+                      )}
+                    </motion.section>
                   ) : (
-                    <div className="rounded-2xl bg-brand-50 px-3.5 py-3">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2
-                          className="h-3.5 w-3.5 text-brand-600"
-                          strokeWidth={2}
-                        />
-
-                        <p className="text-xs font-bold text-brand-900">
-                          Dataset siap diunggah.
-                        </p>
-                      </div>
-                    </div>
+                    <CollapsedSummary
+                      title="Detail dataset"
+                      detail={`${title} · ${location}`}
+                      onEdit={() => setEditingDetails(true)}
+                    />
                   )}
 
-                  <button
-                    type="submit"
-                    disabled={loading || submitErrors.length > 0}
-                    className={`mt-3 flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-xs font-bold transition ${
-                      submitErrors.length === 0
-                        ? "bg-brand-900 text-white shadow-card hover:-translate-y-0.5 hover:bg-brand-800 hover:shadow-card-hover"
-                        : "cursor-not-allowed bg-brand-800/8 text-brand-800/30"
-                    }`}
-                  >
-                    {loading ? (
-                      <>
-                        <RefreshCw
-                          className="h-3.5 w-3.5 animate-spin"
-                          strokeWidth={1.75}
+                  {/* ---------------------------------------------
+                      STEP 3 — REVIEW & SUBMIT
+                  --------------------------------------------- */}
+
+                  {!reviewUnlocked ? (
+                    <LockedSection
+                      title="Review & kirim"
+                      reason="Lengkapi langkah upload file dan detail dataset terlebih dahulu"
+                    />
+                  ) : (
+                    <motion.section
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.35, ease: EASE }}
+                      className="rounded-lg border border-brand-800/10 bg-white p-5"
+                    >
+                      <SectionTitle
+                        number={3}
+                        title="Review & kirim"
+                        description="Periksa sebelum upload."
+                        right={
+                          submitErrors.length === 0 && (
+                            <span className="icon-ring h-8 w-8 bg-brand-50 text-brand-600">
+                              <Check className="h-4 w-4" strokeWidth={2} />
+                            </span>
+                          )
+                        }
+                      />
+
+                      <div className="rounded-lg border border-brand-800/8 bg-white p-4">
+                        <UploadReview
+                          files={reviewFiles}
+                          totalBytes={reviewTotalBytes}
+                          checklist={reviewChecklist}
+                          loading={loading}
                         />
-                        {uploadProgress >= 99
-                          ? "Memeriksa..."
-                          : "Mengunggah..."}
-                      </>
-                    ) : (
-                      <>
-                        Validasi & Import
-                        <ChevronRight className="h-3.5 w-3.5" strokeWidth={2} />
-                      </>
-                    )}
-                  </button>
+                      </div>
+
+                      <div className="mt-4">
+                        {submitErrors.length > 0 ? (
+                          <div className="rounded-lg bg-brand-50 px-3.5 py-3">
+                            <p className="text-[10px] font-medium leading-4 text-brand-800/60">
+                              Lengkapi bagian yang masih diperlukan sebelum
+                              upload.
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="rounded-lg bg-brand-50 px-3.5 py-3">
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2
+                                className="h-3.5 w-3.5 text-brand-600"
+                                strokeWidth={2}
+                              />
+
+                              <p className="text-xs font-bold text-brand-900">
+                                Dataset siap diunggah.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        <button
+                          type="submit"
+                          disabled={loading || submitErrors.length > 0}
+                          className={`mt-3 flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-xs font-bold transition ${
+                            submitErrors.length === 0
+                              ? "bg-brand-900 text-white shadow-card hover:-translate-y-0.5 hover:bg-brand-800 hover:shadow-card-hover"
+                              : "cursor-not-allowed bg-brand-800/8 text-brand-800/30"
+                          }`}
+                        >
+                          {loading ? (
+                            <>
+                              <RefreshCw
+                                className="h-3.5 w-3.5 animate-spin"
+                                strokeWidth={1.75}
+                              />
+                              {uploadProgress >= 99
+                                ? "Memeriksa..."
+                                : "Mengunggah..."}
+                            </>
+                          ) : (
+                            <>
+                              Validasi & Import
+                              <ChevronRight
+                                className="h-3.5 w-3.5"
+                                strokeWidth={2}
+                              />
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </motion.section>
+                  )}
                 </div>
-              </motion.section>
-            </div>
+              </div>
+            )}
 
             {/* =================================================
                 FOOTER
