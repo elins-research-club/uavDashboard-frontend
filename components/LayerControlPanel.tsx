@@ -38,8 +38,6 @@ interface LayerControlPanelProps {
 
   onChangeOpacity: (layerId: string, opacity: number) => void;
 
-  onChangeColormap?: (layerId: string, colormap: string) => void;
-
   onLayerUploaded?: () => void;
 
   onDeleteLayer?: (layerId: string) => void;
@@ -170,7 +168,6 @@ export default function LayerControlPanel({
   layers,
   onToggleVisibility,
   onChangeOpacity,
-  onChangeColormap,
   onDeleteLayer,
   basemap,
   onChangeBasemap,
@@ -753,28 +750,8 @@ export default function LayerControlPanel({
 
                                     <span>{layer.unit || "Indeks"}</span>
 
-                                    <span>{layer.max_value?.toFixed(2)}</span>
                                   </div>
                                 )}
-
-                              {onChangeColormap && (
-                                <div className="mt-2 flex items-center justify-between gap-1.5 pt-1 border-t border-gray-100">
-                                  <span className="text-[7.5px] font-semibold text-gray-400">Palette:</span>
-                                  <select
-                                    value={layer.color_map || "rdylgn"}
-                                    onChange={(e) => onChangeColormap(layer.id, e.target.value)}
-                                    className="rounded border border-gray-200 bg-gray-50 px-1 py-0.5 text-[8px] font-medium text-gray-700 outline-none hover:border-gray-300"
-                                  >
-                                    <option value="rdylgn">Red-Yellow-Green (NDVI)</option>
-                                    <option value="viridis">Viridis (Standard)</option>
-                                    <option value="plasma">Plasma (Phosphorus)</option>
-                                    <option value="inferno">Inferno (Kalium)</option>
-                                    <option value="spectral">Spectral (Multispektral)</option>
-                                    <option value="terrain">Terrain (Elevasi DSM)</option>
-                                    <option value="turbo">Turbo (Kontras Tinggi)</option>
-                                  </select>
-                                </div>
-                              )}
                             </div>
                           )}
                         </div>
