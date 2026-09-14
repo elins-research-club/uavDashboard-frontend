@@ -31,10 +31,19 @@ import {
   Undo2,
   ArrowLeftRight,
   X,
+  Grid,
+  Edit3,
+  Save,
+  CheckCircle2,
 } from "lucide-react";
 
 import LayerControlPanel from "@/components/LayerControlPanel";
 import type { MapLayerItem } from "@/types/map";
+import {
+  generatePetakGrid,
+  classifyParam,
+  type PetakProperties,
+} from "@/lib/gridGenerator";
 
 /* =========================================================
    PMTILES REGISTRATION
@@ -42,15 +51,21 @@ import type { MapLayerItem } from "@/types/map";
 
 let pmtilesRegistered = false;
 
-if (typeof window !== "undefined" && !pmtilesRegistered) {
+if (typeof window !== "undefined") {
   try {
-    const protocol = new pmtiles.Protocol();
-
-    maplibregl.addProtocol("pmtiles", protocol.tile);
-
-    pmtilesRegistered = true;
+    maplibregl.setWorkerUrl("/maplibre-gl-worker.mjs");
   } catch {
-    // Protocol already registered.
+    // Worker URL failed or already set
+  }
+
+  if (!pmtilesRegistered) {
+    try {
+      const protocol = new pmtiles.Protocol();
+      maplibregl.addProtocol("pmtiles", protocol.tile);
+      pmtilesRegistered = true;
+    } catch {
+      // Protocol already registered.
+    }
   }
 }
 
@@ -224,6 +239,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       perimeter_meters?: number | null;
       centroid?: [number, number] | null;
       has_spatial_geometry?: boolean;
+      geojson?: any;
     } | null>(null);
 
     const [toolMode, setToolMode] = useState<"none" | "area" | "distance">("none");
@@ -243,6 +259,17 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     const [compareRatio, setCompareRatio] = useState<number>(50);
     const measureMarkersRef = useRef<maplibregl.Marker[]>([]);
     const isComparingRef = useRef(false);
+
+    /* =====================================================
+       DYNAMIC GRID PETAK (AGRICULTURAL CELLS & EDITOR)
+    ====================================================== */
+    const [gridEnabled, setGridEnabled] = useState(false);
+    const [gridCellSize, setGridCellSize] = useState<number>(10);
+    const [selectedPetak, setSelectedPetak] = useState<PetakProperties | null>(null);
+    const [petakScreenPos, setPetakScreenPos] = useState<{ x: number; y: number } | null>(null);
+    const [isEditingPetak, setIsEditingPetak] = useState(false);
+    const [editForm, setEditForm] = useState<Partial<PetakProperties>>({});
+    const gridDataRef = useRef<GeoJSON.FeatureCollection<GeoJSON.Polygon, PetakProperties> | null>(null);
 
     /* =====================================================
        SYNC REFS
@@ -1068,45 +1095,298 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     }, [terrainEnabled, mapReady, setupTerrain]);
 
     /* =====================================================
-       PRECISION FARMING: DYNAMIC COLORMAP
+       PRECISION FARMING: DYNAMIC GRID PETAK & EDITOR
     ====================================================== */
 
-    const handleChangeColormap = useCallback(
-      async (layerId: string, colormap: string) => {
-        setMapLayers((prev) =>
-          prev.map((l) => (l.id === layerId ? { ...l, color_map: colormap } : l))
-        );
-        mapLayersRef.current = mapLayersRef.current.map((l) =>
-          l.id === layerId ? { ...l, color_map: colormap } : l
-        );
+    const updateGridOnMap = useCallback(
+      (cellSize: number) => {
+        const map = mapRef.current;
+        if (!map || !map.getStyle()) return;
 
-        const activeMapId = mapIdRef.current;
-        const activeToken = tokenRef.current;
-        if (activeMapId) {
-          const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
-          const headers: Record<string, string> = { "Content-Type": "application/json" };
-          if (activeToken) headers.Authorization = `Bearer ${activeToken}`;
-          try {
-            await fetch(`${baseUrl}/maps/${activeMapId}/layers/${layerId}`, {
-              method: "PATCH",
-              headers,
-              body: JSON.stringify({ color_map: colormap }),
+        let boundaryInput: any = spatialInfo?.geojson;
+        if (!boundaryInput && currentMeta?.bounds) {
+          const [[south, west], [north, east]] = currentMeta.bounds;
+          boundaryInput = turf.bboxPolygon([west, south, east, north]);
+        }
+
+        if (!boundaryInput) return;
+
+        const result = generatePetakGrid(boundaryInput, cellSize);
+        const fc: GeoJSON.FeatureCollection<GeoJSON.Polygon, PetakProperties> = {
+          type: "FeatureCollection",
+          features: result.features,
+        };
+        gridDataRef.current = fc;
+
+        const source = map.getSource("grid-petak-source") as maplibregl.GeoJSONSource | undefined;
+        if (source) {
+          source.setData(fc as any);
+        } else {
+          map.addSource("grid-petak-source", {
+            type: "geojson",
+            data: fc as any,
+          });
+
+          map.addLayer({
+            id: "grid-petak-fill",
+            type: "fill",
+            source: "grid-petak-source",
+            layout: { visibility: "visible" },
+            paint: {
+              "fill-color": [
+                "interpolate",
+                ["linear"],
+                ["get", "nitrogen"],
+                30, "#e8f5e9",
+                55, "#a5d6a7",
+                75, "#4caf50",
+                95, "#2e7d32",
+                120, "#1b5e20",
+              ],
+              "fill-opacity": 0.55,
+            },
+          });
+
+          map.addLayer({
+            id: "grid-petak-outline",
+            type: "line",
+            source: "grid-petak-source",
+            layout: { visibility: "visible" },
+            paint: {
+              "line-color": "#ffffff",
+              "line-width": 1.2,
+              "line-opacity": 0.9,
+            },
+          });
+
+          map.on("click", "grid-petak-fill", (e) => {
+            if (!e.features || e.features.length === 0) return;
+            const props = e.features[0].properties as PetakProperties;
+            setSelectedPetak(props);
+            setIsEditingPetak(false);
+            setEditForm({
+              nitrogen: props.nitrogen,
+              phospor: props.phospor,
+              kalium: props.kalium,
+              ph: props.ph,
+              kelembapan: props.kelembapan,
+              c_organik: props.c_organik,
             });
-          } catch (err) {
-            console.error("Gagal update colormap:", err);
-          }
+
+            const pt = e.point;
+            const cEl = containerRef.current;
+            const w = cEl?.clientWidth || 800;
+            const h = cEl?.clientHeight || 600;
+            if (pt.y < 320 || pt.x < 170 || pt.x > w - 170 || pt.y > h - 80) {
+              map.easeTo({
+                center: [props.center_lng, props.center_lat],
+                offset: [0, 80],
+                duration: 300,
+              });
+            }
+          });
+
+          map.on("mouseenter", "grid-petak-fill", () => {
+            map.getCanvas().style.cursor = "pointer";
+          });
+          map.on("mouseleave", "grid-petak-fill", () => {
+            map.getCanvas().style.cursor = "";
+          });
         }
 
-        if (currentMetaRef.current) {
-          setupUavLayer(currentMetaRef.current, mapLayersRef.current);
-        }
+        if (map.getLayer("grid-petak-fill")) map.moveLayer("grid-petak-fill");
+        if (map.getLayer("grid-petak-outline")) map.moveLayer("grid-petak-outline");
       },
-      [setupUavLayer]
+      [spatialInfo, currentMeta]
     );
 
-    /* =====================================================
-       PRECISION FARMING: MEASUREMENT WITH TURF.JS
-    ====================================================== */
+    useEffect(() => {
+      const map = mapRef.current;
+      if (!map || !map.getStyle() || !mapReady) return;
+
+      if (gridEnabled) {
+        updateGridOnMap(gridCellSize);
+        if (map.getLayer("grid-petak-fill")) {
+          map.setLayoutProperty("grid-petak-fill", "visibility", "visible");
+          map.moveLayer("grid-petak-fill");
+        }
+        if (map.getLayer("grid-petak-outline")) {
+          map.setLayoutProperty("grid-petak-outline", "visibility", "visible");
+          map.moveLayer("grid-petak-outline");
+        }
+      } else {
+        if (map.getLayer("grid-petak-fill")) {
+          map.setLayoutProperty("grid-petak-fill", "visibility", "none");
+        }
+        if (map.getLayer("grid-petak-outline")) {
+          map.setLayoutProperty("grid-petak-outline", "visibility", "none");
+        }
+        setSelectedPetak(null);
+        setIsEditingPetak(false);
+      }
+    }, [gridEnabled, gridCellSize, mapReady, updateGridOnMap]);
+
+    const handleSavePetak = useCallback(() => {
+      if (!selectedPetak || !gridDataRef.current) return;
+      const updatedPetak: PetakProperties = {
+        ...selectedPetak,
+        nitrogen: Number(editForm.nitrogen ?? selectedPetak.nitrogen),
+        phospor: Number(editForm.phospor ?? selectedPetak.phospor),
+        kalium: Number(editForm.kalium ?? selectedPetak.kalium),
+        ph: Number(editForm.ph ?? selectedPetak.ph),
+        kelembapan: Number(editForm.kelembapan ?? selectedPetak.kelembapan),
+        c_organik: Number(editForm.c_organik ?? selectedPetak.c_organik),
+      };
+
+      if (updatedPetak.nitrogen < 55) updatedPetak.priority = "N";
+      else if (updatedPetak.phospor < 28) updatedPetak.priority = "P";
+      else updatedPetak.priority = "K";
+
+      setSelectedPetak(updatedPetak);
+      setIsEditingPetak(false);
+
+      const features = gridDataRef.current.features.map((f) => {
+        if (f.properties.block_id === updatedPetak.block_id) {
+          return {
+            ...f,
+            properties: updatedPetak,
+          };
+        }
+        return f;
+      });
+
+      gridDataRef.current = {
+        ...gridDataRef.current,
+        features,
+      };
+
+      const map = mapRef.current;
+      if (map && map.getSource("grid-petak-source")) {
+        (map.getSource("grid-petak-source") as maplibregl.GeoJSONSource).setData(
+          gridDataRef.current as any
+        );
+      }
+    }, [selectedPetak, editForm]);
+
+    /* Update screen pixel position for anchoring the petak card */
+    const updatePetakScreenPos = useCallback(() => {
+      const map = mapRef.current;
+      if (!map || !selectedPetak) {
+        setPetakScreenPos(null);
+        return;
+      }
+      const p = map.project([selectedPetak.center_lng, selectedPetak.center_lat]);
+      setPetakScreenPos({ x: Math.round(p.x), y: Math.round(p.y) });
+    }, [selectedPetak]);
+
+    useEffect(() => {
+      updatePetakScreenPos();
+      const map = mapRef.current;
+      if (!map) return;
+      map.on("move", updatePetakScreenPos);
+      map.on("zoom", updatePetakScreenPos);
+      return () => {
+        map.off("move", updatePetakScreenPos);
+        map.off("zoom", updatePetakScreenPos);
+      };
+    }, [selectedPetak, updatePetakScreenPos]);
+
+    /* Highlight Visual Mark on the Selected Petak Cell */
+    useEffect(() => {
+      const map = mapRef.current;
+      if (!map || !map.getStyle()) return;
+
+      const sourceId = "grid-petak-selected-source";
+      const fillLayerId = "grid-petak-selected-fill";
+      const outlineLayerId = "grid-petak-selected-outline";
+      const markerSourceId = "grid-petak-selected-marker-source";
+      const markerLayerId = "grid-petak-selected-marker";
+
+      if (!map.getSource(sourceId)) {
+        map.addSource(sourceId, {
+          type: "geojson",
+          data: { type: "FeatureCollection", features: [] },
+        });
+
+        map.addLayer({
+          id: fillLayerId,
+          type: "fill",
+          source: sourceId,
+          paint: {
+            "fill-color": "#ffffff",
+            "fill-opacity": 0.28,
+          },
+        });
+
+        map.addLayer({
+          id: outlineLayerId,
+          type: "line",
+          source: sourceId,
+          paint: {
+            "line-color": "#10b981",
+            "line-width": 3.5,
+            "line-opacity": 1,
+          },
+        });
+      }
+
+      if (!map.getSource(markerSourceId)) {
+        map.addSource(markerSourceId, {
+          type: "geojson",
+          data: { type: "FeatureCollection", features: [] },
+        });
+
+        map.addLayer({
+          id: markerLayerId,
+          type: "circle",
+          source: markerSourceId,
+          paint: {
+            "circle-radius": 5,
+            "circle-color": "#10b981",
+            "circle-stroke-width": 2.5,
+            "circle-stroke-color": "#ffffff",
+          },
+        });
+      }
+
+      if (selectedPetak && gridDataRef.current) {
+        const feat = gridDataRef.current.features.find(
+          (f) => f.properties.block_id === selectedPetak.block_id
+        );
+        const polyData: GeoJSON.FeatureCollection = {
+          type: "FeatureCollection",
+          features: feat ? [feat] : [],
+        };
+        const pointData: GeoJSON.FeatureCollection = {
+          type: "FeatureCollection",
+          features: [
+            {
+              type: "Feature",
+              properties: {},
+              geometry: {
+                type: "Point",
+                coordinates: [selectedPetak.center_lng, selectedPetak.center_lat],
+              },
+            },
+          ],
+        };
+
+        const sPoly = map.getSource(sourceId) as maplibregl.GeoJSONSource | undefined;
+        if (sPoly) sPoly.setData(polyData as any);
+        const sPoint = map.getSource(markerSourceId) as maplibregl.GeoJSONSource | undefined;
+        if (sPoint) sPoint.setData(pointData as any);
+
+        if (map.getLayer(fillLayerId)) map.moveLayer(fillLayerId);
+        if (map.getLayer(outlineLayerId)) map.moveLayer(outlineLayerId);
+        if (map.getLayer(markerLayerId)) map.moveLayer(markerLayerId);
+      } else {
+        const emptyFC: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
+        const sPoly = map.getSource(sourceId) as maplibregl.GeoJSONSource | undefined;
+        if (sPoly) sPoly.setData(emptyFC as any);
+        const sPoint = map.getSource(markerSourceId) as maplibregl.GeoJSONSource | undefined;
+        if (sPoint) sPoint.setData(emptyFC as any);
+      }
+    }, [selectedPetak]);
 
     /* =====================================================
        PRECISION FARMING: MEASUREMENT WITH TURF.JS & MARKERS
@@ -1887,7 +2167,6 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               console.error("Gagal menghapus layer:", error);
             }
           }}
-          onChangeColormap={handleChangeColormap}
         />
 
         {/* =================================================
@@ -1978,6 +2257,38 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             <SplitSquareVertical className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Bandingkan</span>
           </button>
+
+          {/* Dynamic Grid Petak Toggle */}
+          <div className="flex items-center gap-1 border-l border-gray-200 pl-1.5 ml-0.5">
+            <button
+              type="button"
+              onClick={() => {
+                setGridEnabled((prev) => !prev);
+              }}
+              title="Tampilkan Grid Petak Pertanian (3m, 5m, 10m)"
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                gridEnabled
+                  ? "bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-600/30"
+                  : "text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              <Grid className="h-3.5 w-3.5" />
+              <span>Petak</span>
+            </button>
+
+            {gridEnabled && (
+              <select
+                value={gridCellSize}
+                onChange={(e) => setGridCellSize(Number(e.target.value))}
+                aria-label="Ukuran Grid Petak"
+                className="rounded-full border border-emerald-200 bg-emerald-50/80 px-2 py-1 text-[10.5px] font-bold text-emerald-900 outline-none hover:bg-emerald-100/70 cursor-pointer shadow-2xs"
+              >
+                <option value={3}>3×3m</option>
+                <option value={5}>5×5m</option>
+                <option value={10}>10×10m</option>
+              </select>
+            )}
+          </div>
         </div>
 
         {/* =================================================
@@ -2262,6 +2573,245 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             </div>
           </div>
         )}
+
+        {/* =================================================
+            INSPEKSI & UBAH DATA PETAK CARD (ANCHORED NEAR CLICKED CELL)
+        ================================================== */}
+        {selectedPetak && petakScreenPos && (() => {
+          const cEl = containerRef.current;
+          const containerW = cEl?.clientWidth || 800;
+          const cardWidth = 295;
+          const halfW = cardWidth / 2;
+          const clampX = Math.max(halfW + 12, Math.min(containerW - halfW - 12, petakScreenPos.x));
+          const isAbove = petakScreenPos.y >= 320;
+          const arrowOffsetPercent = Math.max(14, Math.min(86, 50 + ((petakScreenPos.x - clampX) / cardWidth) * 100));
+
+          return (
+            <div
+              className="absolute z-40 w-[295px] transition-transform duration-75 ease-out pointer-events-auto"
+              style={{
+                left: `${clampX}px`,
+                top: `${isAbove ? petakScreenPos.y - 14 : petakScreenPos.y + 14}px`,
+                transform: isAbove ? "translate(-50%, -100%)" : "translate(-50%, 0)",
+              }}
+            >
+              {/* Pointing Notch Arrow */}
+              {isAbove ? (
+                <div
+                  className="absolute -bottom-1.5 h-3 w-3 -translate-x-1/2 rotate-45 border-r border-b border-gray-200/80 bg-white shadow-xs"
+                  style={{ left: `${arrowOffsetPercent}%` }}
+                />
+              ) : (
+                <div
+                  className="absolute -top-1.5 h-3 w-3 -translate-x-1/2 rotate-45 border-l border-t border-gray-200/80 bg-white shadow-xs"
+                  style={{ left: `${arrowOffsetPercent}%` }}
+                />
+              )}
+
+              {/* Card Container */}
+              <div className="relative rounded-2xl border border-gray-200/90 bg-white/95 p-3.5 shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150">
+                {/* Header */}
+                <div className="flex items-start justify-between pb-2 border-b border-gray-100">
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="flex h-5 w-5 items-center justify-center rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-black">
+                        🔲
+                      </span>
+                      <h4 className="text-xs font-bold text-gray-900">
+                        Petak {selectedPetak.block_id}
+                      </h4>
+                      <span className="rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60 px-1.5 py-0.2 text-[9px] font-bold">
+                        {Math.round(Math.sqrt(selectedPetak.area_m2))}×{Math.round(Math.sqrt(selectedPetak.area_m2))}m
+                      </span>
+                    </div>
+                    <div className="mt-0.5 text-[10px] text-gray-400 font-medium">
+                      {mapTitle || "Lahan Drone"} · {selectedPetak.area_m2} m²
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedPetak(null);
+                      setIsEditingPetak(false);
+                    }}
+                    className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition cursor-pointer"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
+                {/* Content: View Mode vs Edit Mode */}
+                {!isEditingPetak ? (
+                  <div className="mt-2.5 space-y-2">
+                    {/* Nutrients Table */}
+                    <div className="divide-y divide-gray-100 rounded-xl border border-gray-100 bg-gray-50/60 px-2.5 py-0.5 text-xs">
+                      {[
+                        { key: "nitrogen", label: "Nitrogen (N)", val: selectedPetak.nitrogen, unit: "mg/kg" },
+                        { key: "phospor", label: "Fosfor (P)", val: selectedPetak.phospor, unit: "mg/kg" },
+                        { key: "kalium", label: "Kalium (K)", val: selectedPetak.kalium, unit: "mg/kg" },
+                        { key: "ph", label: "Keasaman (pH)", val: selectedPetak.ph, unit: "" },
+                        { key: "kelembapan", label: "Kelembapan", val: selectedPetak.kelembapan, unit: "%" },
+                        { key: "c_organik", label: "C-Organik", val: selectedPetak.c_organik, unit: "%" },
+                      ].map(({ key, label, val, unit }) => {
+                        const cls = classifyParam(key, val);
+                        return (
+                          <div key={key} className="flex items-center justify-between py-1">
+                            <span className="text-gray-600 text-[10.5px] font-medium">{label}</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold text-gray-900 text-[11px]">
+                                {val} {unit}
+                              </span>
+                              <span
+                                className="rounded px-1.5 py-0.2 text-[8.5px] font-bold"
+                                style={{
+                                  backgroundColor: cls.warna,
+                                  color:
+                                    cls.warna.startsWith("#e") ||
+                                    cls.warna.startsWith("#f") ||
+                                    cls.warna.startsWith("#a") ||
+                                    cls.warna.startsWith("#c")
+                                      ? "#1f2a1f"
+                                      : "#ffffff",
+                                }}
+                              >
+                                {cls.nama}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Priority Note */}
+                    <div className="rounded-lg border border-emerald-100 bg-emerald-50/70 px-2 py-1.5 text-[10px] text-emerald-950 font-medium">
+                      🌱 <b>Prioritas Pupuk:</b>{" "}
+                      {selectedPetak.priority === "N"
+                        ? "Urea (Nitrogen paling tertinggal)"
+                        : selectedPetak.priority === "P"
+                        ? "SP-36 (Fosfor paling tertinggal)"
+                        : "KCl (Kalium paling tertinggal)"}
+                    </div>
+
+                    {/* Action button: Ubah Data Petak */}
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingPetak(true)}
+                      className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#123c28] py-1.5 text-[11.5px] font-bold text-white shadow-xs hover:bg-[#1b4d35] active:scale-98 transition cursor-pointer"
+                    >
+                      <Edit3 className="h-3 w-3" />
+                      <span>Ubah Data Petak</span>
+                    </button>
+                  </div>
+                ) : (
+                  /* Edit Mode Form */
+                  <div className="mt-2.5 space-y-2">
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <label className="block text-[9.5px] font-bold text-gray-500 mb-0.5">
+                          Nitrogen (mg/kg)
+                        </label>
+                        <input
+                          type="number"
+                          value={editForm.nitrogen ?? ""}
+                          onChange={(e) =>
+                            setEditForm((prev) => ({ ...prev, nitrogen: Number(e.target.value) }))
+                          }
+                          className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-900 outline-none focus:border-emerald-600 focus:bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[9.5px] font-bold text-gray-500 mb-0.5">
+                          Fosfor (mg/kg)
+                        </label>
+                        <input
+                          type="number"
+                          value={editForm.phospor ?? ""}
+                          onChange={(e) =>
+                            setEditForm((prev) => ({ ...prev, phospor: Number(e.target.value) }))
+                          }
+                          className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-900 outline-none focus:border-emerald-600 focus:bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[9.5px] font-bold text-gray-500 mb-0.5">
+                          Kalium (mg/kg)
+                        </label>
+                        <input
+                          type="number"
+                          value={editForm.kalium ?? ""}
+                          onChange={(e) =>
+                            setEditForm((prev) => ({ ...prev, kalium: Number(e.target.value) }))
+                          }
+                          className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-900 outline-none focus:border-emerald-600 focus:bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[9.5px] font-bold text-gray-500 mb-0.5">
+                          Keasaman (pH)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={editForm.ph ?? ""}
+                          onChange={(e) =>
+                            setEditForm((prev) => ({ ...prev, ph: Number(e.target.value) }))
+                          }
+                          className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-900 outline-none focus:border-emerald-600 focus:bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[9.5px] font-bold text-gray-500 mb-0.5">
+                          Kelembapan (%)
+                        </label>
+                        <input
+                          type="number"
+                          value={editForm.kelembapan ?? ""}
+                          onChange={(e) =>
+                            setEditForm((prev) => ({ ...prev, kelembapan: Number(e.target.value) }))
+                          }
+                          className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-900 outline-none focus:border-emerald-600 focus:bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[9.5px] font-bold text-gray-500 mb-0.5">
+                          C-Organik (%)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={editForm.c_organik ?? ""}
+                          onChange={(e) =>
+                            setEditForm((prev) => ({ ...prev, c_organik: Number(e.target.value) }))
+                          }
+                          className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-900 outline-none focus:border-emerald-600 focus:bg-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingPetak(false)}
+                        className="flex-1 rounded-lg border border-gray-200 bg-white py-1 text-[11px] font-bold text-gray-600 hover:bg-gray-50 transition cursor-pointer"
+                      >
+                        Batal
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSavePetak}
+                        className="flex-1 flex items-center justify-center gap-1 rounded-lg bg-emerald-700 py-1 text-[11px] font-bold text-white hover:bg-emerald-800 shadow-xs transition cursor-pointer"
+                      >
+                        <Save className="h-3 w-3" />
+                        <span>Simpan</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* =================================================
             BOTTOM-LEFT CONTROLS (POSTGIS BADGE + COMPASS)
