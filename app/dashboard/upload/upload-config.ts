@@ -66,6 +66,24 @@ export const LAYER_TYPE_CONFIG: Record<
     defaultName: "Model Elevasi (DSM)",
     defaultOpacity: 0.7,
   },
+  ph: {
+    label: "Keasaman Tanah (pH)",
+    badgeClass: "border-indigo-200 bg-indigo-50 text-indigo-800",
+    defaultName: "Keasaman Tanah (pH)",
+    defaultOpacity: 0.75,
+  },
+  moisture: {
+    label: "Kelembapan Tanah",
+    badgeClass: "border-cyan-200 bg-cyan-50 text-cyan-800",
+    defaultName: "Kelembapan Tanah",
+    defaultOpacity: 0.75,
+  },
+  corganic: {
+    label: "Karbon Organik (C-Org)",
+    badgeClass: "border-yellow-200 bg-yellow-50 text-yellow-800",
+    defaultName: "Karbon Organik (C-Org)",
+    defaultOpacity: 0.75,
+  },
   spectral: {
     label: "Saluran Multispektral",
     badgeClass: "border-sky-200 bg-sky-50 text-sky-800",
@@ -87,6 +105,9 @@ export const layerOptions = [
   { value: "nitrogen", label: "Nitrogen (N)" },
   { value: "phosphorus", label: "Fosfor (P)" },
   { value: "kalium", label: "Kalium (K)" },
+  { value: "ph", label: "Keasaman (pH)" },
+  { value: "moisture", label: "Kelembapan" },
+  { value: "corganic", label: "C-Organik" },
   { value: "dsm", label: "DSM (Elevasi)" },
   { value: "spectral", label: "Multispektral" },
   { value: "custom", label: "Layer Kustom" },
@@ -151,6 +172,33 @@ export function autoDetectLayer(filename: string) {
     return {
       layer_type: "kalium",
       name: "Kandungan Kalium (K)",
+      is_base: false,
+      default_opacity: 0.75,
+    };
+  }
+
+  if (isToken("ph") || fn.includes("keasaman")) {
+    return {
+      layer_type: "ph",
+      name: "Keasaman Tanah (pH)",
+      is_base: false,
+      default_opacity: 0.75,
+    };
+  }
+
+  if (/kelembapan|moisture|water/.test(fn)) {
+    return {
+      layer_type: "moisture",
+      name: "Kelembapan Tanah",
+      is_base: false,
+      default_opacity: 0.75,
+    };
+  }
+
+  if (/organik|carbon|corganic/.test(fn)) {
+    return {
+      layer_type: "corganic",
+      name: "Karbon Organik (C-Org)",
       is_base: false,
       default_opacity: 0.75,
     };
