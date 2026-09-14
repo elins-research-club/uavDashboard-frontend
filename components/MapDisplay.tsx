@@ -242,7 +242,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       geojson?: any;
     } | null>(null);
 
-    const [toolMode, setToolMode] = useState<"none" | "area" | "distance">("none");
+    const [toolMode, setToolMode] = useState<"none" | "area" | "distance">(
+      "none"
+    );
     const [measurePoints, setMeasurePoints] = useState<[number, number][]>([]);
     const [measuredMetrics, setMeasuredMetrics] = useState<{
       areaHa?: number;
@@ -265,11 +267,19 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     ====================================================== */
     const [gridEnabled, setGridEnabled] = useState(false);
     const [gridCellSize, setGridCellSize] = useState<number>(10);
-    const [selectedPetak, setSelectedPetak] = useState<PetakProperties | null>(null);
-    const [petakScreenPos, setPetakScreenPos] = useState<{ x: number; y: number } | null>(null);
+    const [selectedPetak, setSelectedPetak] = useState<PetakProperties | null>(
+      null
+    );
+    const [petakScreenPos, setPetakScreenPos] = useState<{
+      x: number;
+      y: number;
+    } | null>(null);
     const [isEditingPetak, setIsEditingPetak] = useState(false);
     const [editForm, setEditForm] = useState<Partial<PetakProperties>>({});
-    const gridDataRef = useRef<GeoJSON.FeatureCollection<GeoJSON.Polygon, PetakProperties> | null>(null);
+    const gridDataRef = useRef<GeoJSON.FeatureCollection<
+      GeoJSON.Polygon,
+      PetakProperties
+    > | null>(null);
 
     /* =====================================================
        SYNC REFS
@@ -599,10 +609,14 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
         if (currentLayers && currentLayers.length > 0) {
           // Remove old single-layer fallbacks if any
-          if (map.getLayer(UAV_RASTER_LAYER_ID)) map.removeLayer(UAV_RASTER_LAYER_ID);
-          if (map.getSource(UAV_RASTER_SOURCE_ID)) map.removeSource(UAV_RASTER_SOURCE_ID);
-          if (map.getLayer(UAV_IMAGE_LAYER_ID)) map.removeLayer(UAV_IMAGE_LAYER_ID);
-          if (map.getSource(UAV_IMAGE_SOURCE_ID)) map.removeSource(UAV_IMAGE_SOURCE_ID);
+          if (map.getLayer(UAV_RASTER_LAYER_ID))
+            map.removeLayer(UAV_RASTER_LAYER_ID);
+          if (map.getSource(UAV_RASTER_SOURCE_ID))
+            map.removeSource(UAV_RASTER_SOURCE_ID);
+          if (map.getLayer(UAV_IMAGE_LAYER_ID))
+            map.removeLayer(UAV_IMAGE_LAYER_ID);
+          if (map.getSource(UAV_IMAGE_SOURCE_ID))
+            map.removeSource(UAV_IMAGE_SOURCE_ID);
 
           // Clean up any stale layers no longer in currentLayers
           const activeIds = new Set(currentLayers.map((l) => l.id));
@@ -1112,13 +1126,16 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         if (!boundaryInput) return;
 
         const result = generatePetakGrid(boundaryInput, cellSize);
-        const fc: GeoJSON.FeatureCollection<GeoJSON.Polygon, PetakProperties> = {
-          type: "FeatureCollection",
-          features: result.features,
-        };
+        const fc: GeoJSON.FeatureCollection<GeoJSON.Polygon, PetakProperties> =
+          {
+            type: "FeatureCollection",
+            features: result.features,
+          };
         gridDataRef.current = fc;
 
-        const source = map.getSource("grid-petak-source") as maplibregl.GeoJSONSource | undefined;
+        const source = map.getSource("grid-petak-source") as
+          | maplibregl.GeoJSONSource
+          | undefined;
         if (source) {
           source.setData(fc as any);
         } else {
@@ -1137,11 +1154,16 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                 "interpolate",
                 ["linear"],
                 ["get", "nitrogen"],
-                30, "#e8f5e9",
-                55, "#a5d6a7",
-                75, "#4caf50",
-                95, "#2e7d32",
-                120, "#1b5e20",
+                30,
+                "#e8f5e9",
+                55,
+                "#a5d6a7",
+                75,
+                "#4caf50",
+                95,
+                "#2e7d32",
+                120,
+                "#1b5e20",
               ],
               "fill-opacity": 0.55,
             },
@@ -1195,7 +1217,8 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         }
 
         if (map.getLayer("grid-petak-fill")) map.moveLayer("grid-petak-fill");
-        if (map.getLayer("grid-petak-outline")) map.moveLayer("grid-petak-outline");
+        if (map.getLayer("grid-petak-outline"))
+          map.moveLayer("grid-petak-outline");
       },
       [spatialInfo, currentMeta]
     );
@@ -1262,9 +1285,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
       const map = mapRef.current;
       if (map && map.getSource("grid-petak-source")) {
-        (map.getSource("grid-petak-source") as maplibregl.GeoJSONSource).setData(
-          gridDataRef.current as any
-        );
+        (
+          map.getSource("grid-petak-source") as maplibregl.GeoJSONSource
+        ).setData(gridDataRef.current as any);
       }
     }, [selectedPetak, editForm]);
 
@@ -1275,7 +1298,10 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         setPetakScreenPos(null);
         return;
       }
-      const p = map.project([selectedPetak.center_lng, selectedPetak.center_lat]);
+      const p = map.project([
+        selectedPetak.center_lng,
+        selectedPetak.center_lat,
+      ]);
       setPetakScreenPos({ x: Math.round(p.x), y: Math.round(p.y) });
     }, [selectedPetak]);
 
@@ -1365,25 +1391,39 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               properties: {},
               geometry: {
                 type: "Point",
-                coordinates: [selectedPetak.center_lng, selectedPetak.center_lat],
+                coordinates: [
+                  selectedPetak.center_lng,
+                  selectedPetak.center_lat,
+                ],
               },
             },
           ],
         };
 
-        const sPoly = map.getSource(sourceId) as maplibregl.GeoJSONSource | undefined;
+        const sPoly = map.getSource(sourceId) as
+          | maplibregl.GeoJSONSource
+          | undefined;
         if (sPoly) sPoly.setData(polyData as any);
-        const sPoint = map.getSource(markerSourceId) as maplibregl.GeoJSONSource | undefined;
+        const sPoint = map.getSource(markerSourceId) as
+          | maplibregl.GeoJSONSource
+          | undefined;
         if (sPoint) sPoint.setData(pointData as any);
 
         if (map.getLayer(fillLayerId)) map.moveLayer(fillLayerId);
         if (map.getLayer(outlineLayerId)) map.moveLayer(outlineLayerId);
         if (map.getLayer(markerLayerId)) map.moveLayer(markerLayerId);
       } else {
-        const emptyFC: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
-        const sPoly = map.getSource(sourceId) as maplibregl.GeoJSONSource | undefined;
+        const emptyFC: GeoJSON.FeatureCollection = {
+          type: "FeatureCollection",
+          features: [],
+        };
+        const sPoly = map.getSource(sourceId) as
+          | maplibregl.GeoJSONSource
+          | undefined;
         if (sPoly) sPoly.setData(emptyFC as any);
-        const sPoint = map.getSource(markerSourceId) as maplibregl.GeoJSONSource | undefined;
+        const sPoint = map.getSource(markerSourceId) as
+          | maplibregl.GeoJSONSource
+          | undefined;
         if (sPoint) sPoint.setData(emptyFC as any);
       }
     }, [selectedPetak]);
@@ -1994,8 +2034,6 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
           </div>
         )}
 
-
-
         {/* =================================================
             LAYER CONTROL PANEL
         ================================================== */}
@@ -2194,25 +2232,6 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             type="button"
             onClick={() => {
               handleCloseCompare();
-              const next = toolMode === "area" ? "none" : "area";
-              setToolMode(next);
-              handleClearMeasurement();
-            }}
-            title="Ukur Luas Lahan (Hektar / m²)"
-            className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
-              toolMode === "area"
-                ? "bg-[#91b928] text-white shadow-sm ring-2 ring-[#91b928]/40"
-                : "text-gray-700 hover:bg-gray-100"
-            }`}
-          >
-            <Pentagon className="h-3.5 w-3.5" />
-            <span>Ukur Lahan</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              handleCloseCompare();
               const next = toolMode === "distance" ? "none" : "distance";
               setToolMode(next);
               handleClearMeasurement();
@@ -2301,7 +2320,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             {/* Header: Clean Title, Simple Point Count, and Close Button */}
             <div className="flex items-center justify-between pb-2.5 border-b border-gray-100">
               <h4 className="text-xs font-bold text-gray-900">
-                {toolMode === "area" ? "Ukur Area Lahan" : "Ukur Jarak Lintasan"}
+                {toolMode === "area"
+                  ? "Ukur Area Lahan"
+                  : "Ukur Jarak Lintasan"}
               </h4>
 
               <div className="flex items-center gap-2">
@@ -2350,10 +2371,13 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                         <span className="text-xl font-black text-[#123c28] tracking-tight">
                           {measuredMetrics.areaHa ?? 0}
                         </span>
-                        <span className="text-xs font-bold text-gray-500">ha</span>
+                        <span className="text-xs font-bold text-gray-500">
+                          ha
+                        </span>
                       </div>
                       <span className="text-[10px] text-gray-400 font-medium">
-                        {(measuredMetrics.areaM2 ?? 0).toLocaleString("id-ID")} m²
+                        {(measuredMetrics.areaM2 ?? 0).toLocaleString("id-ID")}{" "}
+                        m²
                       </span>
                     </div>
 
@@ -2364,16 +2388,22 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                         </span>
                         <div className="mt-0.5 flex items-baseline gap-1">
                           <span className="text-base font-extrabold text-gray-800">
-                            {(measuredMetrics.perimeterM ?? 0).toLocaleString("id-ID")}
+                            {(measuredMetrics.perimeterM ?? 0).toLocaleString(
+                              "id-ID"
+                            )}
                           </span>
-                          <span className="text-xs font-bold text-gray-500">meter</span>
+                          <span className="text-xs font-bold text-gray-500">
+                            meter
+                          </span>
                         </div>
                       </div>
 
                       {measuredMetrics.areaHa ? (
                         <div className="mt-1 flex items-center gap-1 rounded-md bg-emerald-100/70 px-1.5 py-0.5 text-[9px] font-bold text-emerald-900 border border-emerald-200/60">
                           <span>🌱 Est. Urea:</span>
-                          <span>±{Math.round(measuredMetrics.areaHa * 250)} kg</span>
+                          <span>
+                            ±{Math.round(measuredMetrics.areaHa * 250)} kg
+                          </span>
                         </div>
                       ) : null}
                     </div>
@@ -2387,9 +2417,15 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                       <span className="text-2xl font-black text-[#123c28] tracking-tight">
                         {measuredMetrics.distanceKm}
                       </span>
-                      <span className="text-xs font-bold text-gray-600">km</span>
+                      <span className="text-xs font-bold text-gray-600">
+                        km
+                      </span>
                       <span className="text-xs text-gray-400 font-medium">
-                        ({(measuredMetrics.distanceM ?? 0).toLocaleString("id-ID")} meter)
+                        (
+                        {(measuredMetrics.distanceM ?? 0).toLocaleString(
+                          "id-ID"
+                        )}{" "}
+                        meter)
                       </span>
                     </div>
                   </div>
@@ -2576,241 +2612,307 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         {/* =================================================
             INSPEKSI & UBAH DATA PETAK CARD (ANCHORED NEAR CLICKED CELL)
         ================================================== */}
-        {selectedPetak && petakScreenPos && (() => {
-          const cEl = containerRef.current;
-          const containerW = cEl?.clientWidth || 800;
-          const cardWidth = 295;
-          const halfW = cardWidth / 2;
-          const clampX = Math.max(halfW + 12, Math.min(containerW - halfW - 12, petakScreenPos.x));
-          const isAbove = petakScreenPos.y >= 320;
-          const arrowOffsetPercent = Math.max(14, Math.min(86, 50 + ((petakScreenPos.x - clampX) / cardWidth) * 100));
+        {selectedPetak &&
+          petakScreenPos &&
+          (() => {
+            const cEl = containerRef.current;
+            const containerW = cEl?.clientWidth || 800;
+            const cardWidth = 295;
+            const halfW = cardWidth / 2;
+            const clampX = Math.max(
+              halfW + 12,
+              Math.min(containerW - halfW - 12, petakScreenPos.x)
+            );
+            const isAbove = petakScreenPos.y >= 320;
+            const arrowOffsetPercent = Math.max(
+              14,
+              Math.min(86, 50 + ((petakScreenPos.x - clampX) / cardWidth) * 100)
+            );
 
-          return (
-            <div
-              className="absolute z-30 w-[295px] transition-transform duration-75 ease-out pointer-events-auto"
-              style={{
-                left: `${clampX}px`,
-                top: `${isAbove ? petakScreenPos.y - 14 : petakScreenPos.y + 14}px`,
-                transform: isAbove ? "translate(-50%, -100%)" : "translate(-50%, 0)",
-              }}
-            >
-              {/* Pointing Notch Arrow */}
-              {isAbove ? (
-                <div
-                  className="absolute -bottom-1.5 h-3 w-3 -translate-x-1/2 rotate-45 border-r border-b border-gray-200/80 bg-white shadow-xs"
-                  style={{ left: `${arrowOffsetPercent}%` }}
-                />
-              ) : (
-                <div
-                  className="absolute -top-1.5 h-3 w-3 -translate-x-1/2 rotate-45 border-l border-t border-gray-200/80 bg-white shadow-xs"
-                  style={{ left: `${arrowOffsetPercent}%` }}
-                />
-              )}
+            return (
+              <div
+                className="absolute z-30 w-[295px] transition-transform duration-75 ease-out pointer-events-auto"
+                style={{
+                  left: `${clampX}px`,
+                  top: `${
+                    isAbove ? petakScreenPos.y - 14 : petakScreenPos.y + 14
+                  }px`,
+                  transform: isAbove
+                    ? "translate(-50%, -100%)"
+                    : "translate(-50%, 0)",
+                }}
+              >
+                {/* Pointing Notch Arrow */}
+                {isAbove ? (
+                  <div
+                    className="absolute -bottom-1.5 h-3 w-3 -translate-x-1/2 rotate-45 border-r border-b border-gray-200/80 bg-white shadow-xs"
+                    style={{ left: `${arrowOffsetPercent}%` }}
+                  />
+                ) : (
+                  <div
+                    className="absolute -top-1.5 h-3 w-3 -translate-x-1/2 rotate-45 border-l border-t border-gray-200/80 bg-white shadow-xs"
+                    style={{ left: `${arrowOffsetPercent}%` }}
+                  />
+                )}
 
-              {/* Card Container */}
-              <div className="relative rounded-2xl border border-gray-200/90 bg-white/95 p-3.5 shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150">
-                {/* Header */}
-                <div className="flex items-start justify-between pb-2 border-b border-gray-100">
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="flex h-5 w-5 items-center justify-center rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-black">
-                        🔲
-                      </span>
-                      <h4 className="text-xs font-bold text-gray-900">
-                        Petak {selectedPetak.block_id}
-                      </h4>
-                      <span className="rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60 px-1.5 py-0.2 text-[9px] font-bold">
-                        {Math.round(Math.sqrt(selectedPetak.area_m2))}×{Math.round(Math.sqrt(selectedPetak.area_m2))}m
-                      </span>
-                    </div>
-                    <div className="mt-0.5 text-[10px] text-gray-400 font-medium">
-                      {mapTitle || "Lahan Drone"} · {selectedPetak.area_m2} m²
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedPetak(null);
-                      setIsEditingPetak(false);
-                    }}
-                    className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition cursor-pointer"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-
-                {/* Content: View Mode vs Edit Mode */}
-                {!isEditingPetak ? (
-                  <div className="mt-2.5 space-y-2">
-                    {/* Nutrients Table */}
-                    <div className="divide-y divide-gray-100 rounded-xl border border-gray-100 bg-gray-50/60 px-2.5 py-0.5 text-xs">
-                      {[
-                        { key: "nitrogen", label: "Nitrogen (N)", val: selectedPetak.nitrogen, unit: "mg/kg" },
-                        { key: "phospor", label: "Fosfor (P)", val: selectedPetak.phospor, unit: "mg/kg" },
-                        { key: "kalium", label: "Kalium (K)", val: selectedPetak.kalium, unit: "mg/kg" },
-                        { key: "ph", label: "Keasaman (pH)", val: selectedPetak.ph, unit: "" },
-                        { key: "kelembapan", label: "Kelembapan", val: selectedPetak.kelembapan, unit: "%" },
-                        { key: "c_organik", label: "C-Organik", val: selectedPetak.c_organik, unit: "%" },
-                      ].map(({ key, label, val, unit }) => {
-                        const cls = classifyParam(key, val);
-                        return (
-                          <div key={key} className="flex items-center justify-between py-1">
-                            <span className="text-gray-600 text-[10.5px] font-medium">{label}</span>
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-bold text-gray-900 text-[11px]">
-                                {val} {unit}
-                              </span>
-                              <span
-                                className="rounded px-1.5 py-0.2 text-[8.5px] font-bold"
-                                style={{
-                                  backgroundColor: cls.warna,
-                                  color:
-                                    cls.warna.startsWith("#e") ||
-                                    cls.warna.startsWith("#f") ||
-                                    cls.warna.startsWith("#a") ||
-                                    cls.warna.startsWith("#c")
-                                      ? "#1f2a1f"
-                                      : "#ffffff",
-                                }}
-                              >
-                                {cls.nama}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
+                {/* Card Container */}
+                <div className="relative rounded-2xl border border-gray-200/90 bg-white/95 p-3.5 shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150">
+                  {/* Header */}
+                  <div className="flex items-start justify-between pb-2 border-b border-gray-100">
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="flex h-5 w-5 items-center justify-center rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-black">
+                          🔲
+                        </span>
+                        <h4 className="text-xs font-bold text-gray-900">
+                          Petak {selectedPetak.block_id}
+                        </h4>
+                        <span className="rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60 px-1.5 py-0.2 text-[9px] font-bold">
+                          {Math.round(Math.sqrt(selectedPetak.area_m2))}×
+                          {Math.round(Math.sqrt(selectedPetak.area_m2))}m
+                        </span>
+                      </div>
+                      <div className="mt-0.5 text-[10px] text-gray-400 font-medium">
+                        {mapTitle || "Lahan Drone"} · {selectedPetak.area_m2} m²
+                      </div>
                     </div>
 
-                    {/* Priority Note */}
-                    <div className="rounded-lg border border-emerald-100 bg-emerald-50/70 px-2 py-1.5 text-[10px] text-emerald-950 font-medium">
-                      🌱 <b>Prioritas Pupuk:</b>{" "}
-                      {selectedPetak.priority === "N"
-                        ? "Urea (Nitrogen paling tertinggal)"
-                        : selectedPetak.priority === "P"
-                        ? "SP-36 (Fosfor paling tertinggal)"
-                        : "KCl (Kalium paling tertinggal)"}
-                    </div>
-
-                    {/* Action button: Ubah Data Petak */}
                     <button
                       type="button"
-                      onClick={() => setIsEditingPetak(true)}
-                      className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#123c28] py-1.5 text-[11.5px] font-bold text-white shadow-xs hover:bg-[#1b4d35] active:scale-98 transition cursor-pointer"
+                      onClick={() => {
+                        setSelectedPetak(null);
+                        setIsEditingPetak(false);
+                      }}
+                      className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition cursor-pointer"
                     >
-                      <Edit3 className="h-3 w-3" />
-                      <span>Ubah Data Petak</span>
+                      <X className="h-3.5 w-3.5" />
                     </button>
                   </div>
-                ) : (
-                  /* Edit Mode Form */
-                  <div className="mt-2.5 space-y-2">
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div>
-                        <label className="block text-[9.5px] font-bold text-gray-500 mb-0.5">
-                          Nitrogen (mg/kg)
-                        </label>
-                        <input
-                          type="number"
-                          value={editForm.nitrogen ?? ""}
-                          onChange={(e) =>
-                            setEditForm((prev) => ({ ...prev, nitrogen: Number(e.target.value) }))
-                          }
-                          className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-900 outline-none focus:border-emerald-600 focus:bg-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[9.5px] font-bold text-gray-500 mb-0.5">
-                          Fosfor (mg/kg)
-                        </label>
-                        <input
-                          type="number"
-                          value={editForm.phospor ?? ""}
-                          onChange={(e) =>
-                            setEditForm((prev) => ({ ...prev, phospor: Number(e.target.value) }))
-                          }
-                          className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-900 outline-none focus:border-emerald-600 focus:bg-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[9.5px] font-bold text-gray-500 mb-0.5">
-                          Kalium (mg/kg)
-                        </label>
-                        <input
-                          type="number"
-                          value={editForm.kalium ?? ""}
-                          onChange={(e) =>
-                            setEditForm((prev) => ({ ...prev, kalium: Number(e.target.value) }))
-                          }
-                          className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-900 outline-none focus:border-emerald-600 focus:bg-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[9.5px] font-bold text-gray-500 mb-0.5">
-                          Keasaman (pH)
-                        </label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          value={editForm.ph ?? ""}
-                          onChange={(e) =>
-                            setEditForm((prev) => ({ ...prev, ph: Number(e.target.value) }))
-                          }
-                          className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-900 outline-none focus:border-emerald-600 focus:bg-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[9.5px] font-bold text-gray-500 mb-0.5">
-                          Kelembapan (%)
-                        </label>
-                        <input
-                          type="number"
-                          value={editForm.kelembapan ?? ""}
-                          onChange={(e) =>
-                            setEditForm((prev) => ({ ...prev, kelembapan: Number(e.target.value) }))
-                          }
-                          className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-900 outline-none focus:border-emerald-600 focus:bg-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[9.5px] font-bold text-gray-500 mb-0.5">
-                          C-Organik (%)
-                        </label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          value={editForm.c_organik ?? ""}
-                          onChange={(e) =>
-                            setEditForm((prev) => ({ ...prev, c_organik: Number(e.target.value) }))
-                          }
-                          className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-900 outline-none focus:border-emerald-600 focus:bg-white"
-                        />
-                      </div>
-                    </div>
 
-                    <div className="flex items-center gap-2 pt-1">
+                  {/* Content: View Mode vs Edit Mode */}
+                  {!isEditingPetak ? (
+                    <div className="mt-2.5 space-y-2">
+                      {/* Nutrients Table */}
+                      <div className="divide-y divide-gray-100 rounded-xl border border-gray-100 bg-gray-50/60 px-2.5 py-0.5 text-xs">
+                        {[
+                          {
+                            key: "nitrogen",
+                            label: "Nitrogen (N)",
+                            val: selectedPetak.nitrogen,
+                            unit: "mg/kg",
+                          },
+                          {
+                            key: "phospor",
+                            label: "Fosfor (P)",
+                            val: selectedPetak.phospor,
+                            unit: "mg/kg",
+                          },
+                          {
+                            key: "kalium",
+                            label: "Kalium (K)",
+                            val: selectedPetak.kalium,
+                            unit: "mg/kg",
+                          },
+                          {
+                            key: "ph",
+                            label: "Keasaman (pH)",
+                            val: selectedPetak.ph,
+                            unit: "",
+                          },
+                          {
+                            key: "kelembapan",
+                            label: "Kelembapan",
+                            val: selectedPetak.kelembapan,
+                            unit: "%",
+                          },
+                          {
+                            key: "c_organik",
+                            label: "C-Organik",
+                            val: selectedPetak.c_organik,
+                            unit: "%",
+                          },
+                        ].map(({ key, label, val, unit }) => {
+                          const cls = classifyParam(key, val);
+                          return (
+                            <div
+                              key={key}
+                              className="flex items-center justify-between py-1"
+                            >
+                              <span className="text-gray-600 text-[10.5px] font-medium">
+                                {label}
+                              </span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-bold text-gray-900 text-[11px]">
+                                  {val} {unit}
+                                </span>
+                                <span
+                                  className="rounded px-1.5 py-0.2 text-[8.5px] font-bold"
+                                  style={{
+                                    backgroundColor: cls.warna,
+                                    color:
+                                      cls.warna.startsWith("#e") ||
+                                      cls.warna.startsWith("#f") ||
+                                      cls.warna.startsWith("#a") ||
+                                      cls.warna.startsWith("#c")
+                                        ? "#1f2a1f"
+                                        : "#ffffff",
+                                  }}
+                                >
+                                  {cls.nama}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Priority Note */}
+                      <div className="rounded-lg border border-emerald-100 bg-emerald-50/70 px-2 py-1.5 text-[10px] text-emerald-950 font-medium">
+                        🌱 <b>Prioritas Pupuk:</b>{" "}
+                        {selectedPetak.priority === "N"
+                          ? "Urea (Nitrogen paling tertinggal)"
+                          : selectedPetak.priority === "P"
+                          ? "SP-36 (Fosfor paling tertinggal)"
+                          : "KCl (Kalium paling tertinggal)"}
+                      </div>
+
+                      {/* Action button: Ubah Data Petak */}
                       <button
                         type="button"
-                        onClick={() => setIsEditingPetak(false)}
-                        className="flex-1 rounded-lg border border-gray-200 bg-white py-1 text-[11px] font-bold text-gray-600 hover:bg-gray-50 transition cursor-pointer"
+                        onClick={() => setIsEditingPetak(true)}
+                        className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#123c28] py-1.5 text-[11.5px] font-bold text-white shadow-xs hover:bg-[#1b4d35] active:scale-98 transition cursor-pointer"
                       >
-                        Batal
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleSavePetak}
-                        className="flex-1 flex items-center justify-center gap-1 rounded-lg bg-emerald-700 py-1 text-[11px] font-bold text-white hover:bg-emerald-800 shadow-xs transition cursor-pointer"
-                      >
-                        <Save className="h-3 w-3" />
-                        <span>Simpan</span>
+                        <Edit3 className="h-3 w-3" />
+                        <span>Ubah Data Petak</span>
                       </button>
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    /* Edit Mode Form */
+                    <div className="mt-2.5 space-y-2">
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <label className="block text-[9.5px] font-bold text-gray-500 mb-0.5">
+                            Nitrogen (mg/kg)
+                          </label>
+                          <input
+                            type="number"
+                            value={editForm.nitrogen ?? ""}
+                            onChange={(e) =>
+                              setEditForm((prev) => ({
+                                ...prev,
+                                nitrogen: Number(e.target.value),
+                              }))
+                            }
+                            className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-900 outline-none focus:border-emerald-600 focus:bg-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9.5px] font-bold text-gray-500 mb-0.5">
+                            Fosfor (mg/kg)
+                          </label>
+                          <input
+                            type="number"
+                            value={editForm.phospor ?? ""}
+                            onChange={(e) =>
+                              setEditForm((prev) => ({
+                                ...prev,
+                                phospor: Number(e.target.value),
+                              }))
+                            }
+                            className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-900 outline-none focus:border-emerald-600 focus:bg-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9.5px] font-bold text-gray-500 mb-0.5">
+                            Kalium (mg/kg)
+                          </label>
+                          <input
+                            type="number"
+                            value={editForm.kalium ?? ""}
+                            onChange={(e) =>
+                              setEditForm((prev) => ({
+                                ...prev,
+                                kalium: Number(e.target.value),
+                              }))
+                            }
+                            className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-900 outline-none focus:border-emerald-600 focus:bg-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9.5px] font-bold text-gray-500 mb-0.5">
+                            Keasaman (pH)
+                          </label>
+                          <input
+                            type="number"
+                            step="0.1"
+                            value={editForm.ph ?? ""}
+                            onChange={(e) =>
+                              setEditForm((prev) => ({
+                                ...prev,
+                                ph: Number(e.target.value),
+                              }))
+                            }
+                            className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-900 outline-none focus:border-emerald-600 focus:bg-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9.5px] font-bold text-gray-500 mb-0.5">
+                            Kelembapan (%)
+                          </label>
+                          <input
+                            type="number"
+                            value={editForm.kelembapan ?? ""}
+                            onChange={(e) =>
+                              setEditForm((prev) => ({
+                                ...prev,
+                                kelembapan: Number(e.target.value),
+                              }))
+                            }
+                            className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-900 outline-none focus:border-emerald-600 focus:bg-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9.5px] font-bold text-gray-500 mb-0.5">
+                            C-Organik (%)
+                          </label>
+                          <input
+                            type="number"
+                            step="0.1"
+                            value={editForm.c_organik ?? ""}
+                            onChange={(e) =>
+                              setEditForm((prev) => ({
+                                ...prev,
+                                c_organik: Number(e.target.value),
+                              }))
+                            }
+                            className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-900 outline-none focus:border-emerald-600 focus:bg-white"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingPetak(false)}
+                          className="flex-1 rounded-lg border border-gray-200 bg-white py-1 text-[11px] font-bold text-gray-600 hover:bg-gray-50 transition cursor-pointer"
+                        >
+                          Batal
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleSavePetak}
+                          className="flex-1 flex items-center justify-center gap-1 rounded-lg bg-emerald-700 py-1 text-[11px] font-bold text-white hover:bg-emerald-800 shadow-xs transition cursor-pointer"
+                        >
+                          <Save className="h-3 w-3" />
+                          <span>Simpan</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })()}
+            );
+          })()}
 
         {/* =================================================
             BOTTOM-LEFT CONTROLS (POSTGIS BADGE + COMPASS)
@@ -2835,7 +2937,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                   <span className="text-xs font-semibold text-slate-900">
                     {spatialInfo.area_hectares}
                   </span>
-                  <span className="text-[10px] font-medium text-slate-500">ha</span>
+                  <span className="text-[10px] font-medium text-slate-500">
+                    ha
+                  </span>
                 </div>
 
                 {spatialInfo.area_m2 && (
