@@ -192,7 +192,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
     const containerRef = useRef<HTMLDivElement | null>(null);
     const mapRef = useRef<maplibregl.Map | null>(null);
-    const basemapRef = useRef<keyof typeof BASEMAPS>("satellite");
+    const basemapRef = useRef<keyof typeof BASEMAPS>("street");
 
     /*
      * Tetap digunakan untuk fallback
@@ -211,7 +211,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
        STATE
     ====================================================== */
 
-    const [basemap, setBasemap] = useState<keyof typeof BASEMAPS>("satellite");
+    const [basemap, setBasemap] = useState<keyof typeof BASEMAPS>("street");
 
     /*
      * Global overlay opacity.
@@ -1986,10 +1986,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         ================================================== */}
 
         {loading && (
-          <div className="pointer-events-none absolute left-1/2 top-4 z-[1000] -translate-x-1/2">
-            <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 shadow-md">
-              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
-
+          <div className="pointer-events-none absolute bottom-6 left-1/2 -translate-x-1/2 z-40 transition-all duration-300 animate-in fade-in slide-in-from-bottom-2">
+            <div className="flex items-center gap-2.5 rounded-full border border-emerald-900/10 bg-white/95 px-4 py-2 text-xs font-semibold text-gray-800 shadow-xl backdrop-blur-md ring-1 ring-black/5">
+              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />
               <span>Memuat data geospasial...</span>
             </div>
           </div>
@@ -2172,7 +2171,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         {/* =================================================
             PRECISION FARMING TOOLBAR (TURF.JS & GIS TOOLS)
         ================================================== */}
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 rounded-full border border-gray-200/80 bg-white/95 p-1.5 shadow-lg backdrop-blur-md">
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 rounded-full border border-gray-200/80 bg-white/95 p-1.5 shadow-lg backdrop-blur-md">
           <button
             type="button"
             onClick={() => {
@@ -2298,7 +2297,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             MEASUREMENT STATUS CARD (HUD)
         ================================================== */}
         {toolMode !== "none" && (
-          <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 w-[92vw] max-w-[380px] rounded-2xl border border-emerald-900/10 bg-white/95 p-4 shadow-2xl backdrop-blur-xl transition-all duration-200 animate-in fade-in slide-in-from-top-2">
+          <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 w-[92vw] max-w-[380px] rounded-2xl border border-emerald-900/10 bg-white/95 p-4 shadow-2xl backdrop-blur-xl transition-all duration-200 animate-in fade-in slide-in-from-top-2">
             {/* Header: Clean Title, Simple Point Count, and Close Button */}
             <div className="flex items-center justify-between pb-2.5 border-b border-gray-100">
               <h4 className="text-xs font-bold text-gray-900">
@@ -2445,7 +2444,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             MULTILAYER COMPARISON BAR
         ================================================== */}
         {compareMode && (
-          <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 w-[92vw] max-w-[420px] rounded-2xl border border-emerald-900/10 bg-white/95 p-4 shadow-2xl backdrop-blur-xl transition-all duration-200 animate-in fade-in slide-in-from-top-2">
+          <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 w-[92vw] max-w-[420px] rounded-2xl border border-emerald-900/10 bg-white/95 p-4 shadow-2xl backdrop-blur-xl transition-all duration-200 animate-in fade-in slide-in-from-top-2">
             {/* Header */}
             <div className="flex items-center justify-between pb-2.5 border-b border-gray-100">
               <h4 className="text-xs font-bold text-gray-900">
@@ -2588,7 +2587,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
           return (
             <div
-              className="absolute z-40 w-[295px] transition-transform duration-75 ease-out pointer-events-auto"
+              className="absolute z-30 w-[295px] transition-transform duration-75 ease-out pointer-events-auto"
               style={{
                 left: `${clampX}px`,
                 top: `${isAbove ? petakScreenPos.y - 14 : petakScreenPos.y + 14}px`,
