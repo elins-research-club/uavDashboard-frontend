@@ -330,8 +330,9 @@ export default function MapsPage() {
       return;
     }
 
-    const shareUrl = `${window.location.origin}${window.location.pathname
-      }?map=${encodeURIComponent(selectedMapRaw.id)}`;
+    const shareUrl = `${window.location.origin}${
+      window.location.pathname
+    }?map=${encodeURIComponent(selectedMapRaw.id)}`;
 
     const shareTitle = selectedMapRaw.title || "Peta Geospasial";
 
@@ -717,35 +718,6 @@ export default function MapsPage() {
                   )}
                 </div>
               </div>
-
-              {/* LAYER TOGGLE */}
-              <button
-                type="button"
-                onClick={() => setIsLayerPanelOpen((value) => !value)}
-                className="
-          inline-flex
-          h-10
-          shrink-0
-          items-center
-          gap-2
-          rounded-full
-          border
-          border-[#123c28]/10
-          bg-white
-          px-4
-          text-[10px]
-          font-bold
-          text-[#123c28]
-          transition
-          hover:bg-[#f3f6ed]
-        "
-              >
-                <Layers className="h-3.5 w-3.5" />
-
-                {isLayerPanelOpen
-                  ? "Sembunyikan Layer Peta"
-                  : "Tampilkan Layer peta"}
-              </button>
             </div>
           </div>
         </header>
@@ -836,9 +808,10 @@ export default function MapsPage() {
                         text-[11px]
                         font-bold
                         transition
-                        ${!isAdmin && user?.tier === "free"
-                          ? "cursor-not-allowed border border-[#123c28]/10 bg-[#fafbf8] text-[#123c28]/35"
-                          : "bg-[#123c28] text-white hover:bg-[#1a5134]"
+                        ${
+                          !isAdmin && user?.tier === "free"
+                            ? "cursor-not-allowed border border-[#123c28]/10 bg-[#fafbf8] text-[#123c28]/35"
+                            : "bg-[#123c28] text-white hover:bg-[#1a5134]"
                         }
                       `}
                     >
@@ -855,31 +828,6 @@ export default function MapsPage() {
                           ? "Menyiapkan..."
                           : "Download Analisa"}
                       </span>
-                    </button>
-
-                    {/* SHARE */}
-                    <button
-                      type="button"
-                      onClick={handleShare}
-                      disabled={!selectedMapRaw}
-                      className="
-                        inline-flex h-10
-                        items-center gap-2
-                        rounded-full
-                        border border-[#123c28]/10
-                        bg-white
-                        px-4
-                        text-[11px]
-                        font-bold
-                        text-[#123c28]
-                        transition
-                        hover:bg-[#f3f6ed]
-                        disabled:cursor-not-allowed
-                        disabled:opacity-40
-                      "
-                    >
-                      <Share2 className="h-3.5 w-3.5" />
-                      Bagikan
                     </button>
 
                     {/* MAP CONTROLS */}
@@ -1064,7 +1012,8 @@ export default function MapsPage() {
                           </p>
 
                           <p className="mt-1 text-[10px] font-medium leading-5 text-[#123c28]/60">
-                            Upload peta pertama Anda untuk mulai melakukan analisis.
+                            Upload peta pertama Anda untuk mulai melakukan
+                            analisis.
                           </p>
                         </div>
                       )}
@@ -1126,14 +1075,16 @@ export default function MapsPage() {
                                 border
                                 p-3
                                 transition
-                                ${active
-                                ? "border-[#123c28]/25 bg-[#f3f6ed]"
-                                : "border-[#123c28]/10 bg-white hover:border-[#123c28]/20 hover:bg-[#fafbf8]"
-                              }
-                                ${layer.locked
-                                ? "cursor-not-allowed opacity-70"
-                                : "cursor-pointer"
-                              }
+                                ${
+                                  active
+                                    ? "border-[#123c28]/25 bg-[#f3f6ed]"
+                                    : "border-[#123c28]/10 bg-white hover:border-[#123c28]/20 hover:bg-[#fafbf8]"
+                                }
+                                ${
+                                  layer.locked
+                                    ? "cursor-not-allowed opacity-70"
+                                    : "cursor-pointer"
+                                }
                               `}
                           >
                             <div className="flex items-start gap-2.5">
@@ -1169,7 +1120,9 @@ export default function MapsPage() {
                                 <div className="mt-1 flex items-center gap-1.5 text-[9px] font-medium text-[#123c28]/65">
                                   <MapPin className="h-3 w-3" />
 
-                                  <span className="truncate">{layer.location}</span>
+                                  <span className="truncate">
+                                    {layer.location}
+                                  </span>
                                 </div>
                               </div>
 
@@ -1177,7 +1130,9 @@ export default function MapsPage() {
                                 <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
                                   <button
                                     type="button"
-                                    onClick={(event) => openEditModal(raw, event)}
+                                    onClick={(event) =>
+                                      openEditModal(raw, event)
+                                    }
                                     className="
                                         flex h-7 w-7
                                         items-center justify-center
@@ -1289,9 +1244,10 @@ export default function MapsPage() {
             text-xs
             font-medium
             shadow-2xl
-            ${notice.type === "success"
-              ? "bg-[#123c28] text-white"
-              : "bg-[#a3483c] text-white"
+            ${
+              notice.type === "success"
+                ? "bg-[#123c28] text-white"
+                : "bg-[#a3483c] text-white"
             }
           `}
         >
@@ -1639,9 +1595,10 @@ export default function MapsPage() {
                     transition
                     placeholder:text-[#123c28]/45
                     focus:bg-white
-                    ${editErrors.title
-                      ? "border-red-400 focus:border-red-500"
-                      : "border-[#123c28]/15 focus:border-[#123c28]/40"
+                    ${
+                      editErrors.title
+                        ? "border-red-400 focus:border-red-500"
+                        : "border-[#123c28]/15 focus:border-[#123c28]/40"
                     }
                   `}
                   placeholder="Contoh: Peta Orthomosaic Lahan Padi - Jul 2026"
@@ -1685,9 +1642,10 @@ export default function MapsPage() {
                       transition
                       placeholder:text-[#123c28]/45
                       focus:bg-white
-                      ${editErrors.location
-                        ? "border-red-400 focus:border-red-500"
-                        : "border-[#123c28]/15 focus:border-[#123c28]/40"
+                      ${
+                        editErrors.location
+                          ? "border-red-400 focus:border-red-500"
+                          : "border-[#123c28]/15 focus:border-[#123c28]/40"
                       }
                     `}
                     placeholder="Contoh: Desa Sriharjo, Kec. Imogiri, Bantul"
@@ -1731,9 +1689,10 @@ export default function MapsPage() {
                       outline-none
                       transition
                       focus:bg-white
-                      ${editErrors.survey_date
-                        ? "border-red-400 focus:border-red-500"
-                        : "border-[#123c28]/15 focus:border-[#123c28]/40"
+                      ${
+                        editErrors.survey_date
+                          ? "border-red-400 focus:border-red-500"
+                          : "border-[#123c28]/15 focus:border-[#123c28]/40"
                       }
                     `}
                   />
