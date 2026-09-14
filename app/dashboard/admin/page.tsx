@@ -577,11 +577,6 @@ export default function AdminPage() {
         >
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <span className="liquid-badge px-3 py-1.5 text-2xs font-bold uppercase tracking-[0.14em] text-brand-800">
-                <ShieldCheck className="h-3 w-3" strokeWidth={1.75} />
-                Administration
-              </span>
-
               <h1 className="mt-4 text-3xl font-bold tracking-[-0.04em] text-brand-900 sm:text-4xl">
                 Admin <span className="text-brand-600">Panel</span>
               </h1>
