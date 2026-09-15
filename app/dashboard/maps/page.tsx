@@ -1089,7 +1089,7 @@ export default function MapsPage() {
                               group relative rounded-xl border p-3 transition-all duration-200 select-none
                               ${
                                 active
-                                  ? "border-emerald-600/30 bg-emerald-50/70 shadow-xs ring-1 ring-emerald-600/20"
+                                  ? "border-[#123c28] bg-[#123c28] text-white shadow-md"
                                   : "border-gray-200/80 bg-white hover:border-gray-300 hover:bg-gray-50/70 hover:shadow-xs"
                               }
                               ${
@@ -1105,20 +1105,20 @@ export default function MapsPage() {
                                 <div className="flex flex-wrap items-center gap-1.5">
                                   <h3
                                     className={`break-words whitespace-normal text-xs font-bold leading-snug ${
-                                      active ? "text-[#123c28]" : "text-gray-900"
+                                      active ? "text-white" : "text-gray-900"
                                     }`}
                                   >
                                     {layer.name}
                                   </h3>
 
-                                  {active && (
-                                    <span className="shrink-0 rounded-full bg-emerald-600/15 px-1.5 py-0.5 text-[8.5px] font-extrabold text-emerald-800">
-                                      Aktif
-                                    </span>
-                                  )}
-
                                   {layer.locked && (
-                                    <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-amber-50 border border-amber-200/60 px-1.5 py-0.5 text-[8px] font-bold text-amber-700">
+                                    <span
+                                      className={`inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[8px] font-bold ${
+                                        active
+                                          ? "bg-white/15 text-amber-300 border border-white/20"
+                                          : "bg-amber-50 border border-amber-200/60 text-amber-700"
+                                      }`}
+                                    >
                                       <Lock className="h-2.5 w-2.5" />
                                       Pro
                                     </span>
@@ -1134,7 +1134,11 @@ export default function MapsPage() {
                                     onClick={(event) =>
                                       openEditModal(raw, event)
                                     }
-                                    className="flex h-6 w-6 items-center justify-center rounded-md text-gray-400 transition hover:bg-white hover:text-gray-800 hover:shadow-xs"
+                                    className={`flex h-6 w-6 items-center justify-center rounded-md transition ${
+                                      active
+                                        ? "text-white/70 hover:bg-white/15 hover:text-white"
+                                        : "text-gray-400 hover:bg-white hover:text-gray-800 hover:shadow-xs"
+                                    }`}
                                     title="Edit peta"
                                   >
                                     <Pencil className="h-3 w-3" />
@@ -1145,7 +1149,11 @@ export default function MapsPage() {
                                     onClick={(event) =>
                                       openDeleteConfirm(raw, event)
                                     }
-                                    className="flex h-6 w-6 items-center justify-center rounded-md text-gray-400 transition hover:bg-red-50 hover:text-red-600"
+                                    className={`flex h-6 w-6 items-center justify-center rounded-md transition ${
+                                      active
+                                        ? "text-white/70 hover:bg-red-500/30 hover:text-red-200"
+                                        : "text-gray-400 hover:bg-red-50 hover:text-red-600"
+                                    }`}
                                     title="Hapus peta"
                                   >
                                     <Trash2 className="h-3 w-3" />
@@ -1157,9 +1165,15 @@ export default function MapsPage() {
                             {/* Meta: Custom Date & Location Icons with Text Wrap Down */}
                             <div className="mt-2 flex flex-col gap-1 text-[10px]">
                               {/* Custom Date Icon & Text */}
-                              <div className="flex items-center gap-1.5 font-medium text-gray-500">
+                              <div
+                                className={`flex items-center gap-1.5 font-medium ${
+                                  active ? "text-white/85" : "text-gray-500"
+                                }`}
+                              >
                                 <svg
-                                  className="h-3.5 w-3.5 shrink-0 text-emerald-700/80"
+                                  className={`h-3.5 w-3.5 shrink-0 ${
+                                    active ? "text-white" : "text-emerald-700/80"
+                                  }`}
                                   viewBox="0 0 16 16"
                                   fill="none"
                                   stroke="currentColor"
@@ -1173,13 +1187,21 @@ export default function MapsPage() {
                                   <circle cx="8" cy="9.5" r="0.75" fill="currentColor" />
                                   <circle cx="10.5" cy="9.5" r="0.75" fill="currentColor" />
                                 </svg>
-                                <span className="whitespace-normal break-words">{layer.date}</span>
+                                <span className="whitespace-normal break-words">
+                                  {layer.date}
+                                </span>
                               </div>
 
                               {/* Custom Location Icon & Text (Wrapped Down) */}
-                              <div className="flex items-start gap-1.5 font-medium text-gray-600">
+                              <div
+                                className={`flex items-start gap-1.5 font-medium ${
+                                  active ? "text-white/95" : "text-gray-600"
+                                }`}
+                              >
                                 <svg
-                                  className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-700/80"
+                                  className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${
+                                    active ? "text-white" : "text-emerald-700/80"
+                                  }`}
                                   viewBox="0 0 16 16"
                                   fill="none"
                                   stroke="currentColor"
