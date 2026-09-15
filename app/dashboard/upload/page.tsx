@@ -167,11 +167,17 @@ function SystemStatusPanel({
   totalBytes,
   loading,
   uploadProgress,
+  pmtilesStatus = "idle",
+  pmtilesProgress = { completed: 0, total: 0 },
+  createdMapId,
 }: {
   fileCount: number;
   totalBytes: number;
   loading: boolean;
   uploadProgress: number;
+  pmtilesStatus?: "idle" | "uploading" | "baking" | "ready";
+  pmtilesProgress?: { completed: number; total: number };
+  createdMapId?: string | null;
 }) {
   const capPct = Math.min(100, (totalBytes / MAX_FILE_SIZE_BYTES) * 100);
 
@@ -239,17 +245,53 @@ function SystemStatusPanel({
 
         {loading && (
           <div className="mt-3.5 border-t border-white/10 pt-3">
-            <div className="mb-1 flex items-center justify-between font-mono text-2xs">
-              <span className="text-white/45">upload</span>
-              <span className="text-white">{uploadProgress}%</span>
-            </div>
+            {pmtilesStatus === "baking" ? (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between font-mono text-2xs">
+                  <span className="flex items-center gap-1.5 font-semibold text-brand-300">
+                    <RefreshCw className="h-3 w-3 animate-spin" />
+                    2. Kompilasi PMTiles
+                  </span>
+                  <span className="text-white font-semibold">
+                    {pmtilesProgress.completed}/{pmtilesProgress.total} layer
+                  </span>
+                </div>
 
-            <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
-              <div
-                className="h-full rounded-full bg-white transition-all duration-300"
-                style={{ width: `${uploadProgress}%` }}
-              />
-            </div>
+                <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+                  <div
+                    className="h-full rounded-full bg-brand-300 transition-all duration-500"
+                    style={{
+                      width: `${
+                        pmtilesProgress.total > 0
+                          ? Math.max(15, Math.round((pmtilesProgress.completed / pmtilesProgress.total) * 100))
+                          : 25
+                      }%`,
+                    }}
+                  />
+                </div>
+
+                <p className="text-3xs text-white/50">
+                  Membangun piramida ubin untuk render instan di peta...
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <div className="flex items-center justify-between font-mono text-2xs">
+                  <span className="flex items-center gap-1.5 text-white/60">
+                    <RefreshCw className="h-2.5 w-2.5 animate-spin text-brand-300" />
+                    1. Upload berkas
+                  </span>
+                  <span className="text-white">{uploadProgress}%</span>
+                </div>
+
+                <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+                  <div
+                    className="h-full rounded-full bg-white transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -520,6 +562,14 @@ export default function UploadPage() {
 
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [pmtilesStatus, setPmtilesStatus] = useState<
+    "idle" | "uploading" | "baking" | "ready"
+  >("idle");
+  const [pmtilesProgress, setPmtilesProgress] = useState<{
+    completed: number;
+    total: number;
+  }>({ completed: 0, total: 0 });
+  const [createdMapId, setCreatedMapId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -535,6 +585,14 @@ export default function UploadPage() {
   const submitting = useRef(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   /* ============================================================
      ROLE GUARD
@@ -1071,6 +1129,9 @@ export default function UploadPage() {
     setGeoSuccess(null);
     setMessage("");
     setGeoError(null);
+    setPmtilesStatus("idle");
+    setPmtilesProgress({ completed: 0, total: 0 });
+    setCreatedMapId(null);
 
     resetDraft();
   };
@@ -1151,6 +1212,9 @@ export default function UploadPage() {
 
     setLoading(true);
     setUploadProgress(0);
+    setPmtilesStatus("uploading");
+    setPmtilesProgress({ completed: 0, total: filesToUpload.length });
+    setCreatedMapId(null);
     setMessage("");
     setIsSuccess(false);
     setGeoError(null);
@@ -1194,6 +1258,44 @@ export default function UploadPage() {
       });
 
       setUploadProgress(100);
+      const mapData = response.data;
+      const mapId = mapData.id;
+      const totalLayers = mapData.layers?.length || filesToUpload.length;
+      setCreatedMapId(mapId);
+
+      // Fase 2: Polling status kompilasi PMTiles riil
+      setPmtilesStatus("baking");
+      setPmtilesProgress({ completed: 0, total: totalLayers });
+
+      const maxAttempts = 60; // 60 * 1.5s = 90 detik batas waktu polling
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        if (!isMounted.current) break;
+        await new Promise((r) => setTimeout(r, 1500));
+        if (!isMounted.current) break;
+
+        try {
+          const checkRes = await api.get(`/maps/${mapId}/layers`);
+          const layers = checkRes.data;
+          if (Array.isArray(layers) && layers.length > 0) {
+            const completed = layers.filter(
+              (l: any) => l.conversion_status === "completed"
+            ).length;
+            const failed = layers.filter(
+              (l: any) => l.conversion_status === "failed"
+            ).length;
+
+            setPmtilesProgress({ completed, total: layers.length });
+
+            if (completed + failed >= layers.length) {
+              break;
+            }
+          }
+        } catch {
+          // Abaikan kesalahan sementara pada polling
+        }
+      }
+
+      setPmtilesStatus("ready");
       setIsSuccess(true);
 
       setGeoSuccess({
@@ -1212,6 +1314,7 @@ export default function UploadPage() {
       // siap untuk upload berikutnya.
       resetDraft();
     } catch (error: any) {
+      setPmtilesStatus("idle");
       const detail = error.response?.data?.detail;
 
       if (typeof detail === "object" && detail !== null) {
@@ -1346,7 +1449,12 @@ export default function UploadPage() {
                     </span>
 
                     <div>
-                      <p className="micro-label">Upload Berhasil</p>
+                      <div className="flex items-center gap-2">
+                        <p className="micro-label">Upload & Konversi Berhasil</p>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-3xs font-bold text-emerald-800">
+                          PMTiles Siap ✓
+                        </span>
+                      </div>
 
                       <h3 className="mt-1 text-sm font-bold text-brand-900">
                         {geoSuccess.title}
@@ -1392,6 +1500,9 @@ export default function UploadPage() {
                       totalBytes={reviewTotalBytes}
                       loading={loading}
                       uploadProgress={uploadProgress}
+                      pmtilesStatus={pmtilesStatus}
+                      pmtilesProgress={pmtilesProgress}
+                      createdMapId={createdMapId}
                     />
                   </div>
                 </aside>
@@ -2131,8 +2242,10 @@ export default function UploadPage() {
                                 strokeWidth={1.75}
                               />
 
-                              {uploadProgress >= 99
-                                ? "Memeriksa..."
+                              {pmtilesStatus === "baking"
+                                ? `Mengompilasi PMTiles (${pmtilesProgress.completed}/${pmtilesProgress.total})...`
+                                : uploadProgress >= 99
+                                ? "Memeriksa berkas..."
                                 : "Mengunggah..."}
                             </>
                           ) : (

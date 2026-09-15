@@ -23,11 +23,9 @@ import {
   SplitSquareVertical,
   Trash2,
   MousePointer,
-  BadgeCheck,
   SlidersHorizontal,
   Info,
   Check,
-  ChevronDown,
   Undo2,
   ArrowLeftRight,
   X,
@@ -241,6 +239,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       geojson?: any;
     } | null>(null);
 
+    const [postgisCardOpen, setPostgisCardOpen] = useState(false);
     const [toolMode, setToolMode] = useState<"none" | "area" | "distance">(
       "none"
     );
@@ -265,7 +264,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
        DYNAMIC GRID PETAK (AGRICULTURAL CELLS & EDITOR)
     ====================================================== */
     const [gridEnabled, setGridEnabled] = useState(false);
-    const [gridCellSize, setGridCellSize] = useState<number>(10);
+    const gridCellSize = 10;
     const [selectedPetak, setSelectedPetak] = useState<PetakProperties | null>(
       null
     );
@@ -526,13 +525,6 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
           isSat ? "visible" : "none"
         );
       }
-      if (map.getLayer(BASEMAP_STREET_LAYER_ID)) {
-        map.setLayoutProperty(
-          BASEMAP_STREET_LAYER_ID,
-          "visibility",
-          isSat ? "none" : "visible"
-        );
-      }
     }, []);
 
     /* =====================================================
@@ -563,7 +555,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
         if (map.getPitch() < 20) {
           map.easeTo({
-            pitch: 50,
+            pitch: 45,
             duration: 700,
           });
         }
@@ -891,7 +883,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
             zoom: 16,
 
-            pitch: terrainEnabledRef.current ? 50 : 0,
+            pitch: terrainEnabledRef.current ? 45 : 0,
 
             bearing: 0,
 
@@ -1008,7 +1000,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
         bearing: 0,
 
-        maxPitch: 85,
+        maxPitch: 65,
 
         attributionControl: {
           compact: true,
@@ -1871,7 +1863,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
           }
 
           map.easeTo({
-            pitch: Math.min(map.getPitch() + 10, 85),
+            pitch: Math.min(map.getPitch() + 10, 45),
 
             duration: 400,
           });
@@ -1899,7 +1891,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
           }
 
           map.easeTo({
-            pitch: terrainEnabledRef.current ? 50 : 0,
+            pitch: terrainEnabledRef.current ? 45 : 0,
 
             bearing: 0,
 
@@ -1966,7 +1958,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       }
 
       map.easeTo({
-        pitch: Math.min(map.getPitch() + 10, 85),
+        pitch: Math.min(map.getPitch() + 10, 45),
 
         duration: 400,
       });
@@ -2191,9 +2183,10 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               setToolMode("none");
               handleCloseCompare();
               handleClearMeasurement();
+              setPostgisCardOpen(false);
             }}
             title="Navigasi Standar"
-            className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${toolMode === "none" && !compareMode
+            className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${toolMode === "none" && !compareMode && !postgisCardOpen
               ? "bg-[#123c28] text-white shadow-sm"
               : "text-gray-700 hover:bg-gray-100"
               }`}
@@ -2202,10 +2195,40 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             <span className="hidden sm:inline">Navigasi</span>
           </button>
 
+          {/* PostGIS Geodetik Pill (Clickable HUD trigger) */}
+          {spatialInfo?.has_spatial_geometry && spatialInfo.area_hectares && (
+            <button
+              type="button"
+              onClick={() => {
+                const next = !postgisCardOpen;
+                setPostgisCardOpen(next);
+                if (next) {
+                  setToolMode("none");
+                  handleCloseCompare();
+                  handleClearMeasurement();
+                }
+              }}
+              title={`Klik untuk melihat detail verifikasi geodetik PostGIS (${spatialInfo.area_hectares} ha)`}
+              className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold transition cursor-pointer select-none ${postgisCardOpen
+                ? "bg-[#123c28] text-white shadow-sm"
+                : "text-gray-700 hover:bg-gray-100"
+                }`}
+            >
+              <img src="/postgis.png" alt="PostGIS Elephant" className="h-4 w-4 shrink-0 object-contain" />
+              <span>PostGIS</span>
+              <span className={`font-bold ${postgisCardOpen ? "text-white" : "text-gray-900"}`}>
+                {typeof spatialInfo.area_hectares === "number"
+                  ? `${Number(spatialInfo.area_hectares.toFixed(2))} ha`
+                  : `${spatialInfo.area_hectares} ha`}
+              </span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => {
               handleCloseCompare();
+              setPostgisCardOpen(false);
               const next = toolMode === "distance" ? "none" : "distance";
               setToolMode(next);
               handleClearMeasurement();
@@ -2224,6 +2247,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             type="button"
             onClick={() => {
               handleClearMeasurement();
+              setPostgisCardOpen(false);
               setToolMode("none");
               if (compareMode) {
                 handleCloseCompare();
@@ -2255,7 +2279,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               onClick={() => {
                 setGridEnabled((prev) => !prev);
               }}
-              title="Tampilkan Grid Petak Pertanian (10m, 5m, 3m)"
+              title="Tampilkan Grid Petak Pertanian (10×10m)"
               className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${gridEnabled
                 ? "bg-[#123c28] text-white shadow-sm"
                 : "text-gray-700 hover:bg-gray-100"
@@ -2264,29 +2288,6 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               <Grid className="h-3.5 w-3.5" />
               <span>Petak</span>
             </button>
-
-            {gridEnabled && (
-              <div className="relative flex items-center">
-                <select
-                  value={gridCellSize}
-                  onChange={(e) => setGridCellSize(Number(e.target.value))}
-                  aria-label="Ukuran Grid Petak"
-                  title="Pilih Ukuran Grid Petak"
-                  className="appearance-none flex items-center rounded-full bg-transparent hover:bg-gray-100 pl-3 pr-7 py-1.5 text-xs font-semibold text-gray-700 cursor-pointer outline-none focus:outline-none focus:ring-1 focus:ring-gray-300 transition"
-                >
-                  <option value={10} className="bg-white text-gray-800">
-                    10×10m
-                  </option>
-                  <option value={5} className="bg-white text-gray-800">
-                    5×5m
-                  </option>
-                  <option value={3} className="bg-white text-gray-800">
-                    3×3m
-                  </option>
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-2.5 h-3.5 w-3.5 text-gray-500" />
-              </div>
-            )}
           </div>
         </div>
 
@@ -2587,6 +2588,122 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         )}
 
         {/* =================================================
+            POSTGIS GEODETIC DETAIL HUD CARD
+        ================================================== */}
+        {postgisCardOpen && spatialInfo && (
+          <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 w-[92vw] max-w-[400px] rounded-2xl border border-emerald-900/10 bg-white/95 p-4 shadow-2xl backdrop-blur-xl transition-all duration-200 animate-in fade-in slide-in-from-top-2">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-2.5 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <img src="/postgis.png" alt="PostGIS Elephant" className="h-5 w-5 shrink-0 object-contain" />
+                <h4 className="text-xs font-bold text-gray-900">
+                  Detail Verifikasi Geodetik PostGIS
+                </h4>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setPostgisCardOpen(false)}
+                className="flex h-6 w-6 items-center justify-center rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition"
+                title="Tutup Detail"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Spatial Reference / Info Banner */}
+            <div className="my-2.5 flex items-center gap-2 rounded-xl bg-emerald-50/70 px-3 py-2 border border-emerald-100/80 text-[11px] text-emerald-900">
+              <Info className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+              <span className="font-medium leading-tight">
+                Luas lahan terverifikasi dihitung pada ellipsoid WGS-84 (EPSG:4326) menggunakan fungsi geodetik PostGIS backend.
+              </span>
+            </div>
+
+            {/* Metrics Grid */}
+            <div className="my-2.5 rounded-xl border border-emerald-100/90 bg-gradient-to-br from-emerald-50/50 via-white to-emerald-50/30 p-3 shadow-xs">
+              <div className="grid grid-cols-2 gap-3 pb-2.5 border-b border-emerald-100/60">
+                <div>
+                  <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">
+                    Luas Lahan (ha)
+                  </span>
+                  <p className="text-base font-extrabold text-[#123c28]">
+                    {spatialInfo.area_hectares ?? "-"} <span className="text-xs font-semibold">ha</span>
+                  </p>
+                </div>
+                <div>
+                  <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">
+                    Luas Lahan (m²)
+                  </span>
+                  <p className="text-base font-extrabold text-slate-900">
+                    {spatialInfo.area_m2 ? spatialInfo.area_m2.toLocaleString("id-ID") : "-"} <span className="text-xs font-semibold text-slate-500">m²</span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-2.5">
+                <div>
+                  <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">
+                    Keliling Batas Lahan
+                  </span>
+                  <p className="text-sm font-bold text-slate-800">
+                    {spatialInfo.perimeter_meters
+                      ? spatialInfo.perimeter_meters >= 1000
+                        ? `${(spatialInfo.perimeter_meters / 1000).toFixed(2)} km`
+                        : `${spatialInfo.perimeter_meters.toFixed(1)} m`
+                      : "-"}
+                  </p>
+                  {spatialInfo.perimeter_meters && (
+                    <span className="text-[10px] text-slate-400">
+                      ({spatialInfo.perimeter_meters.toLocaleString("id-ID")} meter)
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">
+                    Titik Pusat (Centroid)
+                  </span>
+                  <p className="text-xs font-bold text-slate-800 leading-tight">
+                    {spatialInfo.centroid
+                      ? `${spatialInfo.centroid[1].toFixed(5)}°, ${spatialInfo.centroid[0].toFixed(5)}°`
+                      : "-"}
+                  </p>
+                  <span className="text-[10px] text-slate-400">
+                    Latitude, Longitude
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Actions */}
+            <div className="flex items-center justify-between gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  const map = mapRef.current;
+                  if (!map) return;
+                  if (currentMetaRef.current?.bounds) {
+                    const [[south, west], [north, east]] = currentMetaRef.current.bounds;
+                    map.fitBounds([[west, south], [east, north]], { padding: 40, duration: 800 });
+                  }
+                }}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#123c28] text-white text-xs font-bold hover:bg-[#1b4d35] active:scale-95 transition shadow-sm"
+              >
+                <MousePointer className="h-3.5 w-3.5" />
+                <span>Fokus ke Lahan</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPostgisCardOpen(false)}
+                className="px-3.5 py-1.5 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 active:scale-95 transition"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* =================================================
             INSPEKSI & UBAH DATA PETAK CARD (ANCHORED NEAR CLICKED CELL)
         ================================================== */}
         {selectedPetak &&
@@ -2775,12 +2892,16 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                           ).toLowerCase();
                           const val = selectedPetak.value_mean;
                           if (lt.includes("ndvi") || lt.includes("vari")) {
-                            if (val !== undefined && val >= 0.6) {
-                              return "Kerapatan tajuk kanopi sangat lebat dengan aktivitas fotosintesis tanaman optimal.";
-                            } else if (val !== undefined && val >= 0.4) {
-                              return "Kerapatan vegetasi sedang. Disarankan pemantauan kelembapan tanah dan kecukupan nutrisi.";
-                            } else {
-                              return "Kerapatan vegetasi rendah atau tanah terbuka. Memerlukan penanganan dan pemupukan.";
+                            if (val !== undefined) {
+                              if (val >= 0.42) {
+                                return "Tanaman Sehat (NDVI 0.42–0.92). Aktivitas fotosintesis dan klorofil kanopi sangat optimal. (Ref: Rahaldi et al., 2013)";
+                              } else if (val >= 0.22) {
+                                return "Tanaman Normal (NDVI 0.22–0.42). Kondisi tanaman wajar dengan kerapatan tajuk sedang/berjarak. (Ref: Rahaldi et al., 2013)";
+                              } else if (val >= 0.11) {
+                                return "Tanaman Tidak Sehat (NDVI 0.11–0.22). Vegetasi terindikasi mengalami stres, kekurangan hara, atau kerusakan tajuk. (Ref: Rahaldi et al., 2013)";
+                              } else {
+                                return "Non Vegetasi (NDVI < 0.11). Area lahan terbuka, tanah gundul, bebatuan, atau jalan kebun. (Ref: Rahaldi et al., 2013)";
+                              }
                             }
                           } else if (lt.includes("dsm")) {
                             return `Elevasi permukaan tanah berada pada ketinggian rata-rata ${val ?? "-"
@@ -2863,45 +2984,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
           })()}
 
         {/* =================================================
-            BOTTOM-LEFT CONTROLS (POSTGIS BADGE + COMPASS)
+            BOTTOM-LEFT CONTROLS (COMPASS)
         ================================================== */}
         <div className="absolute bottom-6 left-4 z-20 flex flex-col items-start gap-2.5 pointer-events-none">
-          {spatialInfo?.has_spatial_geometry && spatialInfo.area_hectares && (
-            <div
-              title="Luas Lahan Terverifikasi Geodetik (WGS-84 via PostGIS)"
-              className="pointer-events-auto group inline-flex items-center gap-2.5 rounded-full border border-white/80 bg-white/90 p-1 pl-1.5 pr-3.5 shadow-lg shadow-black/5 backdrop-blur-xl ring-1 ring-slate-900/5 transition-all duration-300 ease-out hover:scale-[1.02] hover:shadow-xl"
-            >
-              {/* Flowy Inner Pill for PostGIS verification */}
-              <div className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#123c28] to-[#1e5a3c] px-2.5 py-1 text-white shadow-sm ring-1 ring-emerald-500/20">
-                <BadgeCheck className="h-3.5 w-3.5 text-emerald-300 shrink-0" />
-                <span className="text-[10.5px] font-medium tracking-tight text-emerald-50">
-                  PostGIS Geodetik
-                </span>
-              </div>
-
-              {/* Fluid, natural typography metrics */}
-              <div className="flex items-center gap-2 text-slate-700">
-                <div className="flex items-baseline gap-1">
-                  <span className="text-xs font-semibold text-slate-900">
-                    {spatialInfo.area_hectares}
-                  </span>
-                  <span className="text-[10px] font-medium text-slate-500">
-                    ha
-                  </span>
-                </div>
-
-                {spatialInfo.area_m2 && (
-                  <>
-                    <span className="h-1 w-1 rounded-full bg-slate-300 shrink-0" />
-                    <span className="text-[11px] font-normal text-slate-500">
-                      {spatialInfo.area_m2.toLocaleString("id-ID")} m²
-                    </span>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-
           <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-gray-200/90 bg-white/95 p-1.5 shadow-md backdrop-blur-md">
             <button
               type="button"

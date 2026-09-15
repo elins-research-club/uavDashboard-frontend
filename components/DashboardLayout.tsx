@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Sidebar from "./Sidebar";
 import { Menu, X, ArrowUpRight, Leaf } from "lucide-react";
@@ -78,23 +79,27 @@ export default function DashboardLayout({
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white">
-        <div className="text-center">
-          <div
-            className="
-              mx-auto mb-4
-              h-10 w-10
-              animate-spin
-              rounded-full
-              border-2
-              border-[#123c28]/20
-              border-t-[#123c28]
-            "
-          />
-
-          <p className="text-xs font-semibold tracking-wide text-[#123c28]/80">
-            Memuat platform...
-          </p>
-        </div>
+        <style>{`
+          @keyframes pulseScale {
+            0%, 100% {
+              transform: scale(0.85);
+              opacity: 0.8;
+            }
+            50% {
+              transform: scale(1.08);
+              opacity: 1;
+            }
+          }
+        `}</style>
+        <Image
+          src="/logo.png"
+          alt="UAV Dashboard"
+          width={96}
+          height={96}
+          priority
+          className="h-20 w-20 sm:h-24 sm:w-24 select-none object-contain rounded-2xl"
+          style={{ animation: "pulseScale 1.6s ease-in-out infinite" }}
+        />
       </div>
     );
   }
