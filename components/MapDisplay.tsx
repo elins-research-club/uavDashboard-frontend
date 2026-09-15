@@ -2383,7 +2383,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                 : "text-gray-700 hover:bg-gray-100"
                 }`}
             >
-              <img src="/postgis.png" alt="PostGIS Elephant" className="h-4 w-4 shrink-0 object-contain" />
+              <img src="/postgis.png" alt="PostGIS Elephant" className="h-6 w-6 shrink-0 object-contain -my-1" />
               <span>PostGIS</span>
               <span className={`font-bold ${postgisCardOpen ? "text-white" : "text-gray-900"}`}>
                 {typeof spatialInfo.area_hectares === "number"
@@ -2764,7 +2764,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             {/* Header */}
             <div className="flex items-center justify-between pb-2.5 border-b border-gray-100">
               <div className="flex items-center gap-2">
-                <img src="/postgis.png" alt="PostGIS Elephant" className="h-5 w-5 shrink-0 object-contain" />
+                <img src="/postgis.png" alt="PostGIS Elephant" className="h-6 w-6 shrink-0 object-contain" />
                 <h4 className="text-xs font-bold text-gray-900">
                   Detail Verifikasi Geodetik PostGIS
                 </h4>
@@ -2781,8 +2781,8 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             </div>
 
             {/* Spatial Reference / Info Banner */}
-            <div className="my-2.5 flex items-center gap-2 rounded-xl bg-emerald-50/70 px-3 py-2 border border-emerald-100/80 text-[11px] text-emerald-900">
-              <Info className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+            <div className="my-2.5 flex items-center gap-2 rounded-xl bg-[#123c28] px-3 py-2 border border-emerald-100/80 text-[11px] text-white">
+              <Info className="h-3.5 w-3.5 text-white shrink-0" />
               <span className="font-medium leading-tight">
                 Luas lahan terverifikasi dihitung pada ellipsoid WGS-84 (EPSG:4326) menggunakan fungsi geodetik PostGIS backend.
               </span>
