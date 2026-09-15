@@ -1086,78 +1086,122 @@ export default function MapsPage() {
                               }
                             }}
                             className={`
-                                group
-                                rounded-2xl
-                                border
-                                p-3
-                                transition
-                                ${
-                                  active
-                                    ? "border-[#123c28]/25 bg-[#f3f6ed]"
-                                    : "border-[#123c28]/10 bg-white hover:border-[#123c28]/20 hover:bg-[#fafbf8]"
-                                }
-                                ${
-                                  layer.locked
-                                    ? "cursor-not-allowed opacity-70"
-                                    : "cursor-pointer"
-                                }
-                              `}
+                              group relative rounded-xl border p-2.5 transition-all duration-200 select-none
+                              ${
+                                active
+                                  ? "border-emerald-600/30 bg-emerald-50/70 shadow-xs ring-1 ring-emerald-600/20"
+                                  : "border-gray-200/80 bg-white hover:border-gray-300 hover:bg-gray-50/70 hover:shadow-xs"
+                              }
+                              ${
+                                layer.locked
+                                  ? "cursor-not-allowed opacity-70"
+                                  : "cursor-pointer"
+                              }
+                            `}
                           >
-                            <div className="flex items-start gap-2.5">
-                              <span
+                            <div className="flex items-center gap-3">
+                              {/* Custom Drone / Aerial Photogrammetry Icon Badge */}
+                              <div
                                 className={`
-                                    mt-1
-                                    h-2 w-2
-                                    shrink-0
-                                    rounded-full
-                                    ${layer.color}
-                                  `}
-                              />
+                                  flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors
+                                  ${
+                                    active
+                                      ? "bg-[#123c28] text-white shadow-xs"
+                                      : "bg-emerald-900/5 text-[#123c28]/70 group-hover:bg-[#123c28]/10 group-hover:text-[#123c28]"
+                                  }
+                                `}
+                              >
+                                <svg
+                                  className="h-4.5 w-4.5"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="1.8"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
+                                  <circle cx="12" cy="12" r="3" />
+                                  <path d="M12 9v-2M12 17v-2M9 12H7M17 12h-2" />
+                                  <path d="M7.5 7.5 4.5 4.5M16.5 7.5l3-3M7.5 16.5l-3 3M16.5 16.5l3 3" />
+                                  <circle cx="4" cy="4" r="1.75" />
+                                  <circle cx="20" cy="4" r="1.75" />
+                                  <circle cx="4" cy="20" r="1.75" />
+                                  <circle cx="20" cy="20" r="1.75" />
+                                </svg>
+                              </div>
 
+                              {/* Content Info */}
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-1.5">
-                                  <h3 className="truncate text-[11px] font-bold text-[#123c28]">
+                                  <h3
+                                    className={`truncate text-xs font-bold leading-tight ${
+                                      active ? "text-[#123c28]" : "text-gray-900"
+                                    }`}
+                                  >
                                     {layer.name}
                                   </h3>
 
+                                  {active && (
+                                    <span className="shrink-0 rounded-full bg-emerald-600/15 px-1.5 py-0.5 text-[8.5px] font-extrabold text-emerald-800">
+                                      Aktif
+                                    </span>
+                                  )}
+
                                   {layer.locked && (
-                                    <span className="inline-flex shrink-0 items-center gap-1 text-[8px] font-bold text-[#b27518]">
+                                    <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-amber-50 border border-amber-200/60 px-1.5 py-0.5 text-[8px] font-bold text-amber-700">
                                       <Lock className="h-2.5 w-2.5" />
                                       Pro
                                     </span>
                                   )}
                                 </div>
 
-                                <div className="mt-2 flex items-center gap-1.5 text-[9px] font-semibold text-[#123c28]/65">
-                                  <Calendar className="h-3 w-3" />
-                                  {layer.date}
-                                </div>
+                                {/* Meta Row: Date & Location inline */}
+                                <div className="mt-1 flex items-center gap-2 text-[10px] text-gray-500">
+                                  <span className="inline-flex items-center gap-1 font-medium text-gray-600">
+                                    <svg
+                                      className="h-3 w-3 shrink-0 text-gray-400"
+                                      viewBox="0 0 16 16"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="1.6"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    >
+                                      <rect x="2" y="3" width="12" height="11" rx="2" />
+                                      <path d="M5 1.5v2.5M11 1.5v2.5M2 6.5h12" />
+                                    </svg>
+                                    {layer.date}
+                                  </span>
 
-                                <div className="mt-1 flex items-center gap-1.5 text-[9px] font-medium text-[#123c28]/65">
-                                  <MapPin className="h-3 w-3" />
+                                  <span className="text-gray-300 text-[10px]">•</span>
 
-                                  <span className="truncate">
-                                    {layer.location}
+                                  <span className="inline-flex min-w-0 items-center gap-1 truncate font-medium text-gray-600">
+                                    <svg
+                                      className="h-3 w-3 shrink-0 text-gray-400"
+                                      viewBox="0 0 16 16"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="1.6"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    >
+                                      <path d="M8 14.5s-4.5-4-4.5-7.5a4.5 4.5 0 1 1 9 0c0 3.5-4.5 7.5-4.5 7.5z" />
+                                      <circle cx="8" cy="7" r="1.5" />
+                                    </svg>
+                                    <span className="truncate">{layer.location}</span>
                                   </span>
                                 </div>
                               </div>
 
+                              {/* Actions: Edit / Delete */}
                               {(isAdmin || !layer.locked) && (
-                                <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
+                                <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
                                   <button
                                     type="button"
                                     onClick={(event) =>
                                       openEditModal(raw, event)
                                     }
-                                    className="
-                                        flex h-7 w-7
-                                        items-center justify-center
-                                        rounded-lg
-                                        text-[#123c28]/55
-                                        transition
-                                        hover:bg-white
-                                        hover:text-[#123c28]
-                                      "
+                                    className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 transition hover:bg-white hover:text-gray-800 hover:shadow-xs"
                                     title="Edit peta"
                                   >
                                     <Pencil className="h-3.5 w-3.5" />
@@ -1168,15 +1212,7 @@ export default function MapsPage() {
                                     onClick={(event) =>
                                       openDeleteConfirm(raw, event)
                                     }
-                                    className="
-                                        flex h-7 w-7
-                                        items-center justify-center
-                                        rounded-lg
-                                        text-[#123c28]/55
-                                        transition
-                                        hover:bg-red-50
-                                        hover:text-red-600
-                                      "
+                                    className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 transition hover:bg-red-50 hover:text-red-600"
                                     title="Hapus peta"
                                   >
                                     <Trash2 className="h-3.5 w-3.5" />
