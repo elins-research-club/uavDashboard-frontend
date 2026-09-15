@@ -1086,11 +1086,11 @@ export default function MapsPage() {
                               }
                             }}
                             className={`
-                              group relative rounded-xl border p-3 transition-all duration-200 select-none
+                              group relative overflow-hidden rounded-xl border p-3.5 transition-all duration-200 select-none
                               ${
                                 active
-                                  ? "border-[#123c28] bg-[#123c28] text-white shadow-md"
-                                  : "border-gray-200/80 bg-white hover:border-gray-300 hover:bg-gray-50/70 hover:shadow-xs"
+                                  ? "border-emerald-500/30 bg-gradient-to-br from-[#1b4d35] via-[#123c28] to-[#0c271a] text-white shadow-[0_12px_28px_-6px_rgba(18,60,40,0.42),0_4px_12px_-2px_rgba(18,60,40,0.28),inset_0_1px_1px_rgba(255,255,255,0.22)] ring-1 ring-white/10 -translate-y-0.5"
+                                  : "border-gray-200/90 bg-white hover:border-gray-300 hover:bg-gray-50/80 shadow-[0_2px_4px_rgba(0,0,0,0.04)] hover:shadow-md hover:-translate-y-0.5"
                               }
                               ${
                                 layer.locked
@@ -1099,13 +1099,23 @@ export default function MapsPage() {
                               }
                             `}
                           >
+                            {/* Ambient Depth Glows for Active State */}
+                            {active && (
+                              <>
+                                <div className="pointer-events-none absolute -top-10 -right-10 h-28 w-28 rounded-full bg-emerald-400/15 blur-xl" />
+                                <div className="pointer-events-none absolute -bottom-10 -left-10 h-24 w-24 rounded-full bg-black/25 blur-lg" />
+                              </>
+                            )}
+
                             {/* Card Header: Title & Badges + Action Buttons */}
-                            <div className="flex items-start justify-between gap-2">
+                            <div className="relative z-10 flex items-start justify-between gap-2">
                               <div className="min-w-0 flex-1">
                                 <div className="flex flex-wrap items-center gap-1.5">
                                   <h3
                                     className={`break-words whitespace-normal text-xs font-bold leading-snug ${
-                                      active ? "text-white" : "text-gray-900"
+                                      active
+                                        ? "text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+                                        : "text-gray-900"
                                     }`}
                                   >
                                     {layer.name}
@@ -1163,7 +1173,7 @@ export default function MapsPage() {
                             </div>
 
                             {/* Meta: Custom Date & Location Icons with Text Wrap Down */}
-                            <div className="mt-2 flex flex-col gap-1 text-[10px]">
+                            <div className="relative z-10 mt-2 flex flex-col gap-1 text-[10px]">
                               {/* Custom Date Icon & Text */}
                               <div
                                 className={`flex items-center gap-1.5 font-medium ${
