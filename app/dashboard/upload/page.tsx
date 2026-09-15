@@ -12,13 +12,11 @@ import {
   CheckCircle2,
   ChevronRight,
   Eye,
-  Folder,
   Layers,
   Lock,
   MapPin,
   Pencil,
   RefreshCw,
-  Settings2,
   ShieldCheck,
   SlidersHorizontal,
   Upload,
@@ -42,7 +40,6 @@ import {
 import {
   batchErrors,
   createManualSlot,
-  manualReadiness,
   metadataChecklist,
   normalizeBatchBase,
 } from "./upload-helpers";
@@ -57,15 +54,11 @@ import {
 const ICON_STROKE = 1.75;
 const EASE = [0.22, 1, 0.36, 1] as const;
 
-// Hard cap enforced client-side. NOTE: the backend endpoint (and any
-// reverse proxy / storage layer in front of it) must accept request
-// bodies up to this size as well, or large uploads will still fail
-// server-side even though the client lets them through.
 const MAX_FILE_SIZE_BYTES = 3 * 1024 * 1024 * 1024; // 3 GB
 const MAX_FILE_SIZE_LABEL = "3 GB";
 
 /* ============================================================
-   STEP RAIL — sticky sidebar guide showing the 4-step sequence
+   STEP RAIL
 ============================================================ */
 
 function StepRail({
@@ -76,7 +69,7 @@ function StepRail({
   isSuccess: boolean;
 }) {
   const steps = [
-    { label: "Upload file", hint: "Pilih file GeoTIFF", icon: Upload },
+    { label: "Upload layer", hint: "Pilih layer & file", icon: Upload },
     { label: "Detail dataset", hint: "Judul, lokasi, tanggal", icon: Calendar },
     {
       label: "Review & kirim",
@@ -87,10 +80,8 @@ function StepRail({
   ];
 
   return (
-    <div className="rounded-lg border border-brand-800/10 bg-white p-4">
-      <p className="mb-4 font-mono text-[10px] uppercase tracking-wide text-brand-800/40">
-        Upload sequence
-      </p>
+    <div className="glass p-4">
+      <p className="micro-label mb-4">Upload sequence</p>
 
       <ol>
         {steps.map((step, index) => {
@@ -126,7 +117,7 @@ function StepRail({
                 )}
 
                 {active && (
-                  <span className="pointer-events-none absolute -inset-1 rounded-full border border-brand-600/40 animate-pulse" />
+                  <span className="pointer-events-none absolute -inset-1 animate-pulse rounded-full border border-brand-600/40" />
                 )}
               </span>
 
@@ -139,7 +130,7 @@ function StepRail({
                   {step.label}
                 </p>
 
-                <p className="mt-0.5 text-[10px] font-medium text-brand-800/45">
+                <p className="mt-0.5 text-2xs font-medium text-brand-800/45">
                   {step.hint}
                 </p>
               </div>
@@ -152,7 +143,7 @@ function StepRail({
 }
 
 /* ============================================================
-   SYSTEM STATUS PANEL — console-style live readout
+   SYSTEM STATUS
 ============================================================ */
 
 function SystemStatusPanel({
@@ -170,82 +161,80 @@ function SystemStatusPanel({
   const totalMB = totalBytes / (1024 * 1024);
 
   return (
-    <div className="rounded-lg bg-brand-900 p-4 text-white">
-      <div className="flex items-center justify-between">
-        <span className="flex items-center gap-1.5">
-          <Layers className="h-3 w-3 text-brand-300" strokeWidth={2} />
-          <span className="font-mono text-[10px] uppercase tracking-wide text-brand-300">
+    <div className="relative overflow-hidden rounded-3xl border border-brand-800/40 bg-brand-900 p-4 text-white shadow-glass-lg">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-brand-500/25 blur-2xl"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -bottom-12 -left-8 h-28 w-28 rounded-full bg-brand-400/15 blur-2xl"
+      />
+
+      <div className="relative">
+        <div className="flex items-center justify-between">
+          <span className="liquid-badge-dark bg-white/15 px-2.5 py-1 text-2xs font-bold uppercase tracking-wide text-white/90 backdrop-blur-sm">
+            <Layers className="h-3 w-3" strokeWidth={2} />
             Engine
           </span>
-        </span>
-
-        <span className="flex items-center gap-1.5">
-          <span
-            className={`h-1.5 w-1.5 rounded-full ${
-              loading ? "animate-pulse bg-amber-400" : "bg-emerald-400"
-            }`}
-          />
-          <span className="font-mono text-[10px] text-white/50">
-            {loading ? "processing" : "idle"}
-          </span>
-        </span>
-      </div>
-
-      <p className="mt-1.5 text-xs font-bold">AMX GeoStream Engine</p>
-
-      <div className="my-3.5 h-px bg-white/10" />
-
-      <div className="space-y-2.5 font-mono text-[10px]">
-        <div className="flex items-center justify-between">
-          <span className="text-white/45">files</span>
-          <span className="text-white">{fileCount}</span>
         </div>
 
-        <div className="flex items-center justify-between">
-          <span className="text-white/45">ukuran</span>
-          <span className="text-white">
-            {totalMB.toFixed(1)} MB / {MAX_FILE_SIZE_LABEL}
-          </span>
-        </div>
+        <p className="mt-3 text-sm font-bold">AMX GeoStream Engine</p>
 
-        <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
-          <div
-            className="h-full rounded-full bg-brand-300 transition-all"
-            style={{ width: `${capPct}%` }}
-          />
-        </div>
+        <div className="my-3.5 h-px bg-white/10" />
 
-        <div className="flex items-center justify-between">
-          <span className="text-white/45">format</span>
-          <span className="text-white">.tif / .tiff</span>
-        </div>
+        <div className="space-y-2.5 font-medium text-2xs">
+          <div className="flex items-center justify-between">
+            <span className="text-white/45">Files</span>
+            <span className="text-white">{fileCount}</span>
+          </div>
 
-        <div className="flex items-center justify-between">
-          <span className="text-white/45">batas per file</span>
-          <span className="text-white">{MAX_FILE_SIZE_LABEL}</span>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <span className="text-white/45">output</span>
-          <span className="text-brand-300">PMTiles</span>
-        </div>
-      </div>
-
-      {loading && (
-        <div className="mt-3.5 border-t border-white/10 pt-3">
-          <div className="mb-1 flex items-center justify-between font-mono text-[10px]">
-            <span className="text-white/45">upload</span>
-            <span className="text-white">{uploadProgress}%</span>
+          <div className="flex items-center justify-between">
+            <span className="text-white/45">Ukuran</span>
+            <span className="text-white">
+              {totalMB.toFixed(1)} MB / {MAX_FILE_SIZE_LABEL}
+            </span>
           </div>
 
           <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
             <div
-              className="h-full rounded-full bg-white transition-all duration-300"
-              style={{ width: `${uploadProgress}%` }}
+              className="h-full rounded-full bg-brand-300 transition-all"
+              style={{ width: `${capPct}%` }}
             />
           </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-white/45">Format</span>
+            <span className="text-white">.tif / .tiff</span>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-white/45">batas per file</span>
+            <span className="text-white">{MAX_FILE_SIZE_LABEL}</span>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-white/45">Output</span>
+            <span className="text-brand-300">PMTiles</span>
+          </div>
         </div>
-      )}
+
+        {loading && (
+          <div className="mt-3.5 border-t border-white/10 pt-3">
+            <div className="mb-1 flex items-center justify-between font-mono text-2xs">
+              <span className="text-white/45">upload</span>
+              <span className="text-white">{uploadProgress}%</span>
+            </div>
+
+            <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full rounded-full bg-white transition-all duration-300"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -270,7 +259,7 @@ function SectionTitle({
       <div>
         <div className="flex items-center gap-2.5">
           {number !== undefined && (
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-900 text-[9px] font-bold text-white">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-900 text-xs font-bold text-white">
               {number}
             </span>
           )}
@@ -281,7 +270,7 @@ function SectionTitle({
         </div>
 
         {description && (
-          <p className="mt-1 text-[11px] font-medium leading-4 text-brand-800/60">
+          <p className="mt-1 text-xs font-medium leading-4 text-brand-800/60">
             {description}
           </p>
         )}
@@ -304,7 +293,7 @@ function FieldLabel({
   required?: boolean;
 }) {
   return (
-    <label className="mb-1.5 block text-[11px] font-bold text-brand-900">
+    <label className="mb-1.5 block text-xs font-bold text-brand-900">
       {children}
 
       {required && (
@@ -315,7 +304,7 @@ function FieldLabel({
 }
 
 /* ============================================================
-   COLLAPSED SUMMARY — a completed step, tucked out of the way
+   COLLAPSED SUMMARY
 ============================================================ */
 
 function CollapsedSummary({
@@ -328,7 +317,7 @@ function CollapsedSummary({
   onEdit: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50/60 px-4 py-3.5">
+    <div className="flex items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/60 px-4 py-3.5">
       <div className="flex min-w-0 items-center gap-3">
         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white">
           <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
@@ -336,7 +325,8 @@ function CollapsedSummary({
 
         <div className="min-w-0">
           <p className="text-xs font-bold text-brand-900">{title}</p>
-          <p className="mt-0.5 truncate font-mono text-[10px] text-brand-800/55">
+
+          <p className="mt-0.5 truncate font-mono text-2xs text-brand-800/55">
             {detail}
           </p>
         </div>
@@ -345,7 +335,7 @@ function CollapsedSummary({
       <button
         type="button"
         onClick={onEdit}
-        className="inline-flex shrink-0 items-center gap-1 rounded-md border border-brand-800/15 bg-white px-2.5 py-1.5 text-[10px] font-bold text-brand-800/70 transition hover:border-brand-800/25 hover:text-brand-900"
+        className="inline-flex shrink-0 items-center gap-1 rounded-full border border-brand-800/15 bg-white px-3 py-1.5 text-2xs font-bold text-brand-800/70 transition hover:border-brand-800/25 hover:text-brand-900"
       >
         <Pencil className="h-3 w-3" strokeWidth={2} />
         Ubah
@@ -355,12 +345,12 @@ function CollapsedSummary({
 }
 
 /* ============================================================
-   LOCKED SECTION — a step the user can't reach yet
+   LOCKED SECTION
 ============================================================ */
 
 function LockedSection({ title, reason }: { title: string; reason: string }) {
   return (
-    <div className="rounded-lg border border-dashed border-brand-800/15 bg-brand-50/30 px-4 py-5">
+    <div className="rounded-2xl border border-dashed border-brand-800/15 bg-brand-50/30 px-4 py-5">
       <div className="flex items-center gap-3">
         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-brand-800/15 bg-white text-brand-800/30">
           <Lock className="h-3.5 w-3.5" strokeWidth={1.75} />
@@ -368,7 +358,7 @@ function LockedSection({ title, reason }: { title: string; reason: string }) {
 
         <div>
           <p className="text-xs font-bold text-brand-800/50">{title}</p>
-          <p className="mt-0.5 text-[10px] font-medium text-brand-800/40">
+          <p className="mt-0.5 text-2xs font-medium text-brand-800/40">
             {reason}
           </p>
         </div>
@@ -405,25 +395,15 @@ export default function UploadPage() {
   );
 
   // Manual
-  const [manualBaseFile, setManualBaseFile] = useState<File | null>(null);
-
-  const [manualBaseName, setManualBaseName] = useState("Citra Ortho RGB Utama");
-
   const [manualSlots, setManualSlots] = useState<ManualSlotItem[]>([]);
 
-  // Guided-flow UI state — which step is expanded for editing right now.
-  // A step auto-expands again if it becomes incomplete, so users can't
-  // get stuck behind a collapsed card that no longer satisfies its step.
   const [editingFiles, setEditingFiles] = useState(true);
   const [editingDetails, setEditingDetails] = useState(true);
 
   // Submit
   const [loading, setLoading] = useState(false);
-
   const [uploadProgress, setUploadProgress] = useState(0);
-
   const [message, setMessage] = useState("");
-
   const [isSuccess, setIsSuccess] = useState(false);
 
   const [geoSuccess, setGeoSuccess] = useState<{
@@ -436,22 +416,7 @@ export default function UploadPage() {
   const [geoError, setGeoError] = useState<ErrorDetailObject | null>(null);
 
   const submitting = useRef(false);
-
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const readiness = manualReadiness(
-    manualBaseFile,
-    manualBaseName,
-    manualSlots,
-    title,
-    location,
-    surveyDate
-  );
-
-  const submitErrors =
-    uploadMode === "manual"
-      ? readiness.errors
-      : batchErrors(batchFiles, title, location, surveyDate);
 
   useEffect(() => {
     if (user && user.role !== "admin") {
@@ -459,17 +424,61 @@ export default function UploadPage() {
     }
   }, [user, router]);
 
+  /* ============================================================
+     MANUAL READINESS
+  ============================================================ */
+
+  const manualLayerErrors = manualSlots.map((slot) => {
+    const errors: string[] = [];
+
+    if (!slot.file) {
+      errors.push("File belum dipilih.");
+    }
+
+    if (!slot.name.trim()) {
+      errors.push("Nama layer wajib diisi.");
+    }
+
+    if (!slot.layer_type) {
+      errors.push("Tipe layer belum dipilih.");
+    }
+
+    return errors;
+  });
+
+  const manualFiles = manualSlots
+    .filter((slot) => slot.file)
+    .map((slot) => slot.file as File);
+
+  const manualFilesReady =
+    manualSlots.length > 0 &&
+    manualSlots.every(
+      (slot) => Boolean(slot.file) && Boolean(slot.name.trim())
+    );
+
+  const detailReady =
+    Boolean(title.trim()) && Boolean(location.trim()) && Boolean(surveyDate);
+
   const metaChecklist = metadataChecklist(title, location, surveyDate);
+
+  const submitErrors =
+    uploadMode === "manual"
+      ? [
+          ...(manualSlots.length
+            ? manualLayerErrors.flat()
+            : ["Tambahkan minimal satu layer."]),
+          ...(!title.trim() ? ["Judul peta wajib diisi."] : []),
+          ...(!location.trim() ? ["Lokasi survei wajib diisi."] : []),
+          ...(!surveyDate ? ["Tanggal survei wajib diisi."] : []),
+        ]
+      : batchErrors(batchFiles, title, location, surveyDate);
 
   const filesReady =
     uploadMode === "batch"
       ? batchFiles.length > 0 &&
         batchFiles.filter((item) => item.is_base).length === 1 &&
         batchFiles.every((item) => item.name.trim())
-      : !readiness.baseErrors.length;
-
-  const detailReady =
-    Boolean(title.trim()) && Boolean(location.trim()) && Boolean(surveyDate);
+      : manualFilesReady;
 
   const currentStep = isSuccess ? 4 : !filesReady ? 1 : !detailReady ? 2 : 3;
 
@@ -497,22 +506,26 @@ export default function UploadPage() {
         ]
       : [
           {
-            label: "Layer utama lengkap",
-            ready: !readiness.baseErrors.length,
+            label: "Minimal satu layer dipilih",
+            ready: manualSlots.length > 0,
           },
           {
-            label: readiness.slotErrors.length
-              ? "Layer analisis lengkap"
-              : "Tidak ada layer analisis",
-            ready: readiness.slotErrors.every((errors) => !errors.length),
+            label: "Semua layer memiliki file",
+            ready:
+              manualSlots.length > 0 &&
+              manualSlots.every((slot) => Boolean(slot.file)),
           },
-          ...readiness.metadata,
+          {
+            label: "Semua layer memiliki nama",
+            ready:
+              manualSlots.length > 0 &&
+              manualSlots.every((slot) => Boolean(slot.name.trim())),
+          },
+          ...metaChecklist,
         ];
 
   const reviewFiles =
-    uploadMode === "batch"
-      ? batchFiles.map((item) => item.file)
-      : readiness.files;
+    uploadMode === "batch" ? batchFiles.map((item) => item.file) : manualFiles;
 
   const reviewTotalBytes = reviewFiles.reduce(
     (total, file) => total + file.size,
@@ -543,6 +556,7 @@ export default function UploadPage() {
     const tooLarge = rightFormat.filter(
       (file) => file.size > MAX_FILE_SIZE_BYTES
     );
+
     const validFiles = rightFormat.filter(
       (file) => file.size <= MAX_FILE_SIZE_BYTES
     );
@@ -555,6 +569,7 @@ export default function UploadPage() {
       } else {
         setMessage("Hanya file .tif atau .tiff yang didukung.");
       }
+
       return;
     }
 
@@ -637,6 +652,8 @@ export default function UploadPage() {
     if (event.target.files?.length) {
       processIncomingFiles(event.target.files);
     }
+
+    event.target.value = "";
   };
 
   const handleSetBaseLayer = (id: string) => {
@@ -698,9 +715,7 @@ export default function UploadPage() {
 
     setExpandedBatchItems((prev) => {
       const next = new Set(prev);
-
       next.delete(id);
-
       return next;
     });
   };
@@ -723,18 +738,37 @@ export default function UploadPage() {
      MANUAL
   ============================================================ */
 
-  const handleAddManualSlot = () => {
-    setManualSlots((prev) => [
-      ...prev,
-      createManualSlot(crypto.randomUUID(), prev[prev.length - 1]),
-    ]);
+  const handleAddManualLayer = (layerType?: ManualSlotItem["layer_type"]) => {
+    setManualSlots((prev) => {
+      const slot = createManualSlot(crypto.randomUUID(), prev[prev.length - 1]);
+
+      if (layerType && LAYER_TYPE_CONFIG[layerType]) {
+        slot.layer_type = layerType;
+        slot.default_opacity = LAYER_TYPE_CONFIG[layerType].defaultOpacity;
+
+        const currentNameIsDefault =
+          !slot.name ||
+          Object.values(LAYER_TYPE_CONFIG).some(
+            (config) => config.defaultName === slot.name
+          );
+
+        if (currentNameIsDefault) {
+          slot.name = LAYER_TYPE_CONFIG[layerType].defaultName;
+        }
+      }
+
+      return [...prev, slot];
+    });
+
+    setMessage("");
+    setGeoError(null);
   };
 
-  const handleRemoveManualSlot = (id: string) => {
+  const handleRemoveManualLayer = (id: string) => {
     setManualSlots((prev) => prev.filter((slot) => slot.id !== id));
   };
 
-  const handleUpdateManualSlot = <K extends keyof ManualSlotItem>(
+  const handleUpdateManualLayer = <K extends keyof ManualSlotItem>(
     id: string,
     field: K,
     value: ManualSlotItem[K]
@@ -772,7 +806,7 @@ export default function UploadPage() {
   };
 
   /* ============================================================
-     RESET (after a successful upload)
+     RESET
   ============================================================ */
 
   const resetForNewUpload = () => {
@@ -780,12 +814,19 @@ export default function UploadPage() {
     setGeoSuccess(null);
     setMessage("");
     setGeoError(null);
+
     setTitle("");
     setLocation("");
     setDescription("");
     setSurveyDate(new Date().toISOString().split("T")[0]);
+
     setLockedForFree(false);
     setPurchasable(false);
+
+    setBatchFiles([]);
+    setManualSlots([]);
+    setExpandedBatchItems(new Set());
+
     setEditingFiles(true);
     setEditingDetails(true);
   };
@@ -803,20 +844,16 @@ export default function UploadPage() {
 
     if (submitErrors.length) {
       setIsSuccess(false);
-
       setMessage(submitErrors.join(" "));
-
       return;
     }
 
     let filesToUpload: File[] = [];
-
     let layersConfigPayload: any[] = [];
 
     if (uploadMode === "batch") {
       if (batchFiles.length === 0) {
         setMessage("Silakan pilih minimal satu file.");
-
         return;
       }
 
@@ -830,35 +867,38 @@ export default function UploadPage() {
         is_base: item.is_base,
       }));
     } else {
-      if (!manualBaseFile) {
-        setMessage("Layer utama wajib diunggah.");
-
+      if (!manualSlots.length) {
+        setMessage("Tambahkan minimal satu layer.");
         return;
       }
 
-      filesToUpload.push(manualBaseFile);
+      if (
+        manualSlots.some(
+          (slot) => !slot.file || !slot.name.trim() || !slot.layer_type
+        )
+      ) {
+        setMessage("Lengkapi seluruh layer sebelum mengunggah.");
+        return;
+      }
 
-      layersConfigPayload.push({
-        filename: manualBaseFile.name,
-        name: manualBaseName.trim(),
-        layer_type: "ortho",
-        default_opacity: 1,
-        is_base: true,
-      });
-
-      manualSlots.forEach((slot) => {
+      manualSlots.forEach((slot, index) => {
         if (!slot.file) {
-          throw new Error("Slot analisis belum lengkap.");
+          return;
         }
 
         filesToUpload.push(slot.file);
 
+        /*
+         * Backend saat ini masih menggunakan konsep is_base.
+         * Layer pertama dijadikan layer utama tampilan secara teknis,
+         * tetapi user tidak diwajibkan mengunggah ortho terlebih dahulu.
+         */
         layersConfigPayload.push({
           filename: slot.file.name,
-          name: slot.name.trim(),
+          name: slot.name.trim() || `Layer ${index + 1}`,
           layer_type: slot.layer_type,
           default_opacity: slot.default_opacity,
-          is_base: false,
+          is_base: index === 0,
         });
       });
     }
@@ -875,9 +915,7 @@ export default function UploadPage() {
     const formData = new FormData();
 
     formData.append("title", title.trim());
-
     formData.append("location", location.trim());
-
     formData.append("survey_date", surveyDate);
 
     if (description) {
@@ -885,12 +923,13 @@ export default function UploadPage() {
     }
 
     formData.append("locked_for_free", lockedForFree ? "true" : "false");
-
     formData.append("purchasable", purchasable ? "true" : "false");
 
     formData.append("layers_config", JSON.stringify(layersConfigPayload));
 
-    filesToUpload.forEach((file) => formData.append("files", file));
+    filesToUpload.forEach((file) => {
+      formData.append("files", file);
+    });
 
     try {
       const response = await api.post("/maps/batch", formData, {
@@ -904,27 +943,21 @@ export default function UploadPage() {
           }
 
           const percentage = Math.round((loaded * 100) / total);
-
           setUploadProgress(percentage >= 100 ? 99 : percentage);
         },
       });
 
       setUploadProgress(100);
-
       setIsSuccess(true);
 
       setGeoSuccess({
         title: response.data.title,
-
         mapId: response.data.id,
-
         totalLayers: response.data.layers?.length || filesToUpload.length,
-
         metadata: response.data.geo_metadata,
       });
 
       setBatchFiles([]);
-      setManualBaseFile(null);
       setManualSlots([]);
       setExpandedBatchItems(new Set());
     } catch (error: any) {
@@ -932,7 +965,6 @@ export default function UploadPage() {
 
       if (typeof detail === "object" && detail !== null) {
         setGeoError(detail);
-
         setMessage(detail.message || "Validasi geospasial ditolak.");
       } else {
         setGeoError(null);
@@ -948,7 +980,6 @@ export default function UploadPage() {
       setGeoSuccess(null);
     } finally {
       submitting.current = false;
-
       setLoading(false);
     }
   };
@@ -963,18 +994,15 @@ export default function UploadPage() {
   return (
     <main className="bg-page min-h-screen text-brand-900">
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        {/* =====================================================
-            HEADER
-        ===================================================== */}
         <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="micro-label">Input Data</p>
 
-            <h1 className="mt-2 text-2xl font-bold tracking-[-0.035em] text-brand-900 sm:text-3xl">
+            <h1 className="mt-3 text-3xl font-bold tracking-[-0.035em] text-brand-900 sm:text-4xl">
               Unggah <span className="text-brand-600">Dataset</span>
             </h1>
 
-            <p className="mt-1.5 text-xs font-medium text-brand-800/60">
+            <p className="mt-1.5 text-sm font-medium text-brand-800/60">
               Tambahkan hasil survei Anda ke dalam peta.
             </p>
           </div>
@@ -990,16 +1018,12 @@ export default function UploadPage() {
           <fieldset disabled={loading} className="border-0 p-0">
             <legend className="sr-only">Formulir upload dataset</legend>
 
-            {/* =================================================
-                STATUS
-            ================================================= */}
-
             {!isSuccess && (geoError || message) && (
               <motion.section
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, ease: EASE }}
-                className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4"
+                className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-4"
               >
                 <div className="flex items-start gap-3">
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-red-600">
@@ -1012,7 +1036,7 @@ export default function UploadPage() {
                     </p>
 
                     {geoError?.details?.missing_requirements && (
-                      <ul className="mt-2 space-y-1 pl-4 text-[11px] leading-4 text-red-900">
+                      <ul className="mt-2 space-y-1 pl-4 text-xs leading-4 text-red-900">
                         {geoError.details.missing_requirements.map(
                           (requirement, index) => (
                             <li key={index} className="list-disc">
@@ -1025,7 +1049,7 @@ export default function UploadPage() {
 
                     {geoError?.details?.solution && (
                       <div className="mt-3 rounded-2xl bg-white/70 p-3">
-                        <p className="text-[11px] leading-4 text-red-900">
+                        <p className="text-xs leading-4 text-red-900">
                           <strong>Solusi GIS:</strong>{" "}
                           {geoError.details.solution}
                         </p>
@@ -1041,7 +1065,7 @@ export default function UploadPage() {
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, ease: EASE }}
-                className="mb-4 rounded-lg border border-brand-800/15 bg-brand-50 p-4"
+                className="mb-4 rounded-2xl border border-brand-800/15 bg-brand-50 p-4"
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                   <div className="flex min-w-0 flex-1 items-start gap-3">
@@ -1056,7 +1080,7 @@ export default function UploadPage() {
                         {geoSuccess.title}
                       </h3>
 
-                      <p className="mt-0.5 text-[11px] font-medium text-brand-800/60">
+                      <p className="mt-0.5 text-xs font-medium text-brand-800/60">
                         {geoSuccess.totalLayers} layer tersimpan.
                       </p>
                     </div>
@@ -1085,10 +1109,6 @@ export default function UploadPage() {
 
             {!isSuccess && (
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-                {/* ===============================================
-                    GUIDE RAIL (sticky)
-                =============================================== */}
-
                 <aside className="lg:col-span-4 lg:order-2">
                   <div className="space-y-4 lg:sticky lg:top-6">
                     <StepRail currentStep={currentStep} isSuccess={isSuccess} />
@@ -1102,24 +1122,20 @@ export default function UploadPage() {
                   </div>
                 </aside>
 
-                {/* ===============================================
-                    MAIN GUIDED FLOW
-                =============================================== */}
-
                 <div className="space-y-4 lg:col-span-8 lg:order-1">
-                  {/* Upload method toggle */}
-                  <div className="flex flex-col gap-3 rounded-lg border border-brand-800/10 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="glass flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <p className="text-xs font-bold text-brand-900">
                         Metode upload
                       </p>
 
-                      <p className="mt-0.5 text-[10px] font-medium text-brand-800/50">
-                        Mode Mudah disarankan untuk sebagian besar survei
+                      <p className="mt-0.5 text-2xs font-medium text-brand-800/50">
+                        Mode Mudah cocok untuk upload otomatis, Manual untuk
+                        memilih layer satu per satu.
                       </p>
                     </div>
 
-                    <div className="inline-flex w-fit rounded-md border border-brand-800/12 bg-brand-50/50 p-1">
+                    <div className="inline-flex w-fit rounded-md border border-brand-800/15 bg-brand-50/50 p-1">
                       <button
                         type="button"
                         onClick={() => {
@@ -1128,7 +1144,7 @@ export default function UploadPage() {
                           setGeoError(null);
                           setEditingFiles(true);
                         }}
-                        className={`inline-flex items-center gap-1.5 rounded-[5px] px-4 py-2 text-[10px] font-bold transition ${
+                        className={`inline-flex items-center gap-1.5 rounded-[5px] px-4 py-2 text-2xs font-bold transition ${
                           uploadMode === "batch"
                             ? "bg-brand-900 text-white shadow-card"
                             : "text-brand-800/60 hover:text-brand-900"
@@ -1146,7 +1162,7 @@ export default function UploadPage() {
                           setGeoError(null);
                           setEditingFiles(true);
                         }}
-                        className={`inline-flex items-center gap-1.5 rounded-[5px] px-4 py-2 text-[10px] font-bold transition ${
+                        className={`inline-flex items-center gap-1.5 rounded-[5px] px-4 py-2 text-2xs font-bold transition ${
                           uploadMode === "manual"
                             ? "bg-brand-900 text-white shadow-card"
                             : "text-brand-800/60 hover:text-brand-900"
@@ -1161,24 +1177,20 @@ export default function UploadPage() {
                     </div>
                   </div>
 
-                  {/* ---------------------------------------------
-                      STEP 1 — UPLOAD FILE
-                  --------------------------------------------- */}
-
                   {showFilesEditor ? (
                     <motion.section
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.35, ease: EASE }}
-                      className="rounded-lg border border-brand-800/10 bg-white p-5"
+                      className="glass p-5"
                     >
                       <SectionTitle
                         number={1}
-                        title="Upload file"
+                        title="Upload layer"
                         description={
                           uploadMode === "batch"
-                            ? "Pilih file hasil survei Anda."
-                            : "Susun layer secara manual."
+                            ? "Pilih file hasil survei untuk dideteksi otomatis."
+                            : "Tambahkan layer sesuai kebutuhan. Tidak perlu upload ortho terlebih dahulu."
                         }
                       />
 
@@ -1216,7 +1228,7 @@ export default function UploadPage() {
                               Pilih file GeoTIFF
                             </h3>
 
-                            <p className="mt-1 text-[10px] font-medium text-brand-800/55">
+                            <p className="mt-1 text-2xs font-medium text-brand-800/55">
                               atau tarik file ke sini
                             </p>
 
@@ -1224,7 +1236,6 @@ export default function UploadPage() {
                               htmlFor="multiFileInput"
                               className="btn-brand mt-3 cursor-pointer"
                             >
-                              <Folder className="h-3.5 w-3.5" />
                               Pilih File
                             </label>
 
@@ -1237,7 +1248,7 @@ export default function UploadPage() {
                             <div className="mt-4">
                               <div className="mb-2 flex items-center justify-between">
                                 <div>
-                                  <p className="text-[11px] font-bold text-brand-900">
+                                  <p className="text-xs font-bold text-brand-900">
                                     {batchFiles.length} file dipilih
                                   </p>
 
@@ -1258,7 +1269,7 @@ export default function UploadPage() {
                                 </button>
                               </div>
 
-                              <div className="max-h-[240px] overflow-y-auto rounded-lg border border-brand-800/10 bg-white">
+                              <div className="max-h-[240px] overflow-y-auto rounded-2xl border border-brand-800/15 bg-white">
                                 {batchFiles.map((item, index) => {
                                   const config =
                                     LAYER_TYPE_CONFIG[item.layer_type] ||
@@ -1316,7 +1327,7 @@ export default function UploadPage() {
                                                 event.target.value
                                               )
                                             }
-                                            className="mt-1 w-full max-w-sm border-0 bg-transparent p-0 text-[10px] font-bold text-brand-900 outline-none placeholder:text-brand-800/25"
+                                            className="mt-1 w-full max-w-sm border-0 bg-transparent p-0 text-2xs font-bold text-brand-900 outline-none placeholder:text-brand-800/25"
                                             placeholder="Nama layer"
                                           />
                                         </div>
@@ -1330,9 +1341,9 @@ export default function UploadPage() {
                                           onClick={() =>
                                             toggleBatchItemExpanded(item.id)
                                           }
-                                          className="icon-ring h-7 w-7 shrink-0"
+                                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-brand-800/15 text-brand-800/55 hover:bg-brand-50"
                                         >
-                                          <Settings2
+                                          <SlidersHorizontal
                                             className="h-3.5 w-3.5"
                                             strokeWidth={1.75}
                                           />
@@ -1364,7 +1375,7 @@ export default function UploadPage() {
                                                   event.target.value
                                                 )
                                               }
-                                              className="rounded-lg border border-brand-800/10 bg-white px-2.5 py-1.5 text-2xs font-bold text-brand-900 outline-none"
+                                              className="rounded-lg border border-brand-800/15 bg-white px-2.5 py-1.5 text-2xs font-bold text-brand-900 outline-none"
                                             >
                                               {layerOptions.map((option) => (
                                                 <option
@@ -1382,7 +1393,7 @@ export default function UploadPage() {
                                                 onClick={() =>
                                                   handleSetBaseLayer(item.id)
                                                 }
-                                                className="rounded-lg border border-brand-800/10 bg-white px-2.5 py-1.5 text-2xs font-bold text-brand-800"
+                                                className="rounded-lg border border-brand-800/15 bg-white px-2.5 py-1.5 text-2xs font-bold text-brand-800"
                                               >
                                                 Jadikan utama
                                               </button>
@@ -1433,15 +1444,11 @@ export default function UploadPage() {
                       {uploadMode === "manual" && (
                         <ManualUploadFlow
                           disabled={loading}
-                          readiness={readiness}
-                          baseFile={manualBaseFile}
-                          baseName={manualBaseName}
                           slots={manualSlots}
-                          setBaseFile={setManualBaseFile}
-                          setBaseName={setManualBaseName}
-                          addSlot={handleAddManualSlot}
-                          removeSlot={handleRemoveManualSlot}
-                          updateSlot={handleUpdateManualSlot}
+                          addLayer={handleAddManualLayer}
+                          removeLayer={handleRemoveManualLayer}
+                          updateLayer={handleUpdateManualLayer}
+                          errors={manualLayerErrors}
                         />
                       )}
 
@@ -1460,29 +1467,25 @@ export default function UploadPage() {
                     </motion.section>
                   ) : (
                     <CollapsedSummary
-                      title="Upload file"
+                      title="Upload layer"
                       detail={`${
                         reviewFiles.length
-                      } file · ${totalSizeMB.toFixed(1)} MB`}
+                      } layer · ${totalSizeMB.toFixed(1)} MB`}
                       onEdit={() => setEditingFiles(true)}
                     />
                   )}
 
-                  {/* ---------------------------------------------
-                      STEP 2 — DATASET DETAILS
-                  --------------------------------------------- */}
-
                   {!detailsUnlocked ? (
                     <LockedSection
                       title="Detail dataset"
-                      reason="Selesaikan upload file terlebih dahulu"
+                      reason="Selesaikan upload layer terlebih dahulu"
                     />
                   ) : showDetailsEditor ? (
                     <motion.section
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.35, ease: EASE }}
-                      className="rounded-lg border border-brand-800/10 bg-white p-5"
+                      className="glass p-5"
                     >
                       <SectionTitle
                         number={2}
@@ -1526,7 +1529,7 @@ export default function UploadPage() {
                                   className={`rounded-full border px-2.5 py-1.5 text-2xs font-bold transition ${
                                     active
                                       ? "border-brand-900 bg-brand-900 text-white"
-                                      : "border-brand-800/10 bg-white text-brand-800/60 hover:border-brand-800/20 hover:text-brand-900"
+                                      : "border-brand-800/15 bg-white text-brand-800/60 hover:border-brand-800/20 hover:text-brand-900"
                                   }`}
                                 >
                                   {preset.split(",")[0]}
@@ -1657,21 +1660,17 @@ export default function UploadPage() {
                     />
                   )}
 
-                  {/* ---------------------------------------------
-                      STEP 3 — REVIEW & SUBMIT
-                  --------------------------------------------- */}
-
                   {!reviewUnlocked ? (
                     <LockedSection
                       title="Review & kirim"
-                      reason="Lengkapi langkah upload file dan detail dataset terlebih dahulu"
+                      reason="Lengkapi langkah upload layer dan detail dataset terlebih dahulu"
                     />
                   ) : (
                     <motion.section
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.35, ease: EASE }}
-                      className="rounded-lg border border-brand-800/10 bg-white p-5"
+                      className="glass p-5"
                     >
                       <SectionTitle
                         number={3}
@@ -1686,7 +1685,7 @@ export default function UploadPage() {
                         }
                       />
 
-                      <div className="rounded-lg border border-brand-800/8 bg-white p-4">
+                      <div className="rounded-2xl border border-brand-800/8 bg-white p-4">
                         <UploadReview
                           files={reviewFiles}
                           totalBytes={reviewTotalBytes}
@@ -1697,14 +1696,14 @@ export default function UploadPage() {
 
                       <div className="mt-4">
                         {submitErrors.length > 0 ? (
-                          <div className="rounded-lg bg-brand-50 px-3.5 py-3">
-                            <p className="text-[10px] font-medium leading-4 text-brand-800/60">
+                          <div className="rounded-2xl bg-brand-50 px-3.5 py-3">
+                            <p className="text-2xs font-medium leading-4 text-brand-800/60">
                               Lengkapi bagian yang masih diperlukan sebelum
                               upload.
                             </p>
                           </div>
                         ) : (
-                          <div className="rounded-lg bg-brand-50 px-3.5 py-3">
+                          <div className="rounded-2xl bg-brand-50 px-3.5 py-3">
                             <div className="flex items-center gap-2">
                               <CheckCircle2
                                 className="h-3.5 w-3.5 text-brand-600"
@@ -1733,6 +1732,7 @@ export default function UploadPage() {
                                 className="h-3.5 w-3.5 animate-spin"
                                 strokeWidth={1.75}
                               />
+
                               {uploadProgress >= 99
                                 ? "Memeriksa..."
                                 : "Mengunggah..."}
@@ -1753,10 +1753,6 @@ export default function UploadPage() {
                 </div>
               </div>
             )}
-
-            {/* =================================================
-                FOOTER
-            ================================================= */}
 
             <div className="flex items-center justify-center gap-1.5 py-6 text-2xs font-medium text-brand-800/40">
               <ShieldCheck className="h-3 w-3" strokeWidth={1.75} />

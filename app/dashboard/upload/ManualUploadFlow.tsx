@@ -12,6 +12,7 @@ import {
   Plus,
   RefreshCw,
   ShieldCheck,
+  SlidersHorizontal,
   Trash2,
   Upload,
 } from "lucide-react";
@@ -23,88 +24,20 @@ import {
   type ManualSlotItem,
 } from "./upload-config";
 
-import { fileError, type manualReadiness } from "./upload-helpers";
+import { fileError } from "./upload-helpers";
 
-// Keep in sync with the cap enforced in UploadPage.tsx's batch flow.
+/* -------------------------------------------------------------------------- */
+/* Constants                                                                  */
+/* -------------------------------------------------------------------------- */
+
 const MAX_FILE_SIZE_BYTES = 3 * 1024 * 1024 * 1024; // 3 GB
 const MAX_FILE_SIZE_LABEL = "3 GB";
 
 export const inputClass =
-  "w-full rounded-lg border border-brand-800/10 bg-white px-3.5 py-2.5 text-xs font-semibold text-brand-900 outline-none transition placeholder:text-brand-800/30 hover:border-brand-800/20 focus:border-brand-600/30 focus:ring-2 focus:ring-brand-600/10";
-
-const buttonClass =
-  "inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-brand-800/10 px-3.5 py-2 text-xs font-bold text-brand-900 transition hover:-translate-y-0.5 hover:border-brand-800/20 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 disabled:pointer-events-none disabled:opacity-50";
-
-type Readiness = ReturnType<typeof manualReadiness>;
+  "w-full rounded-lg border border-brand-800/15 bg-white px-3.5 py-2.5 text-xs font-semibold text-brand-900 outline-none transition placeholder:text-brand-800/30 hover:border-brand-800/20 focus:border-brand-600/30 focus:ring-2 focus:ring-brand-600/10";
 
 /* -------------------------------------------------------------------------- */
-/* Manual sub navigation                                                      */
-/* -------------------------------------------------------------------------- */
-
-export function ManualSubNav({ readiness }: { readiness: Readiness }) {
-  const items: [string, string, string][] = [
-    [
-      "manual-base",
-      "Layer dasar",
-      readiness.baseErrors.length ? "Belum lengkap" : "Lengkap",
-    ],
-    [
-      "manual-analysis",
-      "Layer analisis",
-      !readiness.slotErrors.length
-        ? "Opsional · belum ditambahkan"
-        : readiness.slotErrors.some((errors) => errors.length)
-        ? "Perlu dilengkapi"
-        : "Semua lengkap",
-    ],
-  ];
-
-  return (
-    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-      {items.map(([id, label, status], index) => {
-        const ready =
-          index === 0
-            ? !readiness.baseErrors.length
-            : readiness.slotErrors.length > 0 &&
-              !readiness.slotErrors.some((errors) => errors.length);
-
-        return (
-          <a
-            key={id}
-            href={`#${id}`}
-            className="group flex items-center gap-3 rounded-lg border border-brand-800/10 bg-white/70 px-3.5 py-3 transition hover:-translate-y-0.5 hover:border-brand-800/15 hover:bg-white"
-          >
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-900 text-xs font-black text-white shadow-sm">
-              {index + 1}
-            </span>
-
-            <span className="min-w-0 flex-1">
-              <strong className="block truncate text-xs font-bold text-brand-900">
-                {label}
-              </strong>
-
-              <span
-                className={`mt-0.5 block text-2xs font-semibold ${
-                  ready ? "text-emerald-600" : "text-brand-800/50"
-                }`}
-              >
-                {status}
-              </span>
-            </span>
-
-            <ChevronDown
-              className="h-4 w-4 shrink-0 -rotate-90 text-brand-800/30 transition-transform group-hover:text-brand-800/60"
-              aria-hidden="true"
-            />
-          </a>
-        );
-      })}
-    </div>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/* Mini dropzone                                                              */
+/* Compact file picker                                                        */
 /* -------------------------------------------------------------------------- */
 
 function MiniDropzone({
@@ -123,20 +56,31 @@ function MiniDropzone({
   const [selectionError, setSelectionError] = useState("");
 
   const error = selectionError || fileError(file);
+
   const capacityPct = file
     ? Math.min(100, (file.size / MAX_FILE_SIZE_BYTES) * 100)
     : 0;
 
   const select = (files: File[]) => {
-    if (disabled || !files.length) return;
+    if (disabled || !files.length) {
+      return;
+    }
 
     if (files.length !== 1) {
-      setSelectionError("Pilih hanya satu file untuk slot ini.");
+      setSelectionError("Pilih satu file untuk layer ini.");
       onChange(null);
       return;
     }
 
     const [candidate] = files;
+
+    const isTiff = /\.(tif|tiff)$/i.test(candidate.name);
+
+    if (!isTiff) {
+      setSelectionError("Hanya file .tif atau .tiff yang didukung.");
+      onChange(null);
+      return;
+    }
 
     if (candidate.size > MAX_FILE_SIZE_BYTES) {
       setSelectionError(
@@ -155,22 +99,26 @@ function MiniDropzone({
   return (
     <div>
       <div
-        className={`relative overflow-hidden rounded-lg border border-dashed p-4 transition ${
+        className={`relative overflow-hidden rounded-2xl border border-dashed p-3 transition ${
           dragging
             ? "border-brand-600 bg-brand-600/5"
             : file
             ? "border-brand-600/15 bg-brand-50/40"
-            : "border-brand-800/12 bg-brand-50/25"
+            : "border-brand-800/15 bg-brand-50/25"
         }`}
-        onDragOver={(e) => {
-          e.preventDefault();
-          if (!disabled) setDragging(true);
+        onDragOver={(event) => {
+          event.preventDefault();
+
+          if (!disabled) {
+            setDragging(true);
+          }
         }}
         onDragLeave={() => setDragging(false)}
-        onDrop={(e) => {
-          e.preventDefault();
+        onDrop={(event) => {
+          event.preventDefault();
           setDragging(false);
-          select(Array.from(e.dataTransfer.files));
+
+          select(Array.from(event.dataTransfer.files));
         }}
       >
         <input
@@ -180,97 +128,98 @@ function MiniDropzone({
           accept=".tif,.tiff"
           disabled={disabled}
           className="hidden"
-          onChange={(e) => {
-            select(Array.from(e.target.files ?? []));
-            e.target.value = "";
+          onChange={(event) => {
+            select(Array.from(event.target.files ?? []));
+            event.target.value = "";
           }}
           aria-label="Pilih file GeoTIFF"
         />
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="icon-ring flex h-10 w-10 shrink-0 items-center justify-center bg-white">
-              <Upload className="h-4 w-4 text-brand-900" aria-hidden="true" />
-            </span>
-
-            <div className="min-w-0">
-              <p className="text-xs font-bold text-brand-900">
-                {file ? "GeoTIFF terpilih" : "Unggah GeoTIFF"}
-              </p>
-
-              <p className="mt-0.5 font-mono text-2xs font-medium text-brand-800/50">
-                .tif / .tiff · maks {MAX_FILE_SIZE_LABEL}
-              </p>
-            </div>
-          </div>
-
+        {!file ? (
           <button
             type="button"
             disabled={disabled}
-            aria-describedby={`${id}-feedback`}
             onClick={() => input.current?.click()}
-            className={`${buttonClass} shrink-0 bg-brand-900 text-white hover:border-brand-900 hover:bg-brand-600`}
+            className="flex w-full items-center gap-3 rounded-md text-left"
           >
-            <Upload className="h-3.5 w-3.5" aria-hidden="true" />
-            {file ? "Ganti file" : "Pilih file"}
-          </button>
-        </div>
+            <span className="icon-ring h-9 w-9 shrink-0">
+              <Upload className="h-4 w-4" aria-hidden="true" />
+            </span>
 
-        {!file && (
-          <p className="mt-3 text-2xs font-medium text-brand-800/45">
-            atau tarik file langsung ke area ini
-          </p>
-        )}
-
-        {file && (
-          <div className="mt-3 rounded-lg border border-brand-800/8 bg-white px-3 py-2.5">
-            <div className="flex items-center gap-3">
-              <span className="icon-ring flex h-8 w-8 shrink-0 items-center justify-center bg-brand-50">
-                <FileText
-                  className="h-3.5 w-3.5 text-brand-600"
-                  aria-hidden="true"
-                />
+            <span className="min-w-0 flex-1">
+              <span className="block text-xs font-bold text-brand-900">
+                Pilih file GeoTIFF
               </span>
 
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-bold text-brand-900">
-                  {file.name}
-                </p>
+              <span className="mt-0.5 block font-mono text-2xs font-medium text-brand-800/45">
+                .tif / .tiff · maks {MAX_FILE_SIZE_LABEL}
+              </span>
+            </span>
 
-                <p className="mt-0.5 font-mono text-2xs font-medium text-brand-800/45">
-                  {formatFileSize(file.size)}
-                </p>
+            <span className="shrink-0 rounded-full bg-brand-900 px-3 py-2 text-2xs font-bold text-white">
+              Pilih file
+            </span>
+          </button>
+        ) : (
+          <div className="flex items-center gap-3">
+            <span className="icon-ring h-9 w-9 shrink-0 text-brand-600">
+              <FileText className="h-4 w-4" aria-hidden="true" />
+            </span>
+
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-bold text-brand-900">
+                {file.name}
+              </p>
+
+              <p className="mt-0.5 font-mono text-2xs font-medium text-brand-800/45">
+                {formatFileSize(file.size)}
+              </p>
+
+              <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-brand-800/8">
+                <div
+                  className="h-full rounded-full bg-brand-600/60"
+                  style={{ width: `${capacityPct}%` }}
+                />
               </div>
+            </div>
+
+            <div className="flex shrink-0 items-center gap-1.5">
+              <button
+                type="button"
+                disabled={disabled}
+                onClick={() => input.current?.click()}
+                className="rounded-full border border-brand-800/15 bg-white px-2.5 py-1.5 text-2xs font-bold text-brand-900 transition hover:border-brand-800/20"
+              >
+                Ganti
+              </button>
 
               <button
                 type="button"
                 disabled={disabled}
-                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-brand-800/40 transition hover:bg-red-50 hover:text-red-600"
-                aria-label="Hapus file dari slot"
                 onClick={() => {
                   setSelectionError("");
                   onChange(null);
                 }}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-brand-800/35 transition hover:bg-red-50 hover:text-red-600"
+                aria-label="Hapus file"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
             </div>
-
-            <div className="mt-2 h-1 overflow-hidden rounded-full bg-brand-800/8">
-              <div
-                className="h-full rounded-full bg-brand-600/60"
-                style={{ width: `${capacityPct}%` }}
-              />
-            </div>
           </div>
+        )}
+
+        {!file && (
+          <p className="mt-2 pl-12 text-2xs font-medium text-brand-800/40">
+            Tarik file langsung ke area ini juga bisa.
+          </p>
         )}
       </div>
 
       <p
-        id={`${id}-feedback`}
         aria-live="polite"
-        className={`mt-2 flex items-center gap-1.5 text-2xs font-semibold ${
-          error ? "text-red-600" : "text-brand-800/50"
+        className={`mt-1.5 flex items-center gap-1.5 text-2xs font-semibold ${
+          error ? "text-red-600" : "text-brand-800/45"
         }`}
       >
         {error ? (
@@ -293,287 +242,451 @@ function MiniDropzone({
 }
 
 /* -------------------------------------------------------------------------- */
+/* Custom layer type select                                                   */
+/* -------------------------------------------------------------------------- */
+
+function LayerTypeSelect({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: ManualSlotItem["layer_type"];
+  onChange: (value: ManualSlotItem["layer_type"]) => void;
+  disabled: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const currentOption =
+    manualLayerOptions.find((option) => option.value === value) ??
+    manualLayerOptions[0];
+
+  const currentConfig = currentOption
+    ? LAYER_TYPE_CONFIG[currentOption.value] || LAYER_TYPE_CONFIG.custom
+    : LAYER_TYPE_CONFIG.custom;
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-brand-800/15 bg-white px-3 text-xs font-semibold text-brand-900 outline-none transition hover:border-brand-800/20 focus:border-brand-600/30 focus:ring-2 focus:ring-brand-600/10"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span className="min-w-0 truncate">
+          {currentOption?.label ?? "Pilih jenis layer"}
+        </span>
+
+        <ChevronDown
+          className={`h-3.5 w-3.5 shrink-0 text-brand-800/35 transition-transform ${
+            open ? "rotate-180" : ""
+          }`}
+          strokeWidth={1.75}
+        />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 right-0 top-[calc(100%+3px)] z-50 overflow-hidden rounded-lg border border-brand-800/15 bg-white shadow-lg">
+          <div className="max-h-[180px] overflow-y-auto p-1">
+            {manualLayerOptions.map((option) => {
+              const active = option.value === value;
+
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => {
+                    onChange(option.value as ManualSlotItem["layer_type"]);
+                    setOpen(false);
+                  }}
+                  className={`flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-2xs font-semibold transition ${
+                    active
+                      ? "bg-brand-50 text-brand-900"
+                      : "text-brand-800/70 hover:bg-brand-50/70 hover:text-brand-900"
+                  }`}
+                  role="option"
+                  aria-selected={active}
+                >
+                  <span className="min-w-0 flex-1 truncate">
+                    {option.label}
+                  </span>
+
+                  {active && (
+                    <CheckCircle2
+                      className="h-3 w-3 shrink-0 text-emerald-600"
+                      strokeWidth={2}
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* New layer picker                                                           */
+/* -------------------------------------------------------------------------- */
+
+function LayerTypePicker({
+  onSelect,
+  disabled,
+}: {
+  onSelect: (value: ManualSlotItem["layer_type"]) => void;
+  disabled: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="relative rounded-lg border border-brand-800/15 bg-white p-2.5">
+      <label className="mb-1.5 block text-2xs font-bold text-brand-800/50">
+        Jenis layer
+      </label>
+
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setOpen((value) => !value)}
+        className="flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-brand-800/15 bg-white px-3 text-xs font-semibold text-brand-800/45 outline-none transition hover:border-brand-800/20 focus:border-brand-600/30 focus:ring-2 focus:ring-brand-600/10"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span className="truncate">Pilih jenis layer...</span>
+
+        <ChevronDown
+          className={`h-3.5 w-3.5 shrink-0 text-brand-800/35 transition-transform ${
+            open ? "rotate-180" : ""
+          }`}
+          strokeWidth={1.75}
+        />
+      </button>
+
+      {open && (
+        <div className="absolute left-2.5 right-2.5 top-[calc(100%-0.5rem)] z-50 overflow-hidden rounded-lg border border-brand-800/15 bg-white shadow-lg">
+          <div className="max-h-[180px] overflow-y-auto p-1">
+            {manualLayerOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                disabled={disabled}
+                onClick={() => {
+                  onSelect(option.value as ManualSlotItem["layer_type"]);
+                  setOpen(false);
+                }}
+                className="flex w-full items-center rounded-md px-2.5 py-2 text-left text-2xs font-semibold text-brand-800/70 transition hover:bg-brand-50 hover:text-brand-900"
+                role="option"
+              >
+                <span className="truncate">{option.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <p className="mt-1 text-2xs font-medium text-brand-800/35">
+        Pilih tipe peta yang ingin ditambahkan.
+      </p>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
 /* Manual upload flow                                                         */
 /* -------------------------------------------------------------------------- */
 
 export function ManualUploadFlow({
-  baseFile,
-  baseName,
   slots,
-  setBaseFile,
-  setBaseName,
-  addSlot,
-  removeSlot,
-  updateSlot,
+  addLayer,
+  removeLayer,
+  updateLayer,
   disabled,
-  readiness,
+  errors,
 }: {
-  baseFile: File | null;
-  baseName: string;
   slots: ManualSlotItem[];
-  setBaseFile: (file: File | null) => void;
-  setBaseName: (name: string) => void;
-  addSlot: () => void;
-  removeSlot: (id: string) => void;
-  updateSlot: <K extends keyof ManualSlotItem>(
+  addLayer: (layerType?: ManualSlotItem["layer_type"]) => void;
+  removeLayer: (id: string) => void;
+  updateLayer: <K extends keyof ManualSlotItem>(
     id: string,
     field: K,
     value: ManualSlotItem[K]
   ) => void;
   disabled: boolean;
-  readiness: Readiness;
+  errors: string[][];
 }) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  const handlePickLayer = (layerType: ManualSlotItem["layer_type"]) => {
+    addLayer(layerType);
+    setPickerOpen(false);
+  };
+
   return (
     <div className="space-y-4">
-      <ManualSubNav readiness={readiness} />
+      {/* ------------------------------------------------------------------ */}
+      {/* HEADER / ADD LAYER                                                 */}
+      {/* ------------------------------------------------------------------ */}
 
-      {/* Base layer */}
-      <section
-        id="manual-base"
-        tabIndex={-1}
-        className="scroll-mt-6 rounded-lg border border-brand-800/8 bg-white/60 p-4 sm:p-5"
-      >
-        <div className="mb-4 flex items-start gap-3">
-          <span className="icon-ring flex h-9 w-9 shrink-0 items-center justify-center bg-brand-50">
-            <Layers className="h-4 w-4 text-brand-900" aria-hidden="true" />
-          </span>
+      <div className="rounded-2xl border border-brand-800/8 bg-brand-50/35 p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-start gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-900 text-white">
+              <Layers className="h-4 w-4" aria-hidden="true" />
+            </span>
 
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-sm font-bold text-brand-900">Layer dasar</h3>
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-brand-900">Layer analisis</p>
+
+              <p className="mt-0.5 text-2xs font-medium leading-4 text-brand-800/50">
+                Tambahkan ortho, NDVI, VARI, DSM, N/P/K, atau layer custom tanpa
+                urutan wajib.
+              </p>
             </div>
-
-            <p className="mt-1 flex items-center gap-1.5 text-2xs font-medium text-brand-800/50">
-              <ShieldCheck
-                className="h-3.5 w-3.5 shrink-0 text-brand-600"
-                aria-hidden="true"
-              />
-              Foto dasar area survei · mosaic drone
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <label
-              htmlFor="base-name"
-              className="mb-1.5 block text-2xs font-bold uppercase tracking-[0.12em] text-brand-800/55"
-            >
-              Nama layer
-            </label>
-
-            <input
-              id="base-name"
-              required
-              value={baseName}
-              onChange={(e) => setBaseName(e.target.value)}
-              aria-invalid={!baseName.trim()}
-              aria-describedby="base-name-error"
-              className={inputClass}
-            />
-
-            <p
-              id="base-name-error"
-              className={`mt-1.5 text-2xs font-semibold ${
-                !baseName.trim() ? "text-red-600" : "text-transparent"
-              }`}
-              aria-live="polite"
-            >
-              {!baseName.trim()
-                ? "Nama layer wajib diisi."
-                : "Nama layer valid"}
-            </p>
-          </div>
-
-          <MiniDropzone
-            id="base-file"
-            file={baseFile}
-            onChange={setBaseFile}
-            disabled={disabled}
-          />
-        </div>
-      </section>
-
-      {/* Analysis layers */}
-      <section id="manual-analysis" tabIndex={-1} className="scroll-mt-6">
-        <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-bold text-brand-900">
-                Layer analisis tambahan
-              </h3>
-            </div>
-
-            <p className="mt-1 text-2xs font-medium text-brand-800/50">
-              NDVI, VARI, DSM, N/P/K, dan layer analisis lainnya
-            </p>
           </div>
 
           <button
             type="button"
-            className="btn-ghost min-h-9 px-3.5 text-2xs"
-            onClick={addSlot}
             disabled={disabled}
+            className="btn-brand shrink-0"
+            onClick={() => setPickerOpen((value) => !value)}
           >
             <Plus className="h-3.5 w-3.5" />
             Tambah layer
           </button>
         </div>
 
-        {!slots.length && (
-          <div className="flex items-center gap-3 rounded-lg border border-dashed border-brand-800/10 bg-brand-50/30 px-4 py-4">
-            <span className="icon-ring flex h-9 w-9 shrink-0 items-center justify-center bg-white">
-              <Layers
-                className="h-4 w-4 text-brand-800/50"
-                aria-hidden="true"
-              />
-            </span>
-
-            <div>
-              <p className="text-xs font-bold text-brand-900">
-                Belum ada layer tambahan
-              </p>
-
-              <p className="mt-0.5 text-2xs font-medium text-brand-800/45">
-                Dataset tetap bisa diunggah tanpa layer analisis.
-              </p>
-            </div>
+        {pickerOpen && (
+          <div className="mt-3">
+            <LayerTypePicker disabled={disabled} onSelect={handlePickLayer} />
           </div>
         )}
+      </div>
 
+      {/* ------------------------------------------------------------------ */}
+      {/* EMPTY STATE                                                        */}
+      {/* ------------------------------------------------------------------ */}
+
+      {!slots.length && (
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-brand-800/15 bg-white px-5 py-10 text-center">
+          <span className="icon-ring h-11 w-11 text-brand-800/45">
+            <Plus className="h-5 w-5" />
+          </span>
+
+          <p className="mt-3 text-sm font-bold text-brand-900">
+            Belum ada layer
+          </p>
+
+          <p className="mt-1 max-w-sm text-2xs font-medium leading-4 text-brand-800/45">
+            Pilih <strong>Tambah layer</strong> lalu tentukan jenis peta yang
+            ingin dimasukkan.
+          </p>
+
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => setPickerOpen(true)}
+            className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-brand-800/15 bg-white px-4 py-2 text-2xs font-bold text-brand-900 transition hover:border-brand-800/20 hover:bg-brand-50"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Tambah layer pertama
+          </button>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------------ */}
+      {/* LAYER LIST                                                         */}
+      {/* ------------------------------------------------------------------ */}
+
+      {slots.length > 0 && (
         <div className="space-y-3">
-          {slots.map((slot, index) => (
-            <article
-              key={slot.id}
-              className="rounded-lg border border-brand-800/8 bg-white/60 p-4"
-            >
-              <div className="mb-4 flex items-start justify-between gap-3">
-                <div className="flex min-w-0 items-start gap-3">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-900 text-2xs font-black text-white">
-                    {index + 1}
-                  </span>
+          {slots.map((slot, index) => {
+            const config =
+              LAYER_TYPE_CONFIG[slot.layer_type] || LAYER_TYPE_CONFIG.custom;
 
-                  <div className="min-w-0">
-                    <h4 className="text-xs font-bold text-brand-900">
-                      Layer analisis {index + 1}
-                    </h4>
+            const slotErrors = errors[index] ?? [];
 
-                    <span
-                      className={`mt-1.5 inline-flex rounded border px-2 py-1 font-mono text-2xs font-bold uppercase tracking-wide ${
-                        LAYER_TYPE_CONFIG[slot.layer_type].badgeClass
-                      }`}
-                    >
-                      {LAYER_TYPE_CONFIG[slot.layer_type].label}
+            return (
+              <article
+                key={slot.id}
+                className="rounded-2xl border border-brand-800/15 bg-white p-4 shadow-card"
+              >
+                {/* Header -------------------------------------------------- */}
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-900 text-xs font-bold text-white">
+                      {index + 1}
                     </span>
+
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`rounded border px-1.5 py-0.5 font-mono text-2xs font-bold uppercase tracking-wide ${config.badgeClass}`}
+                        >
+                          {config.label}
+                        </span>
+
+                        {index === 0 && (
+                          <span className="rounded border border-brand-600/20 bg-brand-50 px-1.5 py-0.5 font-mono text-2xs font-bold uppercase tracking-wide text-brand-700">
+                            utama
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="mt-0.5 text-2xs font-medium text-brand-800/45">
+                        Layer {index + 1}
+                      </p>
+                    </div>
                   </div>
-                </div>
 
-                <button
-                  type="button"
-                  aria-label={`Hapus layer analisis ${index + 1}`}
-                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-brand-800/35 transition hover:bg-red-50 hover:text-red-600"
-                  onClick={() => removeSlot(slot.id)}
-                  disabled={disabled}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
-
-              <div className="grid gap-3 md:grid-cols-2">
-                <label className="space-y-1.5 text-2xs font-bold text-brand-900">
-                  <span className="block uppercase tracking-[0.1em] text-brand-800/50">
-                    Tipe layer
-                  </span>
-
-                  <select
-                    value={slot.layer_type}
-                    onChange={(e) =>
-                      updateSlot(slot.id, "layer_type", e.target.value)
-                    }
-                    className={inputClass}
+                  <button
+                    type="button"
+                    aria-label={`Hapus layer ${index + 1}`}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-brand-800/30 transition hover:bg-red-50 hover:text-red-600"
+                    onClick={() => removeLayer(slot.id)}
                     disabled={disabled}
                   >
-                    {manualLayerOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
 
-                <label className="space-y-1.5 text-2xs font-bold text-brand-900">
-                  <span className="block uppercase tracking-[0.1em] text-brand-800/50">
-                    Nama layer
+                {/* Type + name -------------------------------------------- */}
+                <div className="grid gap-3 md:grid-cols-[170px_minmax(0,1fr)]">
+                  <label className="space-y-1.5 text-2xs font-bold text-brand-900">
+                    <span className="block uppercase tracking-[0.1em] text-brand-800/50">
+                      Tipe layer
+                    </span>
+
+                    <LayerTypeSelect
+                      value={slot.layer_type}
+                      disabled={disabled}
+                      onChange={(value) =>
+                        updateLayer(slot.id, "layer_type", value)
+                      }
+                    />
+                  </label>
+
+                  <label className="space-y-1.5 text-2xs font-bold text-brand-900">
+                    <span className="block uppercase tracking-[0.1em] text-brand-800/50">
+                      Nama layer
+                    </span>
+
+                    <input
+                      required
+                      value={slot.name}
+                      aria-invalid={!slot.name.trim()}
+                      onChange={(event) =>
+                        updateLayer(slot.id, "name", event.target.value)
+                      }
+                      className={inputClass}
+                      disabled={disabled}
+                    />
+                  </label>
+                </div>
+
+                {/* File ---------------------------------------------------- */}
+                <div className="mt-3">
+                  <MiniDropzone
+                    id={`file-${slot.id}`}
+                    file={slot.file}
+                    onChange={(file) => updateLayer(slot.id, "file", file)}
+                    disabled={disabled}
+                  />
+                </div>
+
+                {/* Compact opacity ---------------------------------------- */}
+                <div className="mt-3 flex items-center gap-3 rounded-lg bg-brand-50/60 px-3 py-2.5">
+                  <SlidersHorizontal
+                    className="h-3.5 w-3.5 shrink-0 text-brand-800/45"
+                    strokeWidth={1.75}
+                  />
+
+                  <span className="shrink-0 text-2xs font-bold text-brand-900">
+                    Opasitas
                   </span>
 
                   <input
-                    required
-                    value={slot.name}
-                    aria-invalid={!slot.name.trim()}
-                    onChange={(e) =>
-                      updateSlot(slot.id, "name", e.target.value)
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={slot.default_opacity}
+                    aria-label={`Opasitas layer ${index + 1}`}
+                    aria-valuetext={`${Math.round(
+                      slot.default_opacity * 100
+                    )} persen`}
+                    onChange={(event) =>
+                      updateLayer(
+                        slot.id,
+                        "default_opacity",
+                        Number(event.target.value)
+                      )
                     }
-                    className={inputClass}
+                    className="min-w-0 flex-1 accent-brand-900"
                     disabled={disabled}
                   />
-                </label>
-              </div>
 
-              <div className="mt-3">
-                <MiniDropzone
-                  id={`file-${slot.id}`}
-                  file={slot.file}
-                  onChange={(file) => updateSlot(slot.id, "file", file)}
-                  disabled={disabled}
-                />
-              </div>
-
-              <label className="mt-3 block rounded-lg bg-brand-50/60 px-3.5 py-3.5 text-2xs font-bold text-brand-900">
-                <span className="mb-2.5 flex items-center justify-between gap-3">
-                  <span>Opasitas awal</span>
-
-                  <span className="rounded-full bg-white px-2 py-1 font-mono text-brand-600">
+                  <span className="w-10 shrink-0 rounded-full bg-white px-2 py-1 text-center font-mono text-2xs font-bold text-brand-600">
                     {Math.round(slot.default_opacity * 100)}%
                   </span>
-                </span>
+                </div>
 
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value={slot.default_opacity}
-                  aria-valuetext={`${Math.round(
-                    slot.default_opacity * 100
-                  )} persen`}
-                  onChange={(e) =>
-                    updateSlot(
-                      slot.id,
-                      "default_opacity",
-                      Number(e.target.value)
-                    )
-                  }
-                  className="w-full accent-brand-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-600"
-                  disabled={disabled}
-                />
-              </label>
-
-              <p
-                aria-live="polite"
-                className={`mt-2.5 text-2xs font-semibold ${
-                  readiness.slotErrors[index]?.length
-                    ? "text-red-600"
-                    : "text-emerald-600"
-                }`}
-              >
-                {readiness.slotErrors[index]?.length
-                  ? readiness.slotErrors[index].join(" ")
-                  : "Layer lengkap."}
-              </p>
-            </article>
-          ))}
+                {/* Validation --------------------------------------------- */}
+                <div
+                  aria-live="polite"
+                  className={`mt-2 flex items-center gap-1.5 text-2xs font-semibold ${
+                    slotErrors.length ? "text-red-600" : "text-emerald-600"
+                  }`}
+                >
+                  {slotErrors.length ? (
+                    <>
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                      <span>{slotErrors.join(" ")}</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                      <span>Layer lengkap.</span>
+                    </>
+                  )}
+                </div>
+              </article>
+            );
+          })}
         </div>
-      </section>
+      )}
+
+      {/* ------------------------------------------------------------------ */}
+      {/* ADD MORE                                                           */}
+      {/* ------------------------------------------------------------------ */}
+
+      {slots.length > 0 && (
+        <div className="flex justify-center pt-1">
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => setPickerOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-full border border-brand-800/15 bg-white px-4 py-2 text-2xs font-bold text-brand-800/65 transition hover:border-brand-800/20 hover:text-brand-900"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Tambah layer lagi
+          </button>
+        </div>
+      )}
+
+      {slots.length > 0 && (
+        <p className="flex items-center justify-center gap-1.5 text-center text-2xs font-medium text-brand-800/40">
+          <CheckCircle2
+            className="h-3 w-3 text-emerald-600"
+            strokeWidth={1.75}
+          />
+          Layer pertama menjadi layer utama secara teknis. Tidak harus berupa
+          ortho.
+        </p>
+      )}
     </div>
   );
 }
@@ -608,8 +721,8 @@ export function UploadReview({
   return (
     <section id="upload-review" tabIndex={-1} className="scroll-mt-6">
       <div className="mb-4 flex items-start gap-3">
-        <span className="icon-ring flex h-9 w-9 shrink-0 items-center justify-center bg-brand-50">
-          <ShieldCheck className="h-4 w-4 text-brand-900" aria-hidden="true" />
+        <span className="icon-ring h-9 w-9 shrink-0">
+          <ShieldCheck className="h-4 w-4" aria-hidden="true" />
         </span>
 
         <div className="min-w-0">
@@ -626,7 +739,7 @@ export function UploadReview({
       </div>
 
       {files.length > 0 && (
-        <div className="rounded-lg border border-brand-800/8 bg-brand-50/30 p-2.5">
+        <div className="rounded-2xl border border-brand-800/8 bg-brand-50/30 p-2.5">
           <ul
             className="max-h-44 space-y-1 overflow-y-auto pr-1"
             aria-label="Daftar file"
@@ -634,7 +747,7 @@ export function UploadReview({
             {files.map((file, index) => (
               <li
                 key={index}
-                className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-2xs"
+                className="flex items-center gap-2 rounded-2xl bg-white px-3 py-2 text-2xs"
               >
                 <FileText
                   className="h-3.5 w-3.5 shrink-0 text-brand-600"
@@ -660,7 +773,7 @@ export function UploadReview({
         </p>
 
         <ul
-          className="space-y-2 rounded-lg border border-brand-800/8 bg-white/70 p-3.5 text-xs font-semibold text-brand-900"
+          className="space-y-2 rounded-2xl border border-brand-800/8 bg-white/70 p-3.5 text-xs font-semibold text-brand-900"
           aria-label="Checklist kesiapan"
           aria-live="polite"
         >
@@ -687,7 +800,7 @@ export function UploadReview({
       <div
         id="submit-readiness"
         role="status"
-        className={`mt-4 flex items-center gap-2 rounded-lg px-3.5 py-3 text-2xs font-bold ${
+        className={`mt-4 flex items-center gap-2 rounded-2xl px-3.5 py-3 text-2xs font-bold ${
           loading
             ? "bg-brand-900 text-white"
             : ready
@@ -761,12 +874,13 @@ export function UploadGuide() {
   return (
     <details className="glass group p-5">
       <summary className="flex cursor-pointer list-none items-center gap-3 text-xs font-bold text-brand-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-600">
-        <span className="icon-ring flex h-8 w-8 shrink-0 items-center justify-center bg-brand-50">
-          <HelpCircle className="h-4 w-4 text-brand-900" aria-hidden="true" />
+        <span className="icon-ring h-8 w-8 shrink-0">
+          <HelpCircle className="h-4 w-4" aria-hidden="true" />
         </span>
 
         <span>
           <span className="block">Panduan singkat</span>
+
           <span className="mt-0.5 block text-2xs font-medium text-brand-800/45">
             Format dan proses data
           </span>
@@ -782,7 +896,7 @@ export function UploadGuide() {
         {points.map((point, index) => (
           <li
             key={index}
-            className="flex items-start gap-3 rounded-xl bg-brand-50/45 px-3 py-2.5"
+            className="flex items-start gap-3 rounded-2xl bg-brand-50/45 px-3 py-2.5"
           >
             <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white text-brand-600">
               {point.icon}
