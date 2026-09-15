@@ -155,17 +155,16 @@ const BASEMAPS = {
       "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
     labels:
       "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
-    maxzoom: 19,
+    maxzoom: 18,
     attribution:
       "Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
   },
   street: {
-    name: "Peta Jalan",
-    tiles:
-      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+    name: "Peta Jalan (OSM)",
+    tiles: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
     labels: null,
     maxzoom: 19,
-    attribution: "Tiles © Esri — Source: Esri, DeLorme, NAVTEQ, USGS",
+    attribution: "© OpenStreetMap contributors",
   },
 };
 
@@ -274,8 +273,6 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       x: number;
       y: number;
     } | null>(null);
-    const [isEditingPetak, setIsEditingPetak] = useState(false);
-    const [editForm, setEditForm] = useState<Partial<PetakProperties>>({});
     const gridDataRef = useRef<GeoJSON.FeatureCollection<
       GeoJSON.Polygon,
       PetakProperties
@@ -646,7 +643,6 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                   type: "raster",
                   url: `pmtiles://${pmtilesUrl}`,
                   tileSize: 256,
-                  maxzoom: 22,
                 });
               } else {
                 map.addSource(sourceId, {
@@ -855,7 +851,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
           .then((sData) => {
             if (sData) setSpatialInfo(sData);
           })
-          .catch(() => {});
+          .catch(() => { });
 
         /* ===============================================
              FIT BOUNDS
@@ -1113,24 +1109,68 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     ====================================================== */
 
     const updateGridOnMap = useCallback(
-      (cellSize: number) => {
+      async (cellSize: number) => {
         const map = mapRef.current;
         if (!map || !map.getStyle()) return;
 
-        let boundaryInput: any = spatialInfo?.geojson;
-        if (!boundaryInput && currentMeta?.bounds) {
-          const [[south, west], [north, east]] = currentMeta.bounds;
-          boundaryInput = turf.bboxPolygon([west, south, east, north]);
+        // Cek apakah ada layer analisis yang sedang aktif (bukan ortho visual)
+        const activeAnalysisLayer = mapLayers.find(
+          (l) => l.is_visible && l.layer_type?.toLowerCase() !== "ortho"
+        );
+
+        // Jika hanya Ortho RGB yang aktif (atau tidak ada layer analisis), sembunyikan grid
+        if (!activeAnalysisLayer) {
+          if (map.getLayer("grid-petak-fill")) {
+            map.setLayoutProperty("grid-petak-fill", "visibility", "none");
+          }
+          if (map.getLayer("grid-petak-outline")) {
+            map.setLayoutProperty("grid-petak-outline", "visibility", "none");
+          }
+          setSelectedPetak(null);
+          return;
         }
 
-        if (!boundaryInput) return;
+        let fc: GeoJSON.FeatureCollection<GeoJSON.Polygon, PetakProperties> | null =
+          null;
 
-        const result = generatePetakGrid(boundaryInput, cellSize);
-        const fc: GeoJSON.FeatureCollection<GeoJSON.Polygon, PetakProperties> =
-          {
+        // Ambil data GeoJSON Zonal Statistics 10m asli dari backend
+        const baseUrl =
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
+        const headers: Record<string, string> = {};
+        if (tokenRef.current) {
+          headers.Authorization = `Bearer ${tokenRef.current}`;
+        }
+
+        try {
+          const res = await fetch(
+            `${baseUrl}/maps/layers/${activeAnalysisLayer.id}/grid`,
+            { headers }
+          );
+          if (res.ok) {
+            fc = (await res.json()) as GeoJSON.FeatureCollection<
+              GeoJSON.Polygon,
+              PetakProperties
+            >;
+          }
+        } catch (e) {
+          console.warn("Gagal memuat grid dari backend, memakai fallback:", e);
+        }
+
+        // Fallback jika layer belum terkomputasi
+        if (!fc || !fc.features || fc.features.length === 0) {
+          let boundaryInput: any = spatialInfo?.geojson;
+          if (!boundaryInput && currentMeta?.bounds) {
+            const [[south, west], [north, east]] = currentMeta.bounds;
+            boundaryInput = turf.bboxPolygon([west, south, east, north]);
+          }
+          if (!boundaryInput) return;
+          const result = generatePetakGrid(boundaryInput, cellSize);
+          fc = {
             type: "FeatureCollection",
             features: result.features,
           };
+        }
+
         gridDataRef.current = fc;
 
         const source = map.getSource("grid-petak-source") as
@@ -1150,22 +1190,8 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             source: "grid-petak-source",
             layout: { visibility: "visible" },
             paint: {
-              "fill-color": [
-                "interpolate",
-                ["linear"],
-                ["get", "nitrogen"],
-                30,
-                "#e8f5e9",
-                55,
-                "#a5d6a7",
-                75,
-                "#4caf50",
-                95,
-                "#2e7d32",
-                120,
-                "#1b5e20",
-              ],
-              "fill-opacity": 0.55,
+              "fill-color": ["coalesce", ["get", "color"], "#4caf50"],
+              "fill-opacity": 0.52,
             },
           });
 
@@ -1177,7 +1203,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             paint: {
               "line-color": "#ffffff",
               "line-width": 1.2,
-              "line-opacity": 0.9,
+              "line-opacity": 0.85,
             },
           });
 
@@ -1185,15 +1211,6 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             if (!e.features || e.features.length === 0) return;
             const props = e.features[0].properties as PetakProperties;
             setSelectedPetak(props);
-            setIsEditingPetak(false);
-            setEditForm({
-              nitrogen: props.nitrogen,
-              phospor: props.phospor,
-              kalium: props.kalium,
-              ph: props.ph,
-              kelembapan: props.kelembapan,
-              c_organik: props.c_organik,
-            });
 
             const pt = e.point;
             const cEl = containerRef.current;
@@ -1216,11 +1233,21 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
           });
         }
 
-        if (map.getLayer("grid-petak-fill")) map.moveLayer("grid-petak-fill");
-        if (map.getLayer("grid-petak-outline"))
+        if (map.getLayer("grid-petak-fill")) {
+          map.setLayoutProperty("grid-petak-fill", "visibility", "visible");
+          map.setPaintProperty("grid-petak-fill", "fill-color", [
+            "coalesce",
+            ["get", "color"],
+            "#4caf50",
+          ]);
+          map.moveLayer("grid-petak-fill");
+        }
+        if (map.getLayer("grid-petak-outline")) {
+          map.setLayoutProperty("grid-petak-outline", "visibility", "visible");
           map.moveLayer("grid-petak-outline");
+        }
       },
-      [spatialInfo, currentMeta]
+      [spatialInfo, currentMeta, mapLayers]
     );
 
     useEffect(() => {
@@ -1229,14 +1256,6 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
       if (gridEnabled) {
         updateGridOnMap(gridCellSize);
-        if (map.getLayer("grid-petak-fill")) {
-          map.setLayoutProperty("grid-petak-fill", "visibility", "visible");
-          map.moveLayer("grid-petak-fill");
-        }
-        if (map.getLayer("grid-petak-outline")) {
-          map.setLayoutProperty("grid-petak-outline", "visibility", "visible");
-          map.moveLayer("grid-petak-outline");
-        }
       } else {
         if (map.getLayer("grid-petak-fill")) {
           map.setLayoutProperty("grid-petak-fill", "visibility", "none");
@@ -1245,51 +1264,8 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
           map.setLayoutProperty("grid-petak-outline", "visibility", "none");
         }
         setSelectedPetak(null);
-        setIsEditingPetak(false);
       }
-    }, [gridEnabled, gridCellSize, mapReady, updateGridOnMap]);
-
-    const handleSavePetak = useCallback(() => {
-      if (!selectedPetak || !gridDataRef.current) return;
-      const updatedPetak: PetakProperties = {
-        ...selectedPetak,
-        nitrogen: Number(editForm.nitrogen ?? selectedPetak.nitrogen),
-        phospor: Number(editForm.phospor ?? selectedPetak.phospor),
-        kalium: Number(editForm.kalium ?? selectedPetak.kalium),
-        ph: Number(editForm.ph ?? selectedPetak.ph),
-        kelembapan: Number(editForm.kelembapan ?? selectedPetak.kelembapan),
-        c_organik: Number(editForm.c_organik ?? selectedPetak.c_organik),
-      };
-
-      if (updatedPetak.nitrogen < 55) updatedPetak.priority = "N";
-      else if (updatedPetak.phospor < 28) updatedPetak.priority = "P";
-      else updatedPetak.priority = "K";
-
-      setSelectedPetak(updatedPetak);
-      setIsEditingPetak(false);
-
-      const features = gridDataRef.current.features.map((f) => {
-        if (f.properties.block_id === updatedPetak.block_id) {
-          return {
-            ...f,
-            properties: updatedPetak,
-          };
-        }
-        return f;
-      });
-
-      gridDataRef.current = {
-        ...gridDataRef.current,
-        features,
-      };
-
-      const map = mapRef.current;
-      if (map && map.getSource("grid-petak-source")) {
-        (
-          map.getSource("grid-petak-source") as maplibregl.GeoJSONSource
-        ).setData(gridDataRef.current as any);
-      }
-    }, [selectedPetak, editForm]);
+    }, [gridEnabled, gridCellSize, mapReady, updateGridOnMap, mapLayers]);
 
     /* Update screen pixel position for anchoring the petak card */
     const updatePetakScreenPos = useCallback(() => {
@@ -1516,13 +1492,12 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
           toolMode === "area" && idx === 0 && measurePoints.length >= 3;
         const isLastPoint = idx === measurePoints.length - 1;
 
-        el.className = `flex items-center justify-center w-6 h-6 rounded-full border-2 border-white text-white text-[11px] font-black shadow-lg cursor-pointer transform hover:scale-125 transition-transform select-none ${
-          isFirstInArea
-            ? "bg-[#91b928] ring-4 ring-[#91b928]/60 animate-pulse"
-            : isLastPoint
+        el.className = `flex items-center justify-center w-6 h-6 rounded-full border-2 border-white text-white text-[11px] font-black shadow-lg cursor-pointer transform hover:scale-125 transition-transform select-none ${isFirstInArea
+          ? "bg-[#91b928] ring-4 ring-[#91b928]/60 animate-pulse"
+          : isLastPoint
             ? "bg-amber-500 ring-2 ring-amber-300"
             : "bg-[#123c28]"
-        }`;
+          }`;
         el.innerText = `${idx + 1}`;
 
         if (isFirstInArea) {
@@ -1592,15 +1567,15 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         features:
           lineCoords.length >= 2
             ? [
-                {
-                  type: "Feature",
-                  properties: {},
-                  geometry: {
-                    type: "LineString",
-                    coordinates: lineCoords,
-                  },
+              {
+                type: "Feature",
+                properties: {},
+                geometry: {
+                  type: "LineString",
+                  coordinates: lineCoords,
                 },
-              ]
+              },
+            ]
             : [],
       };
 
@@ -1610,15 +1585,15 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         features:
           toolMode === "area" && measurePoints.length >= 3
             ? [
-                {
-                  type: "Feature",
-                  properties: {},
-                  geometry: {
-                    type: "Polygon",
-                    coordinates: [[...measurePoints, measurePoints[0]]],
-                  },
+              {
+                type: "Feature",
+                properties: {},
+                geometry: {
+                  type: "Polygon",
+                  coordinates: [[...measurePoints, measurePoints[0]]],
                 },
-              ]
+              },
+            ]
             : [],
       };
 
@@ -2064,9 +2039,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               prev.map((layer) =>
                 layer.id === layerId
                   ? {
-                      ...layer,
-                      is_visible: visible,
-                    }
+                    ...layer,
+                    is_visible: visible,
+                  }
                   : layer
               )
             );
@@ -2074,9 +2049,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             mapLayersRef.current = mapLayersRef.current.map((layer) =>
               layer.id === layerId
                 ? {
-                    ...layer,
-                    is_visible: visible,
-                  }
+                  ...layer,
+                  is_visible: visible,
+                }
                 : layer
             );
           }}
@@ -2093,9 +2068,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               prev.map((layer) =>
                 layer.id === layerId
                   ? {
-                      ...layer,
-                      default_opacity: opacity,
-                    }
+                    ...layer,
+                    default_opacity: opacity,
+                  }
                   : layer
               )
             );
@@ -2103,9 +2078,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             mapLayersRef.current = mapLayersRef.current.map((layer) =>
               layer.id === layerId
                 ? {
-                    ...layer,
-                    default_opacity: opacity,
-                  }
+                  ...layer,
+                  default_opacity: opacity,
+                }
                 : layer
             );
           }}
@@ -2218,11 +2193,10 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               handleClearMeasurement();
             }}
             title="Navigasi Standar"
-            className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
-              toolMode === "none" && !compareMode
-                ? "bg-[#123c28] text-white shadow-sm"
-                : "text-gray-700 hover:bg-gray-100"
-            }`}
+            className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${toolMode === "none" && !compareMode
+              ? "bg-[#123c28] text-white shadow-sm"
+              : "text-gray-700 hover:bg-gray-100"
+              }`}
           >
             <MousePointer className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Navigasi</span>
@@ -2237,11 +2211,10 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               handleClearMeasurement();
             }}
             title="Ukur Jarak & Keliling"
-            className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
-              toolMode === "distance"
-                ? "bg-[#91b928] text-white shadow-sm ring-2 ring-[#91b928]/40"
-                : "text-gray-700 hover:bg-gray-100"
-            }`}
+            className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${toolMode === "distance"
+              ? "bg-[#123c28] text-white shadow-sm"
+              : "text-gray-700 hover:bg-gray-100"
+              }`}
           >
             <Ruler className="h-3.5 w-3.5" />
             <span>Ukur Jarak</span>
@@ -2266,45 +2239,53 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               }
             }}
             title="Bandingkan Layer Multilayer (Ortho vs NDVI / DSM / Basemap)"
-            className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
-              compareMode
-                ? "bg-[#123c28] text-white shadow-sm ring-2 ring-[#123c28]/40"
-                : "text-gray-700 hover:bg-gray-100"
-            }`}
+            className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${compareMode
+              ? "bg-[#123c28] text-white shadow-sm"
+              : "text-gray-700 hover:bg-gray-100"
+              }`}
           >
             <SplitSquareVertical className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Bandingkan</span>
           </button>
 
           {/* Dynamic Grid Petak Toggle */}
-          <div className="flex items-center gap-1 border-l border-gray-200 pl-1.5 ml-0.5">
+          <div className="flex items-center gap-1.5 border-l border-gray-200 pl-1.5 ml-0.5">
             <button
               type="button"
               onClick={() => {
                 setGridEnabled((prev) => !prev);
               }}
-              title="Tampilkan Grid Petak Pertanian (3m, 5m, 10m)"
-              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                gridEnabled
-                  ? "bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-600/30"
-                  : "text-gray-700 hover:bg-gray-100"
-              }`}
+              title="Tampilkan Grid Petak Pertanian (10m, 5m, 3m)"
+              className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${gridEnabled
+                ? "bg-[#123c28] text-white shadow-sm"
+                : "text-gray-700 hover:bg-gray-100"
+                }`}
             >
               <Grid className="h-3.5 w-3.5" />
               <span>Petak</span>
             </button>
 
             {gridEnabled && (
-              <select
-                value={gridCellSize}
-                onChange={(e) => setGridCellSize(Number(e.target.value))}
-                aria-label="Ukuran Grid Petak"
-                className="rounded-full border border-emerald-200 bg-emerald-50/80 px-2 py-1 text-[10.5px] font-bold text-emerald-900 outline-none hover:bg-emerald-100/70 cursor-pointer shadow-2xs"
-              >
-                <option value={3}>3×3m</option>
-                <option value={5}>5×5m</option>
-                <option value={10}>10×10m</option>
-              </select>
+              <div className="relative flex items-center">
+                <select
+                  value={gridCellSize}
+                  onChange={(e) => setGridCellSize(Number(e.target.value))}
+                  aria-label="Ukuran Grid Petak"
+                  title="Pilih Ukuran Grid Petak"
+                  className="appearance-none flex items-center rounded-full bg-transparent hover:bg-gray-100 pl-3 pr-7 py-1.5 text-xs font-semibold text-gray-700 cursor-pointer outline-none focus:outline-none focus:ring-1 focus:ring-gray-300 transition"
+                >
+                  <option value={10} className="bg-white text-gray-800">
+                    10×10m
+                  </option>
+                  <option value={5} className="bg-white text-gray-800">
+                    5×5m
+                  </option>
+                  <option value={3} className="bg-white text-gray-800">
+                    3×3m
+                  </option>
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2.5 h-3.5 w-3.5 text-gray-500" />
+              </div>
             )}
           </div>
         </div>
@@ -2349,12 +2330,12 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                 {measurePoints.length === 0
                   ? "Klik titik batas ke-1 di atas peta lahan"
                   : measurePoints.length === 1
-                  ? "Klik titik ke-2 untuk mulai menghubungkan garis"
-                  : toolMode === "area" && measurePoints.length < 3
-                  ? "Klik titik ke-3 untuk membentuk bidang poligon"
-                  : toolMode === "area"
-                  ? "Klik titik selanjutnya atau klik titik awal untuk menutup area"
-                  : "Klik titik berikutnya untuk memperpanjang jalur lintasan"}
+                    ? "Klik titik ke-2 untuk mulai menghubungkan garis"
+                    : toolMode === "area" && measurePoints.length < 3
+                      ? "Klik titik ke-3 untuk membentuk bidang poligon"
+                      : toolMode === "area"
+                        ? "Klik titik selanjutnya atau klik titik awal untuk menutup area"
+                        : "Klik titik berikutnya untuk memperpanjang jalur lintasan"}
               </span>
             </div>
 
@@ -2452,11 +2433,10 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                   type="button"
                   onClick={handleClearMeasurement}
                   disabled={measurePoints.length === 0}
-                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition active:scale-95 ${
-                    measurePoints.length === 0
-                      ? "text-gray-300 cursor-not-allowed"
-                      : "text-red-600 hover:bg-red-50 hover:border-red-200 border border-transparent"
-                  }`}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition active:scale-95 ${measurePoints.length === 0
+                    ? "text-gray-300 cursor-not-allowed"
+                    : "text-red-600 hover:bg-red-50 hover:border-red-200 border border-transparent"
+                    }`}
                   title="Reset semua titik pengukuran"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -2574,33 +2554,30 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                 <button
                   type="button"
                   onClick={() => setCompareRatio(0)}
-                  className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold border transition active:scale-95 ${
-                    compareRatio === 0
-                      ? "bg-[#123c28] text-white border-[#123c28] shadow-2xs"
-                      : "bg-white text-gray-600 border-gray-200 hover:bg-gray-100"
-                  }`}
+                  className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold border transition active:scale-95 ${compareRatio === 0
+                    ? "bg-[#123c28] text-white border-[#123c28] shadow-2xs"
+                    : "bg-white text-gray-600 border-gray-200 hover:bg-gray-100"
+                    }`}
                 >
                   100% A
                 </button>
                 <button
                   type="button"
                   onClick={() => setCompareRatio(50)}
-                  className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold border transition active:scale-95 ${
-                    compareRatio === 50
-                      ? "bg-[#123c28] text-white border-[#123c28] shadow-2xs"
-                      : "bg-white text-gray-600 border-gray-200 hover:bg-gray-100"
-                  }`}
+                  className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold border transition active:scale-95 ${compareRatio === 50
+                    ? "bg-[#123c28] text-white border-[#123c28] shadow-2xs"
+                    : "bg-white text-gray-600 border-gray-200 hover:bg-gray-100"
+                    }`}
                 >
                   50 / 50 Blend
                 </button>
                 <button
                   type="button"
                   onClick={() => setCompareRatio(100)}
-                  className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold border transition active:scale-95 ${
-                    compareRatio === 100
-                      ? "bg-[#123c28] text-white border-[#123c28] shadow-2xs"
-                      : "bg-white text-gray-600 border-gray-200 hover:bg-gray-100"
-                  }`}
+                  className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold border transition active:scale-95 ${compareRatio === 100
+                    ? "bg-[#123c28] text-white border-[#123c28] shadow-2xs"
+                    : "bg-white text-gray-600 border-gray-200 hover:bg-gray-100"
+                    }`}
                 >
                   100% B
                 </button>
@@ -2634,9 +2611,8 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                 className="absolute z-30 w-[295px] transition-transform duration-75 ease-out pointer-events-auto"
                 style={{
                   left: `${clampX}px`,
-                  top: `${
-                    isAbove ? petakScreenPos.y - 14 : petakScreenPos.y + 14
-                  }px`,
+                  top: `${isAbove ? petakScreenPos.y - 14 : petakScreenPos.y + 14
+                    }px`,
                   transform: isAbove
                     ? "translate(-50%, -100%)"
                     : "translate(-50%, 0)",
@@ -2681,7 +2657,6 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                       type="button"
                       onClick={() => {
                         setSelectedPetak(null);
-                        setIsEditingPetak(false);
                       }}
                       className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition cursor-pointer"
                     >
@@ -2689,226 +2664,199 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                     </button>
                   </div>
 
-                  {/* Content: View Mode vs Edit Mode */}
-                  {!isEditingPetak ? (
-                    <div className="mt-2.5 space-y-2">
-                      {/* Nutrients Table */}
-                      <div className="divide-y divide-gray-100 rounded-xl border border-gray-100 bg-gray-50/60 px-2.5 py-0.5 text-xs">
-                        {[
-                          {
-                            key: "nitrogen",
-                            label: "Nitrogen (N)",
-                            val: selectedPetak.nitrogen,
-                            unit: "mg/kg",
-                          },
-                          {
-                            key: "phospor",
-                            label: "Fosfor (P)",
-                            val: selectedPetak.phospor,
-                            unit: "mg/kg",
-                          },
-                          {
-                            key: "kalium",
-                            label: "Kalium (K)",
-                            val: selectedPetak.kalium,
-                            unit: "mg/kg",
-                          },
-                          {
-                            key: "ph",
-                            label: "Keasaman (pH)",
-                            val: selectedPetak.ph,
-                            unit: "",
-                          },
-                          {
-                            key: "kelembapan",
-                            label: "Kelembapan",
-                            val: selectedPetak.kelembapan,
-                            unit: "%",
-                          },
-                          {
-                            key: "c_organik",
-                            label: "C-Organik",
-                            val: selectedPetak.c_organik,
-                            unit: "%",
-                          },
-                        ].map(({ key, label, val, unit }) => {
-                          const cls = classifyParam(key, val);
-                          return (
-                            <div
-                              key={key}
-                              className="flex items-center justify-between py-1"
-                            >
-                              <span className="text-gray-600 text-[10.5px] font-medium">
-                                {label}
+                  {/* Content: Real Zonal Statistics Card */}
+                  <div className="mt-2.5 space-y-2.5">
+                    {/* Primary Active Parameter Highlight */}
+                    {(() => {
+                      const activeAnalysisLayer = mapLayers.find(
+                        (l) =>
+                          l.is_visible && l.layer_type?.toLowerCase() !== "ortho"
+                      );
+                      const layerTitle =
+                        activeAnalysisLayer?.name ||
+                        selectedPetak.layer_type?.toUpperCase() ||
+                        "Analisis Spasial";
+                      const isNDVI = (
+                        activeAnalysisLayer?.layer_type ||
+                        selectedPetak.layer_type ||
+                        ""
+                      )
+                        .toLowerCase()
+                        .includes("ndvi");
+                      const isDSM = (
+                        activeAnalysisLayer?.layer_type ||
+                        selectedPetak.layer_type ||
+                        ""
+                      )
+                        .toLowerCase()
+                        .includes("dsm");
+                      const isNutrient = [
+                        "nitrogen",
+                        "phosphorus",
+                        "kalium",
+                      ].some((k) =>
+                        (
+                          activeAnalysisLayer?.layer_type ||
+                          selectedPetak.layer_type ||
+                          ""
+                        )
+                          .toLowerCase()
+                          .includes(k)
+                      );
+                      const unit = isDSM
+                        ? "mdpl"
+                        : isNutrient
+                          ? "mg/kg"
+                          : isNDVI
+                            ? "Skala (-0.2 s/d 1.0)"
+                            : "";
+
+                      return (
+                        <div className="rounded-xl border border-emerald-900/10 bg-emerald-50/60 p-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-900/70">
+                              {layerTitle}
+                            </span>
+                            {selectedPetak.status && (
+                              <span
+                                className="rounded-full px-2 py-0.5 text-[9.5px] font-bold text-white shadow-xs"
+                                style={{
+                                  backgroundColor:
+                                    selectedPetak.color || "#16a34a",
+                                }}
+                              >
+                                {selectedPetak.status}
                               </span>
-                              <div className="flex items-center gap-1.5">
-                                <span className="font-bold text-gray-900 text-[11px]">
-                                  {val} {unit}
+                            )}
+                          </div>
+
+                          <div className="mt-1.5 flex items-baseline gap-2">
+                            <span className="text-2xl font-black text-emerald-950">
+                              {selectedPetak.value_mean !== undefined
+                                ? selectedPetak.value_mean
+                                : "-"}
+                            </span>
+                            {unit && (
+                              <span className="text-[11px] font-semibold text-emerald-800/70">
+                                {unit}
+                              </span>
+                            )}
+                          </div>
+
+                          {selectedPetak.value_min !== undefined &&
+                            selectedPetak.value_max !== undefined && (
+                              <div className="mt-2 flex items-center justify-between border-t border-emerald-900/10 pt-1.5 text-[10.5px] text-emerald-900/80">
+                                <span>
+                                  Min: <b>{selectedPetak.value_min}</b>
                                 </span>
-                                <span
-                                  className="rounded px-1.5 py-0.2 text-[8.5px] font-bold"
-                                  style={{
-                                    backgroundColor: cls.warna,
-                                    color:
-                                      cls.warna.startsWith("#e") ||
-                                      cls.warna.startsWith("#f") ||
-                                      cls.warna.startsWith("#a") ||
-                                      cls.warna.startsWith("#c")
-                                        ? "#1f2a1f"
-                                        : "#ffffff",
-                                  }}
-                                >
-                                  {cls.nama}
+                                <span className="text-emerald-300">•</span>
+                                <span>
+                                  Rerata: <b>{selectedPetak.value_mean}</b>
+                                </span>
+                                <span className="text-emerald-300">•</span>
+                                <span>
+                                  Maks: <b>{selectedPetak.value_max}</b>
                                 </span>
                               </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                            )}
+                        </div>
+                      );
+                    })()}
 
-                      {/* Priority Note */}
-                      <div className="rounded-lg border border-emerald-100 bg-emerald-50/70 px-2 py-1.5 text-[10px] text-emerald-950 font-medium">
-                        🌱 <b>Prioritas Pupuk:</b>{" "}
-                        {selectedPetak.priority === "N"
-                          ? "Urea (Nitrogen paling tertinggal)"
-                          : selectedPetak.priority === "P"
-                          ? "SP-36 (Fosfor paling tertinggal)"
-                          : "KCl (Kalium paling tertinggal)"}
-                      </div>
-
-                      {/* Action button: Ubah Data Petak */}
-                      <button
-                        type="button"
-                        onClick={() => setIsEditingPetak(true)}
-                        className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#123c28] py-1.5 text-[11.5px] font-bold text-white shadow-xs hover:bg-[#1b4d35] active:scale-98 transition cursor-pointer"
-                      >
-                        <Edit3 className="h-3 w-3" />
-                        <span>Ubah Data Petak</span>
-                      </button>
+                    {/* Ringkasan Kondisi Lahan Umum */}
+                    <div className="rounded-xl border border-gray-100 bg-gray-50/80 p-2.5 text-xs">
+                      <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                        Ringkasan Kondisi Petak
+                      </p>
+                      <p className="text-[11px] leading-relaxed text-gray-700">
+                        {(() => {
+                          const lt = (
+                            selectedPetak.layer_type || ""
+                          ).toLowerCase();
+                          const val = selectedPetak.value_mean;
+                          if (lt.includes("ndvi") || lt.includes("vari")) {
+                            if (val !== undefined && val >= 0.6) {
+                              return "Kerapatan tajuk kanopi sangat lebat dengan aktivitas fotosintesis tanaman optimal.";
+                            } else if (val !== undefined && val >= 0.4) {
+                              return "Kerapatan vegetasi sedang. Disarankan pemantauan kelembapan tanah dan kecukupan nutrisi.";
+                            } else {
+                              return "Kerapatan vegetasi rendah atau tanah terbuka. Memerlukan penanganan dan pemupukan.";
+                            }
+                          } else if (lt.includes("dsm")) {
+                            return `Elevasi permukaan tanah berada pada ketinggian rata-rata ${val ?? "-"
+                              } mdpl.`;
+                          } else if (selectedPetak.status) {
+                            return `Kondisi petak terindikasi ${selectedPetak.status.toLowerCase()} berdasarkan pembacaan raster sensor drone.`;
+                          }
+                          return "Data saintifik diekstraksi langsung dari berkas GeoTIFF drone resolusi tinggi.";
+                        })()}
+                      </p>
                     </div>
-                  ) : (
-                    /* Edit Mode Form */
-                    <div className="mt-2.5 space-y-2">
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div>
-                          <label className="block text-[9.5px] font-bold text-gray-500 mb-0.5">
-                            Nitrogen (mg/kg)
-                          </label>
-                          <input
-                            type="number"
-                            value={editForm.nitrogen ?? ""}
-                            onChange={(e) =>
-                              setEditForm((prev) => ({
-                                ...prev,
-                                nitrogen: Number(e.target.value),
-                              }))
-                            }
-                            className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-900 outline-none focus:border-emerald-600 focus:bg-white"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[9.5px] font-bold text-gray-500 mb-0.5">
-                            Fosfor (mg/kg)
-                          </label>
-                          <input
-                            type="number"
-                            value={editForm.phospor ?? ""}
-                            onChange={(e) =>
-                              setEditForm((prev) => ({
-                                ...prev,
-                                phospor: Number(e.target.value),
-                              }))
-                            }
-                            className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-900 outline-none focus:border-emerald-600 focus:bg-white"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[9.5px] font-bold text-gray-500 mb-0.5">
-                            Kalium (mg/kg)
-                          </label>
-                          <input
-                            type="number"
-                            value={editForm.kalium ?? ""}
-                            onChange={(e) =>
-                              setEditForm((prev) => ({
-                                ...prev,
-                                kalium: Number(e.target.value),
-                              }))
-                            }
-                            className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-900 outline-none focus:border-emerald-600 focus:bg-white"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[9.5px] font-bold text-gray-500 mb-0.5">
-                            Keasaman (pH)
-                          </label>
-                          <input
-                            type="number"
-                            step="0.1"
-                            value={editForm.ph ?? ""}
-                            onChange={(e) =>
-                              setEditForm((prev) => ({
-                                ...prev,
-                                ph: Number(e.target.value),
-                              }))
-                            }
-                            className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-900 outline-none focus:border-emerald-600 focus:bg-white"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[9.5px] font-bold text-gray-500 mb-0.5">
-                            Kelembapan (%)
-                          </label>
-                          <input
-                            type="number"
-                            value={editForm.kelembapan ?? ""}
-                            onChange={(e) =>
-                              setEditForm((prev) => ({
-                                ...prev,
-                                kelembapan: Number(e.target.value),
-                              }))
-                            }
-                            className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-900 outline-none focus:border-emerald-600 focus:bg-white"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[9.5px] font-bold text-gray-500 mb-0.5">
-                            C-Organik (%)
-                          </label>
-                          <input
-                            type="number"
-                            step="0.1"
-                            value={editForm.c_organik ?? ""}
-                            onChange={(e) =>
-                              setEditForm((prev) => ({
-                                ...prev,
-                                c_organik: Number(e.target.value),
-                              }))
-                            }
-                            className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-900 outline-none focus:border-emerald-600 focus:bg-white"
-                          />
-                        </div>
-                      </div>
 
-                      <div className="flex items-center gap-2 pt-1">
-                        <button
-                          type="button"
-                          onClick={() => setIsEditingPetak(false)}
-                          className="flex-1 rounded-lg border border-gray-200 bg-white py-1 text-[11px] font-bold text-gray-600 hover:bg-gray-50 transition cursor-pointer"
-                        >
-                          Batal
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleSavePetak}
-                          className="flex-1 flex items-center justify-center gap-1 rounded-lg bg-emerald-700 py-1 text-[11px] font-bold text-white hover:bg-emerald-800 shadow-xs transition cursor-pointer"
-                        >
-                          <Save className="h-3 w-3" />
-                          <span>Simpan</span>
-                        </button>
-                      </div>
+                    {/* Status Seluruh Layer pada Lahan Ini */}
+                    <div className="space-y-1 rounded-xl border border-gray-100 bg-white p-2.5 text-xs">
+                      <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                        Daftar Layer Analisis Lahan
+                      </p>
+                      {[
+                        { key: "ndvi", label: "NDVI (Kesehatan Vegetasi)" },
+                        { key: "nitrogen", label: "Nitrogen (N)" },
+                        { key: "phosphorus", label: "Fosfor (P)" },
+                        { key: "kalium", label: "Kalium (K)" },
+                        { key: "dsm", label: "DSM (Elevasi Lahan)" },
+                      ].map(({ key, label }) => {
+                        const activeAnalysis = mapLayers.find(
+                          (l) =>
+                            l.is_visible &&
+                            l.layer_type?.toLowerCase() !== "ortho"
+                        );
+                        const isCurrent =
+                          (activeAnalysis?.layer_type || "").toLowerCase() ===
+                          key;
+                        const layerItem = mapLayers.find(
+                          (l) => (l.layer_type || "").toLowerCase() === key
+                        );
+
+                        return (
+                          <div
+                            key={key}
+                            className={`flex items-center justify-between rounded-lg px-2 py-1 text-[11px] ${isCurrent
+                              ? "border border-emerald-200/60 bg-emerald-50/70 font-bold text-emerald-950"
+                              : "text-gray-600 hover:bg-gray-50"
+                              }`}
+                          >
+                            <span className="flex items-center gap-1.5">
+                              <span
+                                className={`h-1.5 w-1.5 rounded-full ${isCurrent
+                                  ? "bg-emerald-600"
+                                  : layerItem
+                                    ? "bg-blue-500"
+                                    : "bg-gray-300"
+                                  }`}
+                              />
+                              {label}
+                            </span>
+
+                            {isCurrent ? (
+                              <span className="font-mono font-bold text-emerald-700">
+                                {selectedPetak.value_mean !== undefined
+                                  ? selectedPetak.value_mean
+                                  : "Aktif"}
+                              </span>
+                            ) : layerItem ? (
+                              <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">
+                                Tersedia di Peta
+                              </span>
+                            ) : (
+                              <span className="text-[10px] italic text-gray-400">
+                                Belum diunggah
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
             );

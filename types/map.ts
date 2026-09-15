@@ -6,6 +6,13 @@ export interface GeoMetadata {
   bands: number;
   driver: string;
   dtypes: string[];
+  band_type?: string;
+  band_details?: Array<{
+    band: number;
+    label: string;
+    dtype: string;
+    color_interp?: string;
+  }>;
   bounds_native?: { left: number; bottom: number; right: number; top: number };
   bounds_wgs84?: { min_lon: number; min_lat: number; max_lon: number; max_lat: number } | null;
   nodata?: number | null;

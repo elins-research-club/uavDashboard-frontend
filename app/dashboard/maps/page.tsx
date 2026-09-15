@@ -1382,16 +1382,101 @@ export default function MapsPage() {
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between gap-4 rounded-xl px-3 py-2 text-xs hover:bg-white">
-                      <span className="font-medium text-[#123c28]/70">
-                        Saluran (Bands)
-                      </span>
+                    <div className="rounded-xl px-3 py-2.5 text-xs hover:bg-white transition-colors">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <span className="font-medium text-[#123c28]/70">
+                            Saluran (Bands)
+                          </span>
+                          <p className="mt-0.5 text-[11px] font-semibold text-[#123c28]">
+                            {metadataMap.geo_metadata.band_type ||
+                              (metadataMap.geo_metadata.bands === 3
+                                ? "Ortho True-Color (3 Saluran RGB)"
+                                : metadataMap.geo_metadata.bands === 1
+                                ? "Single-Band (Analisis Indeks / Unsur Hara)"
+                                : `${metadataMap.geo_metadata.bands} Saluran Multispektral`)}
+                          </p>
+                        </div>
 
-                      <span className="font-bold text-[#123c28]">
-                        {metadataMap.geo_metadata.bands} Saluran (
-                        {metadataMap.geo_metadata.dtypes?.join(", ") || "uint8"}
-                        )
-                      </span>
+                        <span className="shrink-0 rounded-md bg-[#123c28]/5 px-2 py-0.5 font-mono text-[11px] font-bold text-[#123c28]">
+                          {metadataMap.geo_metadata.bands} Saluran ({metadataMap.geo_metadata.dtypes?.join(", ") || "uint8"})
+                        </span>
+                      </div>
+
+                      {/* Rincian Tiap Band */}
+                      {(() => {
+                        const bandsList =
+                          metadataMap.geo_metadata.band_details &&
+                          metadataMap.geo_metadata.band_details.length > 0
+                            ? metadataMap.geo_metadata.band_details
+                            : Array.from(
+                                { length: metadataMap.geo_metadata.bands || 1 },
+                                (_, idx) => {
+                                  const b = idx + 1;
+                                  const dtype =
+                                    metadataMap.geo_metadata.dtypes?.[idx] || "uint8";
+                                  let label = `Saluran ${b}`;
+                                  if (metadataMap.geo_metadata.bands === 3) {
+                                    label =
+                                      b === 1
+                                        ? "Red (Merah)"
+                                        : b === 2
+                                        ? "Green (Hijau)"
+                                        : "Blue (Biru)";
+                                  } else if (metadataMap.geo_metadata.bands === 1) {
+                                    label = "Nilai Analisis / Indeks";
+                                  }
+                                  return { band: b, label, dtype };
+                                }
+                              );
+
+                        return (
+                          <div className="mt-2 space-y-1 border-t border-[#123c28]/10 pt-2">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-[#123c28]/50">
+                              Rincian Saluran
+                            </p>
+                            <div className="grid grid-cols-1 gap-1">
+                              {bandsList.map((item) => {
+                                const lower = item.label.toLowerCase();
+                                const isRed = lower.includes("red") || lower.includes("merah");
+                                const isGreen = lower.includes("green") || lower.includes("hijau");
+                                const isBlue = lower.includes("blue") || lower.includes("biru");
+                                const isAlpha = lower.includes("alpha");
+
+                                const dotColor = isRed
+                                  ? "bg-rose-500"
+                                  : isGreen
+                                  ? "bg-emerald-500"
+                                  : isBlue
+                                  ? "bg-sky-500"
+                                  : isAlpha
+                                  ? "bg-slate-400"
+                                  : "bg-amber-500";
+
+                                return (
+                                  <div
+                                    key={item.band}
+                                    className="flex items-center justify-between rounded-lg border border-[#123c28]/10 bg-white/80 px-2.5 py-1 text-[11px]"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <span className={`h-2 w-2 shrink-0 rounded-full ${dotColor}`} />
+                                      <span className="font-semibold text-[#123c28]">
+                                        Band {item.band}:
+                                      </span>
+                                      <span className="font-medium text-[#123c28]/80">
+                                        {item.label}
+                                      </span>
+                                    </div>
+                                    <span className="rounded bg-[#123c28]/5 px-1.5 py-0.5 font-mono text-[10px] font-medium text-[#123c28]/70">
+                                      {item.dtype}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     <div className="flex items-center justify-between gap-4 rounded-xl px-3 py-2 text-xs hover:bg-white">

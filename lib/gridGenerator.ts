@@ -2,18 +2,19 @@ import * as turf from "@turf/turf";
 
 export interface PetakProperties {
   block_id: string;
-  row_idx: number;
-  col_idx: number;
+  row?: number;
+  col?: number;
+  row_idx?: number;
+  col_idx?: number;
   center_lat: number;
   center_lng: number;
   area_m2: number;
-  nitrogen: number;
-  phospor: number;
-  kalium: number;
-  ph: number;
-  kelembapan: number;
-  c_organik: number;
-  priority?: "N" | "P" | "K";
+  layer_type?: string;
+  value_mean?: number;
+  value_min?: number;
+  value_max?: number;
+  status?: string;
+  color?: string;
   [key: string]: any;
 }
 
@@ -94,37 +95,20 @@ export function generatePetakGrid(
       const [clng, clat] = toLL([x + cellSize / 2, y + cellSize / 2]);
       const blockId = `${row}-${col}`;
 
-      const seed = Math.sin(row * 12.9898 + col * 78.233) * 43758.5453;
-      const noise = seed - Math.floor(seed);
-
-      const nVal = Math.round(45 + noise * 45);
-      const pVal = Math.round(20 + noise * 25);
-      const kVal = Math.round(90 + (1 - noise) * 70);
-      const phVal = Number((6.1 + noise * 0.7).toFixed(1));
-      const moistureVal = Math.round(62 + noise * 16);
-      const cOrgVal = Number((1.5 + noise * 1.1).toFixed(1));
-
-      let priority: "N" | "P" | "K" = "K";
-      if (nVal < 55) priority = "N";
-      else if (pVal < 28) priority = "P";
-
       features.push({
         type: "Feature",
         geometry: poly,
         properties: {
           block_id: blockId,
+          row,
+          col,
           row_idx: row,
           col_idx: col,
           center_lat: clat,
           center_lng: clng,
           area_m2: cellSize * cellSize,
-          nitrogen: nVal,
-          phospor: pVal,
-          kalium: kVal,
-          ph: phVal,
-          kelembapan: moistureVal,
-          c_organik: cOrgVal,
-          priority,
+          status: "Aktif",
+          color: "#4caf50",
         },
       });
     }
