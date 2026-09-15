@@ -1061,7 +1061,11 @@ export default function MapsPage() {
                                   "Peta ini terkunci untuk Member Free. Silakan Upgrade Tier Anda."
                                 );
                               } else {
-                                setSelectedLayer(layer.id);
+                                if (selectedLayer === layer.id) {
+                                  mapRef.current?.resetView();
+                                } else {
+                                  setSelectedLayer(layer.id);
+                                }
                               }
                             }}
                             onKeyDown={(event) => {
@@ -1073,7 +1077,11 @@ export default function MapsPage() {
                                     "Peta ini terkunci untuk Member Free. Silakan Upgrade Tier Anda."
                                   );
                                 } else {
-                                  setSelectedLayer(layer.id);
+                                  if (selectedLayer === layer.id) {
+                                    mapRef.current?.resetView();
+                                  } else {
+                                    setSelectedLayer(layer.id);
+                                  }
                                 }
                               }
                             }}

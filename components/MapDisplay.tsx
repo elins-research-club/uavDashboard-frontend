@@ -1396,9 +1396,145 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       }
     }, [selectedPetak]);
 
+    /* Highlight Boundary Area when PostGIS Geodetic HUD Card is Open */
+    useEffect(() => {
+      const map = mapRef.current;
+      if (!map || !map.getStyle()) return;
+
+      const sourceId = "postgis-boundary-source";
+      const fillLayerId = "postgis-boundary-fill";
+      const lineLayerId = "postgis-boundary-line";
+      const markerSourceId = "postgis-centroid-marker-source";
+      const markerLayerId = "postgis-centroid-marker";
+
+      if (!map.getSource(sourceId)) {
+        map.addSource(sourceId, {
+          type: "geojson",
+          data: { type: "FeatureCollection", features: [] },
+        });
+
+        map.addLayer({
+          id: fillLayerId,
+          type: "fill",
+          source: sourceId,
+          paint: {
+            "fill-color": "#10b981",
+            "fill-opacity": 0.14,
+          },
+        });
+
+        map.addLayer({
+          id: lineLayerId,
+          type: "line",
+          source: sourceId,
+          paint: {
+            "line-color": "#047857",
+            "line-width": 3.5,
+            "line-dasharray": [3, 2],
+            "line-opacity": 1,
+          },
+        });
+      }
+
+      if (!map.getSource(markerSourceId)) {
+        map.addSource(markerSourceId, {
+          type: "geojson",
+          data: { type: "FeatureCollection", features: [] },
+        });
+
+        map.addLayer({
+          id: markerLayerId,
+          type: "circle",
+          source: markerSourceId,
+          paint: {
+            "circle-radius": 6,
+            "circle-color": "#047857",
+            "circle-stroke-width": 2.5,
+            "circle-stroke-color": "#ffffff",
+          },
+        });
+      }
+
+      if (postgisCardOpen && spatialInfo) {
+        let boundaryGeoJSON: any = spatialInfo.geojson;
+        if (!boundaryGeoJSON && currentMetaRef.current?.bounds) {
+          const [[south, west], [north, east]] = currentMetaRef.current.bounds;
+          boundaryGeoJSON = turf.bboxPolygon([west, south, east, north]).geometry;
+        }
+
+        if (boundaryGeoJSON) {
+          const featureFC: GeoJSON.FeatureCollection = {
+            type: "FeatureCollection",
+            features: [
+              {
+                type: "Feature",
+                properties: {
+                  area_ha: spatialInfo.area_hectares,
+                  perimeter_m: spatialInfo.perimeter_meters,
+                },
+                geometry: boundaryGeoJSON,
+              },
+            ],
+          };
+
+          const sPoly = map.getSource(sourceId) as maplibregl.GeoJSONSource | undefined;
+          if (sPoly) sPoly.setData(featureFC as any);
+
+          if (spatialInfo.centroid) {
+            const [cLat, cLng] = spatialInfo.centroid;
+            const ptFC: GeoJSON.FeatureCollection = {
+              type: "FeatureCollection",
+              features: [
+                {
+                  type: "Feature",
+                  properties: {},
+                  geometry: {
+                    type: "Point",
+                    coordinates: [cLng, cLat],
+                  },
+                },
+              ],
+            };
+            const sPt = map.getSource(markerSourceId) as maplibregl.GeoJSONSource | undefined;
+            if (sPt) sPt.setData(ptFC as any);
+          }
+
+          if (map.getLayer(fillLayerId)) map.moveLayer(fillLayerId);
+          if (map.getLayer(lineLayerId)) map.moveLayer(lineLayerId);
+          if (map.getLayer(markerLayerId)) map.moveLayer(markerLayerId);
+
+          try {
+            const bbox = turf.bbox(featureFC);
+            map.fitBounds(
+              [
+                [bbox[0], bbox[1]],
+                [bbox[2], bbox[3]],
+              ],
+              {
+                padding: { top: 90, bottom: 80, left: 80, right: 80 },
+                duration: 900,
+                maxZoom: 18,
+              }
+            );
+          } catch {
+            // ignore fit bounds error
+          }
+        }
+      } else {
+        const emptyFC: GeoJSON.FeatureCollection = {
+          type: "FeatureCollection",
+          features: [],
+        };
+        const sPoly = map.getSource(sourceId) as maplibregl.GeoJSONSource | undefined;
+        if (sPoly) sPoly.setData(emptyFC as any);
+        const sPt = map.getSource(markerSourceId) as maplibregl.GeoJSONSource | undefined;
+        if (sPt) sPt.setData(emptyFC as any);
+      }
+    }, [postgisCardOpen, spatialInfo]);
+
     /* =====================================================
        PRECISION FARMING: MEASUREMENT WITH TURF.JS & MARKERS
-    ====================================================== */
+       ====================================================== */
 
     const handleClearMeasurement = useCallback(() => {
       setMeasurePoints([]);
@@ -1890,13 +2026,46 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             return;
           }
 
-          map.easeTo({
-            pitch: terrainEnabledRef.current ? 45 : 0,
-
-            bearing: 0,
-
-            duration: 700,
-          });
+          const meta = currentMetaRef.current;
+          if (
+            meta?.bounds &&
+            Array.isArray(meta.bounds) &&
+            meta.bounds.length === 2
+          ) {
+            const [[south, west], [north, east]] = meta.bounds;
+            const bounds = new maplibregl.LngLatBounds(
+              [west, south],
+              [east, north]
+            );
+            map.fitBounds(bounds, {
+              padding: {
+                top: 80,
+                bottom: 80,
+                left: 80,
+                right: 80,
+              },
+              maxZoom: 19,
+              pitch: terrainEnabledRef.current ? 45 : 0,
+              bearing: 0,
+              duration: 900,
+              essential: true,
+            });
+          } else if (meta?.center) {
+            const [lat, lng] = meta.center;
+            map.flyTo({
+              center: [lng, lat],
+              zoom: 16,
+              pitch: terrainEnabledRef.current ? 45 : 0,
+              bearing: 0,
+              duration: 900,
+            });
+          } else {
+            map.easeTo({
+              pitch: terrainEnabledRef.current ? 45 : 0,
+              bearing: 0,
+              duration: 700,
+            });
+          }
         },
 
         toggle3D: () => {
@@ -2825,7 +2994,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                         : isNutrient
                           ? "mg/kg"
                           : isNDVI
-                            ? "Skala (-0.2 s/d 1.0)"
+                            ? "Skala (-1.0 s/d 1.0)"
                             : "";
 
                       return (
