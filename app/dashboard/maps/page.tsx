@@ -1086,7 +1086,7 @@ export default function MapsPage() {
                               }
                             }}
                             className={`
-                              group relative rounded-xl border p-2.5 transition-all duration-200 select-none
+                              group relative rounded-xl border p-3 transition-all duration-200 select-none
                               ${
                                 active
                                   ? "border-emerald-600/30 bg-emerald-50/70 shadow-xs ring-1 ring-emerald-600/20"
@@ -1099,42 +1099,12 @@ export default function MapsPage() {
                               }
                             `}
                           >
-                            <div className="flex items-center gap-3">
-                              {/* Custom Drone / Aerial Photogrammetry Icon Badge */}
-                              <div
-                                className={`
-                                  flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors
-                                  ${
-                                    active
-                                      ? "bg-[#123c28] text-white shadow-xs"
-                                      : "bg-emerald-900/5 text-[#123c28]/70 group-hover:bg-[#123c28]/10 group-hover:text-[#123c28]"
-                                  }
-                                `}
-                              >
-                                <svg
-                                  className="h-4.5 w-4.5"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="1.8"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                >
-                                  <circle cx="12" cy="12" r="3" />
-                                  <path d="M12 9v-2M12 17v-2M9 12H7M17 12h-2" />
-                                  <path d="M7.5 7.5 4.5 4.5M16.5 7.5l3-3M7.5 16.5l-3 3M16.5 16.5l3 3" />
-                                  <circle cx="4" cy="4" r="1.75" />
-                                  <circle cx="20" cy="4" r="1.75" />
-                                  <circle cx="4" cy="20" r="1.75" />
-                                  <circle cx="20" cy="20" r="1.75" />
-                                </svg>
-                              </div>
-
-                              {/* Content Info */}
+                            {/* Card Header: Title & Badges + Action Buttons */}
+                            <div className="flex items-start justify-between gap-2">
                               <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-1.5">
+                                <div className="flex flex-wrap items-center gap-1.5">
                                   <h3
-                                    className={`truncate text-xs font-bold leading-tight ${
+                                    className={`break-words whitespace-normal text-xs font-bold leading-snug ${
                                       active ? "text-[#123c28]" : "text-gray-900"
                                     }`}
                                   >
@@ -1154,57 +1124,20 @@ export default function MapsPage() {
                                     </span>
                                   )}
                                 </div>
-
-                                {/* Meta Row: Date & Location inline */}
-                                <div className="mt-1 flex items-center gap-2 text-[10px] text-gray-500">
-                                  <span className="inline-flex items-center gap-1 font-medium text-gray-600">
-                                    <svg
-                                      className="h-3 w-3 shrink-0 text-gray-400"
-                                      viewBox="0 0 16 16"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      strokeWidth="1.6"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                    >
-                                      <rect x="2" y="3" width="12" height="11" rx="2" />
-                                      <path d="M5 1.5v2.5M11 1.5v2.5M2 6.5h12" />
-                                    </svg>
-                                    {layer.date}
-                                  </span>
-
-                                  <span className="text-gray-300 text-[10px]">•</span>
-
-                                  <span className="inline-flex min-w-0 items-center gap-1 truncate font-medium text-gray-600">
-                                    <svg
-                                      className="h-3 w-3 shrink-0 text-gray-400"
-                                      viewBox="0 0 16 16"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      strokeWidth="1.6"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                    >
-                                      <path d="M8 14.5s-4.5-4-4.5-7.5a4.5 4.5 0 1 1 9 0c0 3.5-4.5 7.5-4.5 7.5z" />
-                                      <circle cx="8" cy="7" r="1.5" />
-                                    </svg>
-                                    <span className="truncate">{layer.location}</span>
-                                  </span>
-                                </div>
                               </div>
 
                               {/* Actions: Edit / Delete */}
                               {(isAdmin || !layer.locked) && (
-                                <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
+                                <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
                                   <button
                                     type="button"
                                     onClick={(event) =>
                                       openEditModal(raw, event)
                                     }
-                                    className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 transition hover:bg-white hover:text-gray-800 hover:shadow-xs"
+                                    className="flex h-6 w-6 items-center justify-center rounded-md text-gray-400 transition hover:bg-white hover:text-gray-800 hover:shadow-xs"
                                     title="Edit peta"
                                   >
-                                    <Pencil className="h-3.5 w-3.5" />
+                                    <Pencil className="h-3 w-3" />
                                   </button>
 
                                   <button
@@ -1212,13 +1145,55 @@ export default function MapsPage() {
                                     onClick={(event) =>
                                       openDeleteConfirm(raw, event)
                                     }
-                                    className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 transition hover:bg-red-50 hover:text-red-600"
+                                    className="flex h-6 w-6 items-center justify-center rounded-md text-gray-400 transition hover:bg-red-50 hover:text-red-600"
                                     title="Hapus peta"
                                   >
-                                    <Trash2 className="h-3.5 w-3.5" />
+                                    <Trash2 className="h-3 w-3" />
                                   </button>
                                 </div>
                               )}
+                            </div>
+
+                            {/* Meta: Custom Date & Location Icons with Text Wrap Down */}
+                            <div className="mt-2 flex flex-col gap-1 text-[10px]">
+                              {/* Custom Date Icon & Text */}
+                              <div className="flex items-center gap-1.5 font-medium text-gray-500">
+                                <svg
+                                  className="h-3.5 w-3.5 shrink-0 text-emerald-700/80"
+                                  viewBox="0 0 16 16"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="1.6"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
+                                  <rect x="2" y="3" width="12" height="11" rx="2.5" />
+                                  <path d="M5 1.5v2.5M11 1.5v2.5M2 6.5h12" />
+                                  <circle cx="5.5" cy="9.5" r="0.75" fill="currentColor" />
+                                  <circle cx="8" cy="9.5" r="0.75" fill="currentColor" />
+                                  <circle cx="10.5" cy="9.5" r="0.75" fill="currentColor" />
+                                </svg>
+                                <span className="whitespace-normal break-words">{layer.date}</span>
+                              </div>
+
+                              {/* Custom Location Icon & Text (Wrapped Down) */}
+                              <div className="flex items-start gap-1.5 font-medium text-gray-600">
+                                <svg
+                                  className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-700/80"
+                                  viewBox="0 0 16 16"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="1.6"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
+                                  <path d="M8 14.5s-4.5-4-4.5-7.5a4.5 4.5 0 1 1 9 0c0 3.5-4.5 7.5-4.5 7.5z" />
+                                  <circle cx="8" cy="7" r="1.75" />
+                                </svg>
+                                <span className="whitespace-normal break-words leading-tight">
+                                  {layer.location}
+                                </span>
+                              </div>
                             </div>
                           </div>
                         );
