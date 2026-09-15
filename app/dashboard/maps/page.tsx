@@ -10,12 +10,10 @@ import {
   Map as MapIcon,
   Layers,
   Download,
-  Share2,
   ZoomIn,
   ZoomOut,
   Maximize2,
   Minimize2,
-  Info,
   X,
   Crown,
   Pencil,
@@ -53,9 +51,11 @@ const Map = dynamic(() => import("@/components/MapDisplay"), {
   loading: () => (
     <div className="flex h-full items-center justify-center bg-[#f7f8f4]">
       <div className="text-center">
-        <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-[#123c28]/10 border-t-[#123c28]" />
+        <div className="mx-auto mb-2.5 h-7 w-7 animate-spin rounded-full border-2 border-[#123c28]/10 border-t-[#123c28] sm:mb-3 sm:h-8 sm:w-8" />
 
-        <p className="text-xs font-medium text-[#123c28]/45">Memuat peta...</p>
+        <p className="text-[10px] font-medium text-[#123c28]/45 sm:text-xs">
+          Memuat peta...
+        </p>
       </div>
     </div>
   ),
@@ -191,8 +191,12 @@ export default function MapsPage() {
       .get("/maps")
       .then(({ data }) => {
         const rawMaps: any[] = data.maps ?? [];
+
         const mapList: MapData[] = rawMaps.filter((m) => {
-          if (!m.layers || m.layers.length === 0) return true;
+          if (!m.layers || m.layers.length === 0) {
+            return true;
+          }
+
           return m.layers.every(
             (l: any) =>
               l.conversion_status === "completed" ||
@@ -649,37 +653,74 @@ export default function MapsPage() {
   ========================================================== */
 
   return (
-    <div className="min-h-full bg-white px-4 py-6 sm:px-6 lg:px-8">
+    <div
+      className="
+        min-h-full
+        bg-white
+        px-3
+        py-4
+        sm:px-5
+        sm:py-5
+        lg:px-8
+        lg:py-6
+      "
+    >
       <div className="mx-auto max-w-7xl">
         {/* ===================================================
-    PAGE HEADER
-==================================================== */}
-        <header className="mb-5">
-          <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+            PAGE HEADER
+        ==================================================== */}
+
+        <header className="mb-3 sm:mb-5">
+          <div
+            className="
+              flex
+              flex-col
+              gap-3
+              xl:flex-row
+              xl:items-end
+              xl:justify-between
+              xl:gap-5
+            "
+          >
             {/* TITLE */}
+
             <div className="min-w-0">
-              <div className="mb-2 flex items-center gap-2">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#f3f6ed]">
-                  <MapIcon className="h-4 w-4 text-[#123c28]" />
+              <div className="mb-1.5 flex items-center gap-1.5 sm:mb-2 sm:gap-2">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#f3f6ed] sm:h-8 sm:w-8 sm:rounded-xl">
+                  <MapIcon className="h-3.5 w-3.5 text-[#123c28] sm:h-4 sm:w-4" />
                 </span>
 
-                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#123c28]/70">
+                <span className="text-[8px] font-bold uppercase tracking-[0.17em] text-[#123c28]/70 sm:text-[10px] sm:tracking-[0.2em]">
                   UAV DATA-AS-A-SERVICE PLATFORM
                 </span>
               </div>
 
-              <h1 className="text-2xl font-bold tracking-[-0.04em] text-[#123c28] sm:text-3xl">
+              <h1 className="text-xl font-bold tracking-[-0.04em] text-[#123c28] sm:text-2xl md:text-3xl">
                 Peta & Analisis
                 <span className="text-[#1a5134]"> Geospasial</span>
               </h1>
             </div>
 
-            {/* SEARCH + LAYER TOGGLE */}
-            <div className="flex w-full items-center gap-2 xl:w-auto">
-              {/* SEARCH */}
-              <div className="min-w-0 flex-1 xl:w-[460px]">
+            {/* SEARCH */}
+
+            <div className="flex w-full items-center gap-1.5 xl:w-auto">
+              <div className="min-w-0 flex-1 xl:w-[420px]">
                 <div className="relative">
-                  <MapIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#123c28]/35" />
+                  <MapIcon
+                    className="
+                      pointer-events-none
+                      absolute
+                      left-3
+                      top-1/2
+                      h-3.5
+                      w-3.5
+                      -translate-y-1/2
+                      text-[#123c28]/35
+                      sm:left-3.5
+                      sm:h-4
+                      sm:w-4
+                    "
+                  />
 
                   <input
                     type="text"
@@ -687,21 +728,29 @@ export default function MapsPage() {
                     onChange={(event) => setSearchQuery(event.target.value)}
                     placeholder="Cari peta anda..."
                     className="
-              h-10 w-full rounded-full
-              border border-[#123c28]/10
-              bg-[#fafbf8]
-              pl-10 pr-10
-              text-[11px]
-              font-medium
-              text-[#123c28]
-              outline-none
-              transition
-              placeholder:text-[#123c28]/40
-              focus:border-[#123c28]/25
-              focus:bg-white
-              focus:ring-2
-              focus:ring-[#123c28]/5
-            "
+                      h-9
+                      w-full
+                      rounded-full
+                      border
+                      border-[#123c28]/10
+                      bg-[#fafbf8]
+                      pl-9
+                      pr-9
+                      text-[10px]
+                      font-medium
+                      text-[#123c28]
+                      outline-none
+                      transition
+                      placeholder:text-[#123c28]/40
+                      focus:border-[#123c28]/25
+                      focus:bg-white
+                      focus:ring-2
+                      focus:ring-[#123c28]/5
+                      sm:h-10
+                      sm:pl-10
+                      sm:pr-10
+                      sm:text-[11px]
+                    "
                   />
 
                   {searchQuery && (
@@ -710,18 +759,26 @@ export default function MapsPage() {
                       onClick={() => setSearchQuery("")}
                       aria-label="Hapus pencarian"
                       className="
-                absolute right-2 top-1/2
-                flex h-7 w-7
-                -translate-y-1/2
-                items-center justify-center
-                rounded-full
-                text-[#123c28]/45
-                transition
-                hover:bg-[#f3f6ed]
-                hover:text-[#123c28]
-              "
+                        absolute
+                        right-1.5
+                        top-1/2
+                        flex
+                        h-6
+                        w-6
+                        -translate-y-1/2
+                        items-center
+                        justify-center
+                        rounded-full
+                        text-[#123c28]/45
+                        transition
+                        hover:bg-[#f3f6ed]
+                        hover:text-[#123c28]
+                        sm:right-2
+                        sm:h-7
+                        sm:w-7
+                      "
                     >
-                      <X className="h-3.5 w-3.5" />
+                      <X className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                     </button>
                   )}
                 </div>
@@ -733,9 +790,10 @@ export default function MapsPage() {
         {/* ===================================================
             SEARCH RESULT INFO
         ==================================================== */}
+
         {searchQuery && (
-          <div className="mb-3 flex items-center justify-between px-1">
-            <p className="text-[10px] font-medium text-[#123c28]/55">
+          <div className="mb-2.5 flex items-center justify-between px-0.5 sm:mb-3 sm:px-1">
+            <p className="text-[9px] font-medium text-[#123c28]/55 sm:text-[10px]">
               Menampilkan{" "}
               <span className="font-bold text-[#123c28]">
                 {filteredMapLayers.length}
@@ -748,7 +806,7 @@ export default function MapsPage() {
             <button
               type="button"
               onClick={() => setSearchQuery("")}
-              className="text-[10px] font-bold text-[#123c28] hover:underline"
+              className="text-[9px] font-bold text-[#123c28] hover:underline sm:text-[10px]"
             >
               Hapus pencarian
             </button>
@@ -756,31 +814,34 @@ export default function MapsPage() {
         )}
 
         {/* ===================================================
-            MAIN WORKSPACE (FULL WIDTH)
+            MAIN WORKSPACE
         ==================================================== */}
+
         <div className="w-full">
           <div className="w-full">
-            <div className="overflow-hidden rounded-[20px] border border-[#123c28]/10 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-[16px] border border-[#123c28]/10 bg-white shadow-sm sm:rounded-[20px]">
               {/* =================================================
                   ACTIVE LAYER HEADER
               ================================================== */}
-              <div className="border-b border-[#123c28]/10 px-5 py-4">
-                <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+
+              <div className="border-b border-[#123c28]/10 px-3.5 py-3 sm:px-5 sm:py-4">
+                <div className="flex flex-col gap-2.5 xl:flex-row xl:items-center xl:justify-between xl:gap-4">
                   {/* MAP IDENTITY */}
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#f3f6ed]">
-                      <ScanLine className="h-4 w-4 text-[#123c28]" />
+
+                  <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#f3f6ed] sm:h-10 sm:w-10 sm:rounded-xl">
+                      <ScanLine className="h-3.5 w-3.5 text-[#123c28] sm:h-4 sm:w-4" />
                     </div>
 
                     <div className="min-w-0">
-                      <h3 className="truncate text-sm font-bold leading-5 text-[#123c28] sm:text-[15px]">
+                      <h3 className="truncate text-[11px] font-bold leading-4 text-[#123c28] sm:text-sm sm:leading-5 md:text-[15px]">
                         {selectedMap
                           ? selectedMap.name
                           : "Belum ada layer dipilih"}
                       </h3>
 
                       {selectedMap ? (
-                        <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[10px] font-medium text-[#123c28]/50">
+                        <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[8px] font-medium text-[#123c28]/50 sm:mt-1 sm:gap-x-2.5 sm:gap-y-1 sm:text-[10px]">
                           <span>
                             {selectedMap.format?.toUpperCase() || "UNKNOWN"}
                           </span>
@@ -794,7 +855,7 @@ export default function MapsPage() {
                           <span>Survey {selectedMap.date}</span>
                         </div>
                       ) : (
-                        <p className="mt-1 text-[10px] font-medium text-[#123c28]/45">
+                        <p className="mt-0.5 text-[8px] font-medium text-[#123c28]/45 sm:mt-1 sm:text-[10px]">
                           Pilih layer untuk melihat data pemetaan
                         </p>
                       )}
@@ -802,20 +863,28 @@ export default function MapsPage() {
                   </div>
 
                   {/* MAP ACTIONS */}
-                  <div className="flex shrink-0 flex-wrap items-center gap-2">
+
+                  <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
                     {/* DOWNLOAD */}
+
                     <button
                       type="button"
                       onClick={handleDownloadAnalysis}
                       disabled={isDownloadingAnalysis}
                       className={`
-                        inline-flex h-10
-                        items-center gap-2
+                        inline-flex
+                        h-8
+                        items-center
+                        gap-1
                         rounded-full
-                        px-4
-                        text-[11px]
+                        px-2.5
+                        text-[9px]
                         font-bold
                         transition
+                        sm:h-10
+                        sm:gap-2
+                        sm:px-4
+                        sm:text-[11px]
                         ${
                           !isAdmin && user?.tier === "free"
                             ? "cursor-not-allowed border border-[#123c28]/10 bg-[#fafbf8] text-[#123c28]/35"
@@ -824,11 +893,11 @@ export default function MapsPage() {
                       `}
                     >
                       {!isAdmin && user?.tier === "free" ? (
-                        <Lock className="h-3.5 w-3.5" />
+                        <Lock className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                       ) : isDownloadingAnalysis ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        <Loader2 className="h-3 w-3 animate-spin sm:h-3.5 sm:w-3.5" />
                       ) : (
-                        <Download className="h-3.5 w-3.5" />
+                        <Download className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                       )}
 
                       <span>
@@ -839,7 +908,8 @@ export default function MapsPage() {
                     </button>
 
                     {/* MAP CONTROLS */}
-                    <div className="flex h-10 items-center gap-0.5 rounded-full border border-[#123c28]/10 bg-white p-1">
+
+                    <div className="flex h-8 items-center gap-0 rounded-full border border-[#123c28]/10 bg-white p-0.5 sm:h-10 sm:gap-0.5 sm:p-1">
                       <button
                         type="button"
                         onClick={handleZoomIn}
@@ -847,8 +917,11 @@ export default function MapsPage() {
                         title="Zoom In"
                         aria-label="Zoom In"
                         className="
-                          flex h-8 w-8
-                          items-center justify-center
+                          flex
+                          h-7
+                          w-7
+                          items-center
+                          justify-center
                           rounded-full
                           text-[#123c28]/70
                           transition
@@ -856,9 +929,11 @@ export default function MapsPage() {
                           hover:text-[#123c28]
                           disabled:cursor-not-allowed
                           disabled:opacity-30
+                          sm:h-8
+                          sm:w-8
                         "
                       >
-                        <ZoomIn className="h-4 w-4" />
+                        <ZoomIn className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       </button>
 
                       <button
@@ -868,8 +943,11 @@ export default function MapsPage() {
                         title="Zoom Out"
                         aria-label="Zoom Out"
                         className="
-                          flex h-8 w-8
-                          items-center justify-center
+                          flex
+                          h-7
+                          w-7
+                          items-center
+                          justify-center
                           rounded-full
                           text-[#123c28]/70
                           transition
@@ -877,9 +955,11 @@ export default function MapsPage() {
                           hover:text-[#123c28]
                           disabled:cursor-not-allowed
                           disabled:opacity-30
+                          sm:h-8
+                          sm:w-8
                         "
                       >
-                        <ZoomOut className="h-4 w-4" />
+                        <ZoomOut className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       </button>
 
                       <button
@@ -892,19 +972,24 @@ export default function MapsPage() {
                           isFullscreen ? "Keluar Layar Penuh" : "Full Screen"
                         }
                         className="
-                          flex h-8 w-8
-                          items-center justify-center
+                          flex
+                          h-7
+                          w-7
+                          items-center
+                          justify-center
                           rounded-full
                           text-[#123c28]/70
                           transition
                           hover:bg-[#f3f6ed]
                           hover:text-[#123c28]
+                          sm:h-8
+                          sm:w-8
                         "
                       >
                         {isFullscreen ? (
-                          <Minimize2 className="h-4 w-4" />
+                          <Minimize2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                         ) : (
-                          <Maximize2 className="h-4 w-4" />
+                          <Maximize2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                         )}
                       </button>
                     </div>
@@ -915,10 +1000,13 @@ export default function MapsPage() {
               {/* =================================================
                   MAP & FLOATING MAP LAYERS
               ================================================== */}
+
               <div
                 ref={mapContainerRef}
                 className={`relative w-full bg-[#f1f3ed] ${
-                  isFullscreen ? "h-screen w-screen" : "h-[480px] sm:h-[620px]"
+                  isFullscreen
+                    ? "h-screen w-screen"
+                    : "h-[420px] sm:h-[560px] lg:h-[620px]"
                 }`}
               >
                 <Map
@@ -937,42 +1025,102 @@ export default function MapsPage() {
                 />
 
                 {/* =================================================
-                    FLOATING TOGGLE BUTTON (WHEN PANEL CLOSED)
+                    FLOATING TOGGLE BUTTON
                 ================================================== */}
+
                 {!isLayerPanelOpen && (
                   <button
                     type="button"
                     onClick={() => setIsLayerPanelOpen(true)}
-                    className="absolute top-3 left-3 z-30 inline-flex items-center gap-2 rounded-full border border-[#123c28]/15 bg-white/95 px-3.5 py-2 text-xs font-bold text-[#123c28] shadow-lg backdrop-blur-md transition hover:bg-[#f3f6ed] hover:shadow-xl"
+                    className="
+                      absolute
+                      left-2
+                      top-2
+                      z-30
+                      inline-flex
+                      items-center
+                      gap-1.5
+                      rounded-full
+                      border
+                      border-[#123c28]/15
+                      bg-white/95
+                      px-2.5
+                      py-1.5
+                      text-[9px]
+                      font-bold
+                      text-[#123c28]
+                      shadow-lg
+                      backdrop-blur-md
+                      transition
+                      hover:bg-[#f3f6ed]
+                      hover:shadow-xl
+                      sm:left-3
+                      sm:top-3
+                      sm:gap-2
+                      sm:px-3.5
+                      sm:py-2
+                      sm:text-xs
+                    "
                   >
-                    <Layers className="h-3.5 w-3.5 text-[#123c28]" />
+                    <Layers className="h-3 w-3 text-[#123c28] sm:h-3.5 sm:w-3.5" />
+
                     <span>Daftar Peta</span>
-                    <span className="rounded-full bg-[#123c28]/10 px-1.5 py-0.5 text-[9px] font-extrabold text-[#123c28]">
+
+                    <span className="rounded-full bg-[#123c28]/10 px-1.5 py-0.5 text-[8px] font-extrabold text-[#123c28] sm:text-[9px]">
                       {maps.length}
                     </span>
                   </button>
                 )}
 
                 {/* =================================================
-                    FLOATING MAP LAYERS PANEL (OVERLAY INSIDE MAP)
+                    FLOATING MAP LAYERS PANEL
                 ================================================== */}
+
                 {isLayerPanelOpen && (
-                  <aside className="absolute top-3 left-3 z-30 flex max-h-[calc(100%-140px)] w-72 flex-col overflow-hidden rounded-2xl border border-[#123c28]/15 bg-white/95 shadow-2xl backdrop-blur-md sm:w-80 animate-in fade-in slide-in-from-left-2 duration-200">
+                  <aside
+                    className="
+                      absolute
+                      left-2
+                      top-2
+                      z-30
+                      flex
+                      max-h-[calc(100%-36px)]
+                      w-[220px]
+                      flex-col
+                      overflow-hidden
+                      rounded-xl
+                      border
+                      border-[#123c28]/15
+                      bg-white/95
+                      shadow-xl
+                      backdrop-blur-md
+                      animate-in
+                      fade-in
+                      slide-in-from-left-2
+                      duration-200
+                      sm:left-3
+                      sm:top-3
+                      sm:max-h-[calc(100%-100px)]
+                      sm:w-[272px]
+                      sm:rounded-2xl
+                    "
+                  >
                     {/* PANEL HEADER */}
-                    <div className="border-b border-[#123c28]/10 px-4 py-3.5">
-                      <div className="flex items-center justify-between gap-2">
+
+                    <div className="border-b border-[#123c28]/10 px-2.5 py-2.5 sm:px-3 sm:py-3">
+                      <div className="flex items-center justify-between gap-1.5">
                         <div className="min-w-0">
-                          <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#123c28]/55">
+                          <p className="text-[7px] font-bold uppercase tracking-[0.15em] text-[#123c28]/55 sm:text-[8px] sm:tracking-[0.16em]">
                             MAP LAYERS
                           </p>
 
-                          <h2 className="mt-0.5 text-sm font-bold text-[#123c28]">
+                          <h2 className="mt-0.5 text-[11px] font-bold text-[#123c28] sm:text-[12px]">
                             Pilih Peta Anda
                           </h2>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          <span className="shrink-0 text-[10px] font-semibold text-[#123c28]/50">
+                        <div className="flex items-center gap-1">
+                          <span className="shrink-0 text-[8px] font-semibold text-[#123c28]/50 sm:text-[9px]">
                             {searchQuery
                               ? `${filteredMapLayers.length} / ${maps.length}`
                               : `${maps.length} Peta`}
@@ -981,45 +1129,63 @@ export default function MapsPage() {
                           <button
                             type="button"
                             onClick={() => setIsLayerPanelOpen(false)}
-                            className="flex h-7 w-7 items-center justify-center rounded-lg text-[#123c28]/60 transition hover:bg-[#123c28]/10 hover:text-[#123c28]"
+                            className="
+                              flex
+                              h-6
+                              w-6
+                              items-center
+                              justify-center
+                              rounded-md
+                              text-[#123c28]/60
+                              transition
+                              hover:bg-[#123c28]/10
+                              hover:text-[#123c28]
+                              sm:h-7
+                              sm:w-7
+                              sm:rounded-lg
+                            "
                             title="Sembunyikan daftar peta"
                           >
-                            <X className="h-3.5 w-3.5" />
+                            <X className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                           </button>
                         </div>
                       </div>
                     </div>
 
                     {/* LAYERS LIST */}
-                    <div className="flex-1 space-y-2 overflow-y-auto p-3 overscroll-contain">
-                      {/* LOADING */}
-                      {loading && (
-                        <div className="rounded-2xl bg-[#f7f8f4] px-4 py-8 text-center">
-                          <div className="mx-auto mb-3 h-6 w-6 animate-spin rounded-full border-2 border-[#123c28]/20 border-t-[#123c28]" />
 
-                          <p className="text-xs font-semibold text-[#123c28]/70">
+                    <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto p-1.5 overscroll-contain sm:space-y-2 sm:p-2">
+                      {/* LOADING */}
+
+                      {loading && (
+                        <div className="rounded-xl bg-[#f7f8f4] px-3 py-6 text-center sm:rounded-2xl sm:px-4 sm:py-8">
+                          <div className="mx-auto mb-2 h-5 w-5 animate-spin rounded-full border-2 border-[#123c28]/20 border-t-[#123c28] sm:mb-3 sm:h-6 sm:w-6" />
+
+                          <p className="text-[10px] font-semibold text-[#123c28]/70 sm:text-xs">
                             Memuat data peta...
                           </p>
                         </div>
                       )}
 
                       {/* ERROR */}
+
                       {!loading && error && (
-                        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-xs font-medium text-red-700">
+                        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-[10px] font-medium text-red-700 sm:rounded-2xl sm:p-4 sm:text-xs">
                           {error}
                         </div>
                       )}
 
                       {/* EMPTY */}
-                      {!loading && !error && maps.length === 0 && (
-                        <div className="rounded-2xl border border-dashed border-[#123c28]/15 bg-[#fafbf8] px-4 py-8 text-center">
-                          <MapIcon className="mx-auto h-5 w-5 text-[#123c28]/45" />
 
-                          <p className="mt-3 text-xs font-bold text-[#123c28]">
+                      {!loading && !error && maps.length === 0 && (
+                        <div className="rounded-xl border border-dashed border-[#123c28]/15 bg-[#fafbf8] px-3 py-6 text-center sm:rounded-2xl sm:px-4 sm:py-8">
+                          <MapIcon className="mx-auto h-4 w-4 text-[#123c28]/45 sm:h-5 sm:w-5" />
+
+                          <p className="mt-2 text-[10px] font-bold text-[#123c28] sm:mt-3 sm:text-xs">
                             Belum ada peta
                           </p>
 
-                          <p className="mt-1 text-[10px] font-medium leading-5 text-[#123c28]/60">
+                          <p className="mt-1 text-[8px] font-medium leading-4 text-[#123c28]/60 sm:text-[10px] sm:leading-5">
                             Upload peta pertama Anda untuk mulai melakukan
                             analisis.
                           </p>
@@ -1027,24 +1193,26 @@ export default function MapsPage() {
                       )}
 
                       {/* SEARCH EMPTY */}
+
                       {!loading &&
                         !error &&
                         maps.length > 0 &&
                         filteredMapLayers.length === 0 && (
-                          <div className="rounded-2xl border border-dashed border-[#123c28]/15 bg-[#fafbf8] px-4 py-8 text-center">
-                            <MapIcon className="mx-auto h-5 w-5 text-[#123c28]/40" />
+                          <div className="rounded-xl border border-dashed border-[#123c28]/15 bg-[#fafbf8] px-3 py-6 text-center sm:rounded-2xl sm:px-4 sm:py-8">
+                            <MapIcon className="mx-auto h-4 w-4 text-[#123c28]/40 sm:h-5 sm:w-5" />
 
-                            <p className="mt-3 text-xs font-bold text-[#123c28]">
+                            <p className="mt-2 text-[10px] font-bold text-[#123c28] sm:mt-3 sm:text-xs">
                               Peta tidak ditemukan
                             </p>
 
-                            <p className="mt-1 text-[10px] font-medium leading-5 text-[#123c28]/60">
+                            <p className="mt-1 text-[8px] font-medium leading-4 text-[#123c28]/60 sm:text-[10px] sm:leading-5">
                               Coba gunakan kata kunci lain untuk pencarian.
                             </p>
                           </div>
                         )}
 
                       {/* LAYER LIST */}
+
                       {filteredMapLayers.map((layer) => {
                         const raw = maps.find((map) => map.id === layer.id)!;
 
@@ -1086,33 +1254,46 @@ export default function MapsPage() {
                               }
                             }}
                             className={`
-                              group relative overflow-hidden rounded-xl border p-3.5 transition-all duration-200 select-none
-                              ${
-                                active
-                                  ? "border-emerald-500/30 bg-gradient-to-br from-[#1b4d35] via-[#123c28] to-[#0c271a] text-white shadow-[0_12px_28px_-6px_rgba(18,60,40,0.42),0_4px_12px_-2px_rgba(18,60,40,0.28),inset_0_1px_1px_rgba(255,255,255,0.22)] ring-1 ring-white/10 -translate-y-0.5"
-                                  : "border-gray-200/90 bg-white hover:border-gray-300 hover:bg-gray-50/80 shadow-[0_2px_4px_rgba(0,0,0,0.04)] hover:shadow-md hover:-translate-y-0.5"
-                              }
-                              ${
-                                layer.locked
-                                  ? "cursor-not-allowed opacity-70"
-                                  : "cursor-pointer"
-                              }
-                            `}
+                                group
+                                relative
+                                overflow-hidden
+                                rounded-lg
+                                border
+                                p-2.5
+                                transition-all
+                                duration-200
+                                select-none
+                                sm:rounded-xl
+                                sm:p-3
+                                ${
+                                  active
+                                    ? "border-emerald-500/30 bg-gradient-to-br from-[#1b4d35] via-[#123c28] to-[#0c271a] text-white shadow-[0_10px_22px_-7px_rgba(18,60,40,0.42),0_3px_10px_-2px_rgba(18,60,40,0.28),inset_0_1px_1px_rgba(255,255,255,0.22)] ring-1 ring-white/10 -translate-y-0.5"
+                                    : "border-gray-200/90 bg-white shadow-[0_2px_4px_rgba(0,0,0,0.04)] hover:-translate-y-0.5 hover:border-gray-300 hover:bg-gray-50/80 hover:shadow-md"
+                                }
+                                ${
+                                  layer.locked
+                                    ? "cursor-not-allowed opacity-70"
+                                    : "cursor-pointer"
+                                }
+                              `}
                           >
-                            {/* Ambient Depth Glows for Active State */}
+                            {/* Ambient */}
+
                             {active && (
                               <>
-                                <div className="pointer-events-none absolute -top-10 -right-10 h-28 w-28 rounded-full bg-emerald-400/15 blur-xl" />
-                                <div className="pointer-events-none absolute -bottom-10 -left-10 h-24 w-24 rounded-full bg-black/25 blur-lg" />
+                                <div className="pointer-events-none absolute -right-8 -top-8 h-20 w-20 rounded-full bg-emerald-400/15 blur-xl sm:-right-10 sm:-top-10 sm:h-28 sm:w-28" />
+
+                                <div className="pointer-events-none absolute -bottom-8 -left-8 h-20 w-20 rounded-full bg-black/25 blur-lg sm:-bottom-10 sm:-left-10 sm:h-24 sm:w-24" />
                               </>
                             )}
 
-                            {/* Card Header: Title & Badges + Action Buttons */}
-                            <div className="relative z-10 flex items-start justify-between gap-2">
+                            {/* Card Header */}
+
+                            <div className="relative z-10 flex items-start justify-between gap-1.5 sm:gap-2">
                               <div className="min-w-0 flex-1">
-                                <div className="flex flex-wrap items-center gap-1.5">
+                                <div className="flex flex-wrap items-center gap-1">
                                   <h3
-                                    className={`break-words whitespace-normal text-xs font-bold leading-snug ${
+                                    className={`break-words whitespace-normal text-[9px] font-bold leading-snug sm:text-[10px] md:text-xs ${
                                       active
                                         ? "text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                                         : "text-gray-900"
@@ -1123,35 +1304,36 @@ export default function MapsPage() {
 
                                   {layer.locked && (
                                     <span
-                                      className={`inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[8px] font-bold ${
+                                      className={`inline-flex shrink-0 items-center gap-0.5 rounded-full px-1 py-0.5 text-[6px] font-bold sm:px-1.5 sm:text-[8px] ${
                                         active
-                                          ? "bg-white/15 text-amber-300 border border-white/20"
-                                          : "bg-amber-50 border border-amber-200/60 text-amber-700"
+                                          ? "border border-white/20 bg-white/15 text-amber-300"
+                                          : "border border-amber-200/60 bg-amber-50 text-amber-700"
                                       }`}
                                     >
-                                      <Lock className="h-2.5 w-2.5" />
+                                      <Lock className="h-2 w-2 sm:h-2.5 sm:w-2.5" />
                                       Pro
                                     </span>
                                   )}
                                 </div>
                               </div>
 
-                              {/* Actions: Edit / Delete */}
+                              {/* Actions */}
+
                               {(isAdmin || !layer.locked) && (
-                                <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
+                                <div className="flex shrink-0 items-center gap-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
                                   <button
                                     type="button"
                                     onClick={(event) =>
                                       openEditModal(raw, event)
                                     }
-                                    className={`flex h-6 w-6 items-center justify-center rounded-md transition ${
+                                    className={`flex h-5 w-5 items-center justify-center rounded-md transition sm:h-6 sm:w-6 ${
                                       active
                                         ? "text-white/70 hover:bg-white/15 hover:text-white"
                                         : "text-gray-400 hover:bg-white hover:text-gray-800 hover:shadow-xs"
                                     }`}
                                     title="Edit peta"
                                   >
-                                    <Pencil className="h-3 w-3" />
+                                    <Pencil className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                                   </button>
 
                                   <button
@@ -1159,30 +1341,34 @@ export default function MapsPage() {
                                     onClick={(event) =>
                                       openDeleteConfirm(raw, event)
                                     }
-                                    className={`flex h-6 w-6 items-center justify-center rounded-md transition ${
+                                    className={`flex h-5 w-5 items-center justify-center rounded-md transition sm:h-6 sm:w-6 ${
                                       active
                                         ? "text-white/70 hover:bg-red-500/30 hover:text-red-200"
                                         : "text-gray-400 hover:bg-red-50 hover:text-red-600"
                                     }`}
                                     title="Hapus peta"
                                   >
-                                    <Trash2 className="h-3 w-3" />
+                                    <Trash2 className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                                   </button>
                                 </div>
                               )}
                             </div>
 
-                            {/* Meta: Custom Date & Location Icons with Text Wrap Down */}
-                            <div className="relative z-10 mt-2 flex flex-col gap-1 text-[10px]">
-                              {/* Custom Date Icon & Text */}
+                            {/* META */}
+
+                            <div className="relative z-10 mt-1.5 flex flex-col gap-0.5 text-[8px] sm:mt-2 sm:gap-1 sm:text-[9px] md:text-[10px]">
+                              {/* DATE */}
+
                               <div
-                                className={`flex items-center gap-1.5 font-medium ${
+                                className={`flex items-center gap-1 font-medium ${
                                   active ? "text-white/85" : "text-gray-500"
                                 }`}
                               >
                                 <svg
-                                  className={`h-3.5 w-3.5 shrink-0 ${
-                                    active ? "text-white" : "text-emerald-700/80"
+                                  className={`h-2.5 w-2.5 shrink-0 sm:h-3 sm:w-3 ${
+                                    active
+                                      ? "text-white"
+                                      : "text-emerald-700/80"
                                   }`}
                                   viewBox="0 0 16 16"
                                   fill="none"
@@ -1191,26 +1377,55 @@ export default function MapsPage() {
                                   strokeLinecap="round"
                                   strokeLinejoin="round"
                                 >
-                                  <rect x="2" y="3" width="12" height="11" rx="2.5" />
+                                  <rect
+                                    x="2"
+                                    y="3"
+                                    width="12"
+                                    height="11"
+                                    rx="2.5"
+                                  />
+
                                   <path d="M5 1.5v2.5M11 1.5v2.5M2 6.5h12" />
-                                  <circle cx="5.5" cy="9.5" r="0.75" fill="currentColor" />
-                                  <circle cx="8" cy="9.5" r="0.75" fill="currentColor" />
-                                  <circle cx="10.5" cy="9.5" r="0.75" fill="currentColor" />
+
+                                  <circle
+                                    cx="5.5"
+                                    cy="9.5"
+                                    r="0.75"
+                                    fill="currentColor"
+                                  />
+
+                                  <circle
+                                    cx="8"
+                                    cy="9.5"
+                                    r="0.75"
+                                    fill="currentColor"
+                                  />
+
+                                  <circle
+                                    cx="10.5"
+                                    cy="9.5"
+                                    r="0.75"
+                                    fill="currentColor"
+                                  />
                                 </svg>
+
                                 <span className="whitespace-normal break-words">
                                   {layer.date}
                                 </span>
                               </div>
 
-                              {/* Custom Location Icon & Text (Wrapped Down) */}
+                              {/* LOCATION */}
+
                               <div
-                                className={`flex items-start gap-1.5 font-medium ${
+                                className={`flex items-start gap-1 font-medium ${
                                   active ? "text-white/95" : "text-gray-600"
                                 }`}
                               >
                                 <svg
-                                  className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${
-                                    active ? "text-white" : "text-emerald-700/80"
+                                  className={`mt-0.5 h-2.5 w-2.5 shrink-0 sm:h-3 sm:w-3 ${
+                                    active
+                                      ? "text-white"
+                                      : "text-emerald-700/80"
                                   }`}
                                   viewBox="0 0 16 16"
                                   fill="none"
@@ -1220,8 +1435,10 @@ export default function MapsPage() {
                                   strokeLinejoin="round"
                                 >
                                   <path d="M8 14.5s-4.5-4-4.5-7.5a4.5 4.5 0 1 1 9 0c0 3.5-4.5 7.5-4.5 7.5z" />
+
                                   <circle cx="8" cy="7" r="1.75" />
                                 </svg>
+
                                 <span className="whitespace-normal break-words leading-tight">
                                   {layer.location}
                                 </span>
@@ -1238,14 +1455,17 @@ export default function MapsPage() {
               {/* =================================================
                   FOOTER
               ================================================== */}
-              <div className="border-t border-[#123c28]/10 bg-[#fafbf8] px-5 py-3.5">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="text-[10px] font-medium text-[#123c28]/50">
+
+              <div className="border-t border-[#123c28]/10 bg-[#fafbf8] px-3.5 py-2.5 sm:px-5 sm:py-3.5">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                  <div className="min-w-0 text-[8px] font-medium text-[#123c28]/50 sm:text-[10px]">
                     <span>{maps.length} peta tersimpan</span>
 
                     {selectedMap && (
                       <>
-                        <span className="mx-2 text-[#123c28]/20">•</span>
+                        <span className="mx-1.5 text-[#123c28]/20 sm:mx-2">
+                          •
+                        </span>
 
                         <span>
                           Lokasi {selectedMap.location || "Tidak tersedia"}
@@ -1260,14 +1480,17 @@ export default function MapsPage() {
                     disabled={!selectedMapRaw}
                     className="
                       inline-flex
+                      w-full
                       items-center
                       justify-center
-                      gap-1.5
+                      gap-1
                       rounded-lg
-                      border border-[#123c28]/10
+                      border
+                      border-[#123c28]/10
                       bg-white
-                      px-3.5 py-2
-                      text-[10px]
+                      px-3
+                      py-1.5
+                      text-[9px]
                       font-bold
                       text-[#123c28]
                       transition
@@ -1276,10 +1499,15 @@ export default function MapsPage() {
                       disabled:border-[#123c28]/5
                       disabled:bg-[#fafbf8]
                       disabled:text-[#123c28]/30
+                      sm:w-auto
+                      sm:gap-1.5
+                      sm:px-3.5
+                      sm:py-2
+                      sm:text-[10px]
                     "
                   >
                     Lihat Metadata
-                    <ArrowUpRight className="h-3.5 w-3.5" />
+                    <ArrowUpRight className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                   </button>
                 </div>
               </div>
@@ -1291,18 +1519,33 @@ export default function MapsPage() {
       {/* =====================================================
           NOTICE
       ====================================================== */}
+
       {notice && (
         <div
           className={`
-            fixed bottom-6 right-6
+            fixed
+            bottom-3
+            left-3
+            right-3
             z-[9998]
-            flex max-w-sm
-            items-center gap-3
-            rounded-2xl
-            px-4 py-3.5
-            text-xs
+            flex
+            items-center
+            gap-2.5
+            rounded-xl
+            px-3
+            py-2.5
+            text-[10px]
             font-medium
             shadow-2xl
+            sm:bottom-6
+            sm:left-auto
+            sm:right-6
+            sm:max-w-sm
+            sm:gap-3
+            sm:rounded-2xl
+            sm:px-4
+            sm:py-3.5
+            sm:text-xs
             ${
               notice.type === "success"
                 ? "bg-[#123c28] text-white"
@@ -1311,29 +1554,31 @@ export default function MapsPage() {
           `}
         >
           {notice.type === "success" ? (
-            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            <CheckCircle2 className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" />
           ) : (
-            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" />
           )}
 
-          <span>{notice.text}</span>
+          <span className="min-w-0">{notice.text}</span>
         </div>
       )}
 
       {/* =====================================================
           METADATA MODAL
       ====================================================== */}
+
       {metadataMap && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#123c28]/40 p-4 backdrop-blur-sm">
-          <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-[28px] border border-[#123c28]/15 bg-white shadow-2xl">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#123c28]/40 p-2.5 backdrop-blur-sm sm:p-4">
+          <div className="flex max-h-[94vh] w-full max-w-lg flex-col overflow-hidden rounded-[22px] border border-[#123c28]/15 bg-white shadow-2xl sm:max-h-[90vh] sm:rounded-[28px]">
             {/* HEADER */}
-            <div className="flex items-center justify-between border-b border-[#123c28]/10 px-6 py-5">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#123c28]/75">
+
+            <div className="flex items-center justify-between border-b border-[#123c28]/10 px-4 py-3.5 sm:px-6 sm:py-5">
+              <div className="min-w-0">
+                <p className="text-[8px] font-bold uppercase tracking-[0.18em] text-[#123c28]/75 sm:text-[10px] sm:tracking-[0.2em]">
                   FIELD & GEOSPATIAL DATA
                 </p>
 
-                <h3 className="mt-1 text-lg font-bold tracking-tight text-[#123c28]">
+                <h3 className="mt-0.5 text-base font-bold tracking-tight text-[#123c28] sm:mt-1 sm:text-lg">
                   Metadata Peta
                 </h3>
               </div>
@@ -1342,29 +1587,37 @@ export default function MapsPage() {
                 type="button"
                 onClick={() => setMetadataMap(null)}
                 className="
-                  flex h-9 w-9
-                  items-center justify-center
+                  flex
+                  h-8
+                  w-8
+                  shrink-0
+                  items-center
+                  justify-center
                   rounded-full
                   bg-[#f5f7f1]
                   text-[#123c28]/80
                   transition
                   hover:bg-[#123c28]
                   hover:text-white
+                  sm:h-9
+                  sm:w-9
                 "
               >
-                <X className="h-4 w-4" />
+                <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </button>
             </div>
 
             {/* CONTENT */}
-            <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
+
+            <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:space-y-5 sm:px-6 sm:py-5">
               {/* BASIC */}
+
               <div>
-                <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#123c28]/70">
+                <p className="mb-1.5 text-[8px] font-bold uppercase tracking-[0.14em] text-[#123c28]/70 sm:mb-2 sm:text-[10px] sm:tracking-[0.16em]">
                   Informasi Umum
                 </p>
 
-                <div className="space-y-1 rounded-2xl border border-[#123c28]/10 bg-[#fafbf8] p-3">
+                <div className="space-y-0.5 rounded-xl border border-[#123c28]/10 bg-[#fafbf8] p-2 sm:space-y-1 sm:rounded-2xl sm:p-3">
                   {[
                     ["Nama", metadataMap.title],
                     ["Lokasi", metadataMap.location],
@@ -1389,15 +1642,21 @@ export default function MapsPage() {
                     <div
                       key={label}
                       className="
-                        flex
-                        items-center
-                        justify-between
-                        gap-4
-                        rounded-xl
-                        px-3 py-2
-                        text-xs
-                        hover:bg-white
-                      "
+                          flex
+                          items-center
+                          justify-between
+                          gap-3
+                          rounded-lg
+                          px-2.5
+                          py-1.5
+                          text-[10px]
+                          hover:bg-white
+                          sm:gap-4
+                          sm:rounded-xl
+                          sm:px-3
+                          sm:py-2
+                          sm:text-xs
+                        "
                     >
                       <span className="font-medium text-[#123c28]/70">
                         {label}
@@ -1412,14 +1671,15 @@ export default function MapsPage() {
               </div>
 
               {/* GEO METADATA */}
+
               {metadataMap.geo_metadata ? (
                 <div>
-                  <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#123c28]/70">
+                  <p className="mb-1.5 text-[8px] font-bold uppercase tracking-[0.14em] text-[#123c28]/70 sm:mb-2 sm:text-[10px] sm:tracking-[0.16em]">
                     Metadata Geospasial & Raster
                   </p>
 
-                  <div className="space-y-1 rounded-2xl border border-[#123c28]/10 bg-[#fafbf8] p-3">
-                    <div className="flex items-center justify-between gap-4 rounded-xl px-3 py-2 text-xs hover:bg-white">
+                  <div className="space-y-1 rounded-xl border border-[#123c28]/10 bg-[#fafbf8] p-2 sm:rounded-2xl sm:p-3">
+                    <div className="flex items-center justify-between gap-3 rounded-lg px-2.5 py-1.5 text-[10px] hover:bg-white sm:gap-4 sm:rounded-xl sm:px-3 sm:py-2 sm:text-xs">
                       <span className="font-medium text-[#123c28]/70">
                         Sistem Koordinat (CRS)
                       </span>
@@ -1429,25 +1689,26 @@ export default function MapsPage() {
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between gap-4 rounded-xl px-3 py-2 text-xs hover:bg-white">
+                    <div className="flex items-center justify-between gap-3 rounded-lg px-2.5 py-1.5 text-[10px] hover:bg-white sm:gap-4 sm:rounded-xl sm:px-3 sm:py-2 sm:text-xs">
                       <span className="font-medium text-[#123c28]/70">
                         Dimensi Citra
                       </span>
 
-                      <span className="font-bold text-[#123c28]">
+                      <span className="text-right font-bold text-[#123c28]">
                         {metadataMap.geo_metadata.width?.toLocaleString()} ×{" "}
                         {metadataMap.geo_metadata.height?.toLocaleString()}{" "}
                         piksel
                       </span>
                     </div>
 
-                    <div className="rounded-xl px-3 py-2.5 text-xs hover:bg-white transition-colors">
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
+                    <div className="rounded-lg px-2.5 py-2 text-[10px] transition-colors hover:bg-white sm:rounded-xl sm:px-3 sm:py-2.5 sm:text-xs">
+                      <div className="flex items-start justify-between gap-3 sm:gap-4">
+                        <div className="min-w-0">
                           <span className="font-medium text-[#123c28]/70">
                             Saluran (Bands)
                           </span>
-                          <p className="mt-0.5 text-[11px] font-semibold text-[#123c28]">
+
+                          <p className="mt-0.5 text-[9px] font-semibold text-[#123c28] sm:text-[11px]">
                             {metadataMap.geo_metadata.band_type ||
                               (metadataMap.geo_metadata.bands === 3
                                 ? "Ortho True-Color (3 Saluran RGB)"
@@ -1457,24 +1718,34 @@ export default function MapsPage() {
                           </p>
                         </div>
 
-                        <span className="shrink-0 rounded-md bg-[#123c28]/5 px-2 py-0.5 font-mono text-[11px] font-bold text-[#123c28]">
-                          {metadataMap.geo_metadata.bands} Saluran ({metadataMap.geo_metadata.dtypes?.join(", ") || "uint8"})
+                        <span className="shrink-0 rounded-md bg-[#123c28]/5 px-1.5 py-0.5 font-mono text-[8px] font-bold text-[#123c28] sm:px-2 sm:text-[11px]">
+                          {metadataMap.geo_metadata.bands} Saluran (
+                          {metadataMap.geo_metadata.dtypes?.join(", ") ||
+                            "uint8"}
+                          )
                         </span>
                       </div>
 
-                      {/* Rincian Tiap Band */}
+                      {/* BAND DETAILS */}
+
                       {(() => {
                         const bandsList =
                           metadataMap.geo_metadata.band_details &&
                           metadataMap.geo_metadata.band_details.length > 0
                             ? metadataMap.geo_metadata.band_details
                             : Array.from(
-                                { length: metadataMap.geo_metadata.bands || 1 },
+                                {
+                                  length: metadataMap.geo_metadata.bands || 1,
+                                },
                                 (_, idx) => {
                                   const b = idx + 1;
+
                                   const dtype =
-                                    metadataMap.geo_metadata.dtypes?.[idx] || "uint8";
+                                    metadataMap.geo_metadata.dtypes?.[idx] ||
+                                    "uint8";
+
                                   let label = `Saluran ${b}`;
+
                                   if (metadataMap.geo_metadata.bands === 3) {
                                     label =
                                       b === 1
@@ -1482,24 +1753,42 @@ export default function MapsPage() {
                                         : b === 2
                                         ? "Green (Hijau)"
                                         : "Blue (Biru)";
-                                  } else if (metadataMap.geo_metadata.bands === 1) {
+                                  } else if (
+                                    metadataMap.geo_metadata.bands === 1
+                                  ) {
                                     label = "Nilai Analisis / Indeks";
                                   }
-                                  return { band: b, label, dtype };
+
+                                  return {
+                                    band: b,
+                                    label,
+                                    dtype,
+                                  };
                                 }
                               );
 
                         return (
-                          <div className="mt-2 space-y-1 border-t border-[#123c28]/10 pt-2">
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-[#123c28]/50">
+                          <div className="mt-1.5 space-y-1 border-t border-[#123c28]/10 pt-1.5 sm:mt-2 sm:pt-2">
+                            <p className="text-[8px] font-bold uppercase tracking-wider text-[#123c28]/50 sm:text-[10px]">
                               Rincian Saluran
                             </p>
+
                             <div className="grid grid-cols-1 gap-1">
                               {bandsList.map((item) => {
                                 const lower = item.label.toLowerCase();
-                                const isRed = lower.includes("red") || lower.includes("merah");
-                                const isGreen = lower.includes("green") || lower.includes("hijau");
-                                const isBlue = lower.includes("blue") || lower.includes("biru");
+
+                                const isRed =
+                                  lower.includes("red") ||
+                                  lower.includes("merah");
+
+                                const isGreen =
+                                  lower.includes("green") ||
+                                  lower.includes("hijau");
+
+                                const isBlue =
+                                  lower.includes("blue") ||
+                                  lower.includes("biru");
+
                                 const isAlpha = lower.includes("alpha");
 
                                 const dotColor = isRed
@@ -1515,18 +1804,23 @@ export default function MapsPage() {
                                 return (
                                   <div
                                     key={item.band}
-                                    className="flex items-center justify-between rounded-lg border border-[#123c28]/10 bg-white/80 px-2.5 py-1 text-[11px]"
+                                    className="flex items-center justify-between rounded-md border border-[#123c28]/10 bg-white/80 px-2 py-1 text-[8px] sm:rounded-lg sm:px-2.5 sm:text-[11px]"
                                   >
-                                    <div className="flex items-center gap-2">
-                                      <span className={`h-2 w-2 shrink-0 rounded-full ${dotColor}`} />
+                                    <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
+                                      <span
+                                        className={`h-1.5 w-1.5 shrink-0 rounded-full sm:h-2 sm:w-2 ${dotColor}`}
+                                      />
+
                                       <span className="font-semibold text-[#123c28]">
                                         Band {item.band}:
                                       </span>
-                                      <span className="font-medium text-[#123c28]/80">
+
+                                      <span className="truncate font-medium text-[#123c28]/80">
                                         {item.label}
                                       </span>
                                     </div>
-                                    <span className="rounded bg-[#123c28]/5 px-1.5 py-0.5 font-mono text-[10px] font-medium text-[#123c28]/70">
+
+                                    <span className="ml-1 shrink-0 rounded bg-[#123c28]/5 px-1 py-0.5 font-mono text-[7px] font-medium text-[#123c28]/70 sm:px-1.5 sm:text-[10px]">
                                       {item.dtype}
                                     </span>
                                   </div>
@@ -1538,7 +1832,7 @@ export default function MapsPage() {
                       })()}
                     </div>
 
-                    <div className="flex items-center justify-between gap-4 rounded-xl px-3 py-2 text-xs hover:bg-white">
+                    <div className="flex items-center justify-between gap-3 rounded-lg px-2.5 py-1.5 text-[10px] hover:bg-white sm:gap-4 sm:rounded-xl sm:px-3 sm:py-2 sm:text-xs">
                       <span className="font-medium text-[#123c28]/70">
                         Driver Raster
                       </span>
@@ -1548,7 +1842,7 @@ export default function MapsPage() {
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between gap-4 rounded-xl px-3 py-2 text-xs hover:bg-white">
+                    <div className="flex items-center justify-between gap-3 rounded-lg px-2.5 py-1.5 text-[10px] hover:bg-white sm:gap-4 sm:rounded-xl sm:px-3 sm:py-2 sm:text-xs">
                       <span className="font-medium text-[#123c28]/70">
                         Format Tiling
                       </span>
@@ -1562,7 +1856,7 @@ export default function MapsPage() {
 
                     {metadataMap.geo_metadata.nodata !== undefined &&
                       metadataMap.geo_metadata.nodata !== null && (
-                        <div className="flex items-center justify-between gap-4 rounded-xl px-3 py-2 text-xs hover:bg-white">
+                        <div className="flex items-center justify-between gap-3 rounded-lg px-2.5 py-1.5 text-[10px] hover:bg-white sm:gap-4 sm:rounded-xl sm:px-3 sm:py-2 sm:text-xs">
                           <span className="font-medium text-[#123c28]/70">
                             Nilai NoData
                           </span>
@@ -1575,14 +1869,14 @@ export default function MapsPage() {
                   </div>
 
                   {metadataMap.geo_metadata.bounds_wgs84 && (
-                    <div className="mt-3 rounded-2xl border border-[#123c28]/10 bg-[#f7f8f4] p-3.5">
-                      <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.15em] text-[#123c28]/75">
+                    <div className="mt-2.5 rounded-xl border border-[#123c28]/10 bg-[#f7f8f4] p-2.5 sm:mt-3 sm:rounded-2xl sm:p-3.5">
+                      <p className="mb-1.5 text-[8px] font-bold uppercase tracking-[0.14em] text-[#123c28]/75 sm:mb-2 sm:text-[10px] sm:tracking-[0.15em]">
                         Cakupan Wilayah (WGS 84 Bounds)
                       </p>
 
-                      <div className="grid grid-cols-2 gap-2 text-[11px]">
-                        <div className="rounded-xl border border-[#123c28]/5 bg-white p-2">
-                          <span className="block text-[9px] font-semibold text-[#123c28]/60">
+                      <div className="grid grid-cols-2 gap-1.5 text-[9px] sm:gap-2 sm:text-[11px]">
+                        <div className="rounded-lg border border-[#123c28]/5 bg-white p-1.5 sm:rounded-xl sm:p-2">
+                          <span className="block text-[7px] font-semibold text-[#123c28]/60 sm:text-[9px]">
                             Bujur Barat (Min Lon)
                           </span>
 
@@ -1591,8 +1885,8 @@ export default function MapsPage() {
                           </span>
                         </div>
 
-                        <div className="rounded-xl border border-[#123c28]/5 bg-white p-2">
-                          <span className="block text-[9px] font-semibold text-[#123c28]/60">
+                        <div className="rounded-lg border border-[#123c28]/5 bg-white p-1.5 sm:rounded-xl sm:p-2">
+                          <span className="block text-[7px] font-semibold text-[#123c28]/60 sm:text-[9px]">
                             Bujur Timur (Max Lon)
                           </span>
 
@@ -1601,8 +1895,8 @@ export default function MapsPage() {
                           </span>
                         </div>
 
-                        <div className="rounded-xl border border-[#123c28]/5 bg-white p-2">
-                          <span className="block text-[9px] font-semibold text-[#123c28]/60">
+                        <div className="rounded-lg border border-[#123c28]/5 bg-white p-1.5 sm:rounded-xl sm:p-2">
+                          <span className="block text-[7px] font-semibold text-[#123c28]/60 sm:text-[9px]">
                             Lintang Selatan (Min Lat)
                           </span>
 
@@ -1611,8 +1905,8 @@ export default function MapsPage() {
                           </span>
                         </div>
 
-                        <div className="rounded-xl border border-[#123c28]/5 bg-white p-2">
-                          <span className="block text-[9px] font-semibold text-[#123c28]/60">
+                        <div className="rounded-lg border border-[#123c28]/5 bg-white p-1.5 sm:rounded-xl sm:p-2">
+                          <span className="block text-[7px] font-semibold text-[#123c28]/60 sm:text-[9px]">
                             Lintang Utara (Max Lat)
                           </span>
 
@@ -1625,21 +1919,22 @@ export default function MapsPage() {
                   )}
                 </div>
               ) : (
-                <div className="rounded-2xl border border-dashed border-[#123c28]/15 bg-[#fafbf8] p-4 text-center">
-                  <p className="text-xs font-semibold text-[#123c28]/60">
+                <div className="rounded-xl border border-dashed border-[#123c28]/15 bg-[#fafbf8] p-3 text-center sm:rounded-2xl sm:p-4">
+                  <p className="text-[10px] font-semibold text-[#123c28]/60 sm:text-xs">
                     Metadata geospasial tidak tersemat pada berkas ini.
                   </p>
                 </div>
               )}
 
               {/* DESCRIPTION */}
+
               {metadataMap.description && (
-                <div className="rounded-2xl border border-[#123c28]/10 bg-[#f7f8f4] p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#123c28]/75">
+                <div className="rounded-xl border border-[#123c28]/10 bg-[#f7f8f4] p-3 sm:rounded-2xl sm:p-4">
+                  <p className="text-[8px] font-bold uppercase tracking-[0.14em] text-[#123c28]/75 sm:text-[10px] sm:tracking-[0.15em]">
                     Deskripsi
                   </p>
 
-                  <p className="mt-2 text-xs font-medium leading-6 text-[#123c28]/85">
+                  <p className="mt-1.5 text-[10px] font-medium leading-5 text-[#123c28]/85 sm:mt-2 sm:text-xs sm:leading-6">
                     {metadataMap.description}
                   </p>
                 </div>
@@ -1647,7 +1942,8 @@ export default function MapsPage() {
             </div>
 
             {/* FOOTER */}
-            <div className="flex gap-3 border-t border-[#123c28]/10 bg-[#fafbf8] px-6 py-4">
+
+            <div className="flex gap-2 border-t border-[#123c28]/10 bg-[#fafbf8] px-4 py-3 sm:gap-3 sm:px-6 sm:py-4">
               <button
                 type="button"
                 onClick={() => {
@@ -1655,16 +1951,16 @@ export default function MapsPage() {
 
                   setMetadataMap(null);
                 }}
-                className="flex flex-1 items-center justify-center gap-2 rounded-full bg-[#123c28] py-3 text-xs font-semibold text-white transition hover:bg-[#1a5134]"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-[#123c28] py-2.5 text-[10px] font-semibold text-white transition hover:bg-[#1a5134] sm:gap-2 sm:py-3 sm:text-xs"
               >
-                <Pencil className="h-3.5 w-3.5" />
+                <Pencil className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                 Edit Peta
               </button>
 
               <button
                 type="button"
                 onClick={() => setMetadataMap(null)}
-                className="flex-1 rounded-full border border-[#123c28]/15 bg-white py-3 text-xs font-bold text-[#123c28] transition hover:bg-[#f0f2ed]"
+                className="flex-1 rounded-full border border-[#123c28]/15 bg-white py-2.5 text-[10px] font-bold text-[#123c28] transition hover:bg-[#f0f2ed] sm:py-3 sm:text-xs"
               >
                 Tutup
               </button>
@@ -1676,17 +1972,19 @@ export default function MapsPage() {
       {/* =====================================================
           EDIT MODAL
       ====================================================== */}
+
       {editingMap && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#123c28]/40 p-4 backdrop-blur-sm">
-          <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-[28px] border border-[#123c28]/15 bg-white shadow-2xl">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#123c28]/40 p-2.5 backdrop-blur-sm sm:p-4">
+          <div className="flex max-h-[94vh] w-full max-w-lg flex-col overflow-hidden rounded-[22px] border border-[#123c28]/15 bg-white shadow-2xl sm:max-h-[90vh] sm:rounded-[28px]">
             {/* HEADER */}
-            <div className="flex items-center justify-between border-b border-[#123c28]/10 px-6 py-5">
+
+            <div className="flex items-center justify-between border-b border-[#123c28]/10 px-4 py-3.5 sm:px-6 sm:py-5">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#123c28]/75">
+                <p className="text-[8px] font-bold uppercase tracking-[0.18em] text-[#123c28]/75 sm:text-[10px] sm:tracking-[0.2em]">
                   INFORMASI PETA
                 </p>
 
-                <h3 className="mt-1 text-lg font-bold tracking-tight text-[#123c28]">
+                <h3 className="mt-0.5 text-base font-bold tracking-tight text-[#123c28] sm:mt-1 sm:text-lg">
                   Edit Informasi Peta
                 </h3>
               </div>
@@ -1695,25 +1993,32 @@ export default function MapsPage() {
                 type="button"
                 onClick={closeEditModal}
                 className="
-                  flex h-9 w-9
-                  items-center justify-center
+                  flex
+                  h-8
+                  w-8
+                  items-center
+                  justify-center
                   rounded-full
                   bg-[#f5f7f1]
                   text-[#123c28]/80
                   transition
                   hover:bg-[#123c28]
                   hover:text-white
+                  sm:h-9
+                  sm:w-9
                 "
               >
-                <X className="h-4 w-4" />
+                <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </button>
             </div>
 
             {/* CONTENT */}
-            <div className="space-y-4 overflow-y-auto px-6 py-5">
+
+            <div className="space-y-3 overflow-y-auto px-4 py-4 sm:space-y-4 sm:px-6 sm:py-5">
               {/* TITLE */}
+
               <div>
-                <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-[#123c28]/75">
+                <label className="mb-1 block text-[8px] font-bold uppercase tracking-[0.14em] text-[#123c28]/75 sm:mb-1.5 sm:text-[10px] sm:tracking-[0.16em]">
                   Judul Peta
                 </label>
 
@@ -1727,18 +2032,23 @@ export default function MapsPage() {
                     })
                   }
                   className={`
-                    h-11 w-full
-                    rounded-2xl
+                    h-9
+                    w-full
+                    rounded-xl
                     border
                     bg-[#fafbf8]
-                    px-4
-                    text-sm
+                    px-3
+                    text-[11px]
                     font-medium
                     text-[#123c28]
                     outline-none
                     transition
                     placeholder:text-[#123c28]/45
                     focus:bg-white
+                    sm:h-11
+                    sm:rounded-2xl
+                    sm:px-4
+                    sm:text-sm
                     ${
                       editErrors.title
                         ? "border-red-400 focus:border-red-500"
@@ -1749,20 +2059,21 @@ export default function MapsPage() {
                 />
 
                 {editErrors.title && (
-                  <p className="mt-1.5 text-xs font-semibold text-red-600">
+                  <p className="mt-1 text-[10px] font-semibold text-red-600 sm:mt-1.5 sm:text-xs">
                     {editErrors.title}
                   </p>
                 )}
               </div>
 
               {/* LOCATION */}
+
               <div>
-                <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-[#123c28]/75">
+                <label className="mb-1 block text-[8px] font-bold uppercase tracking-[0.14em] text-[#123c28]/75 sm:mb-1.5 sm:text-[10px] sm:tracking-[0.16em]">
                   Lokasi / Wilayah
                 </label>
 
                 <div className="relative">
-                  <MapPin className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#123c28]/40" />
+                  <MapPin className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#123c28]/40 sm:left-3.5 sm:h-4 sm:w-4" />
 
                   <input
                     type="text"
@@ -1774,18 +2085,25 @@ export default function MapsPage() {
                       })
                     }
                     className={`
-                      h-11 w-full
-                      rounded-2xl
+                      h-9
+                      w-full
+                      rounded-xl
                       border
                       bg-[#fafbf8]
-                      pl-10 pr-4
-                      text-sm
+                      pl-9
+                      pr-3
+                      text-[11px]
                       font-medium
                       text-[#123c28]
                       outline-none
                       transition
                       placeholder:text-[#123c28]/45
                       focus:bg-white
+                      sm:h-11
+                      sm:rounded-2xl
+                      sm:pl-10
+                      sm:pr-4
+                      sm:text-sm
                       ${
                         editErrors.location
                           ? "border-red-400 focus:border-red-500"
@@ -1797,20 +2115,21 @@ export default function MapsPage() {
                 </div>
 
                 {editErrors.location && (
-                  <p className="mt-1.5 text-xs font-semibold text-red-600">
+                  <p className="mt-1 text-[10px] font-semibold text-red-600 sm:mt-1.5 sm:text-xs">
                     {editErrors.location}
                   </p>
                 )}
               </div>
 
               {/* DATE */}
+
               <div>
-                <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-[#123c28]/75">
+                <label className="mb-1 block text-[8px] font-bold uppercase tracking-[0.14em] text-[#123c28]/75 sm:mb-1.5 sm:text-[10px] sm:tracking-[0.16em]">
                   Tanggal Survey Drone
                 </label>
 
                 <div className="relative">
-                  <Calendar className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#123c28]/40" />
+                  <Calendar className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#123c28]/40 sm:left-3.5 sm:h-4 sm:w-4" />
 
                   <input
                     type="date"
@@ -1822,17 +2141,24 @@ export default function MapsPage() {
                       })
                     }
                     className={`
-                      h-11 w-full
-                      rounded-2xl
+                      h-9
+                      w-full
+                      rounded-xl
                       border
                       bg-[#fafbf8]
-                      pl-10 pr-4
-                      text-sm
+                      pl-9
+                      pr-3
+                      text-[11px]
                       font-medium
                       text-[#123c28]
                       outline-none
                       transition
                       focus:bg-white
+                      sm:h-11
+                      sm:rounded-2xl
+                      sm:pl-10
+                      sm:pr-4
+                      sm:text-sm
                       ${
                         editErrors.survey_date
                           ? "border-red-400 focus:border-red-500"
@@ -1843,15 +2169,16 @@ export default function MapsPage() {
                 </div>
 
                 {editErrors.survey_date && (
-                  <p className="mt-1.5 text-xs font-semibold text-red-600">
+                  <p className="mt-1 text-[10px] font-semibold text-red-600 sm:mt-1.5 sm:text-xs">
                     {editErrors.survey_date}
                   </p>
                 )}
               </div>
 
               {/* DESCRIPTION */}
+
               <div>
-                <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-[#123c28]/75">
+                <label className="mb-1 block text-[8px] font-bold uppercase tracking-[0.14em] text-[#123c28]/75 sm:mb-1.5 sm:text-[10px] sm:tracking-[0.16em]">
                   Deskripsi Tambahan (Opsional)
                 </label>
 
@@ -1867,11 +2194,13 @@ export default function MapsPage() {
                   className="
                     w-full
                     resize-none
-                    rounded-2xl
-                    border border-[#123c28]/15
+                    rounded-xl
+                    border
+                    border-[#123c28]/15
                     bg-[#fafbf8]
-                    px-4 py-2.5
-                    text-sm
+                    px-3
+                    py-2
+                    text-[11px]
                     font-medium
                     text-[#123c28]
                     outline-none
@@ -1879,26 +2208,32 @@ export default function MapsPage() {
                     placeholder:text-[#123c28]/45
                     focus:border-[#123c28]/40
                     focus:bg-white
+                    sm:rounded-2xl
+                    sm:px-4
+                    sm:py-2.5
+                    sm:text-sm
                   "
                   placeholder="Informasi ketinggian terbang, sensor kamera, dsb..."
                 />
               </div>
 
               {/* ACCESS */}
-              <div className="pt-2">
-                <div className="mb-2.5 flex items-center gap-2">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#f3f6ed]">
-                    <Lock className="h-3.5 w-3.5 text-[#123c28]" />
+
+              <div className="pt-1 sm:pt-2">
+                <div className="mb-2 flex items-center gap-1.5 sm:mb-2.5 sm:gap-2">
+                  <div className="flex h-5 w-5 items-center justify-center rounded-md bg-[#f3f6ed] sm:h-6 sm:w-6 sm:rounded-lg">
+                    <Lock className="h-3 w-3 text-[#123c28] sm:h-3.5 sm:w-3.5" />
                   </div>
 
-                  <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#123c28]/75">
+                  <span className="text-[8px] font-bold uppercase tracking-[0.14em] text-[#123c28]/75 sm:text-[10px] sm:tracking-[0.16em]">
                     Aturan Akses & Monetisasi DaaS
                   </span>
                 </div>
 
-                <div className="space-y-2.5">
+                <div className="space-y-2">
                   {/* LOCK */}
-                  <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#123c28]/10 bg-[#fafbf8] p-3.5 transition-colors hover:border-[#123c28]/25 hover:bg-white">
+
+                  <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-[#123c28]/10 bg-[#fafbf8] p-2.5 transition-colors hover:border-[#123c28]/25 hover:bg-white sm:gap-3 sm:rounded-2xl sm:p-3.5">
                     <input
                       type="checkbox"
                       checked={editForm.locked_for_free}
@@ -1908,15 +2243,15 @@ export default function MapsPage() {
                           locked_for_free: event.target.checked,
                         })
                       }
-                      className="mt-0.5 h-4 w-4 rounded border-[#123c28]/30 text-[#123c28] focus:ring-[#123c28]"
+                      className="mt-0.5 h-3.5 w-3.5 rounded border-[#123c28]/30 text-[#123c28] focus:ring-[#123c28] sm:h-4 sm:w-4"
                     />
 
                     <div>
-                      <p className="text-xs font-bold text-[#123c28]">
+                      <p className="text-[10px] font-bold text-[#123c28] sm:text-xs">
                         Kunci untuk Member Free
                       </p>
 
-                      <p className="mt-0.5 text-[11px] font-medium text-[#123c28]/70">
+                      <p className="mt-0.5 text-[9px] font-medium leading-4 text-[#123c28]/70 sm:text-[11px] sm:leading-normal">
                         Hanya member berbayar (Tier Desa/Kecamatan) yang dapat
                         mengakses data peta ini
                       </p>
@@ -1924,7 +2259,8 @@ export default function MapsPage() {
                   </label>
 
                   {/* PURCHASE */}
-                  <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#123c28]/10 bg-[#fafbf8] p-3.5 transition-colors hover:border-[#123c28]/25 hover:bg-white">
+
+                  <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-[#123c28]/10 bg-[#fafbf8] p-2.5 transition-colors hover:border-[#123c28]/25 hover:bg-white sm:gap-3 sm:rounded-2xl sm:p-3.5">
                     <input
                       type="checkbox"
                       checked={editForm.purchasable}
@@ -1934,15 +2270,15 @@ export default function MapsPage() {
                           purchasable: event.target.checked,
                         })
                       }
-                      className="mt-0.5 h-4 w-4 rounded border-[#123c28]/30 text-[#123c28] focus:ring-[#123c28]"
+                      className="mt-0.5 h-3.5 w-3.5 rounded border-[#123c28]/30 text-[#123c28] focus:ring-[#123c28] sm:h-4 sm:w-4"
                     />
 
                     <div>
-                      <p className="text-xs font-bold text-[#123c28]">
+                      <p className="text-[10px] font-bold text-[#123c28] sm:text-xs">
                         Tersedia untuk Pembelian Satuan
                       </p>
 
-                      <p className="mt-0.5 text-[11px] font-medium text-[#123c28]/70">
+                      <p className="mt-0.5 text-[9px] font-medium leading-4 text-[#123c28]/70 sm:text-[11px] sm:leading-normal">
                         User dapat membeli akses peta ini secara terpisah tanpa
                         langganan
                       </p>
@@ -1953,29 +2289,34 @@ export default function MapsPage() {
             </div>
 
             {/* FOOTER */}
-            <div className="flex gap-3 border-t border-[#123c28]/10 bg-[#fafbf8] px-6 py-4">
+
+            <div className="flex gap-2 border-t border-[#123c28]/10 bg-[#fafbf8] px-4 py-3 sm:gap-3 sm:px-6 sm:py-4">
               <button
                 type="button"
                 onClick={submitEdit}
                 disabled={isSavingEdit}
                 className="
-                  flex flex-1
+                  flex
+                  flex-1
                   items-center
                   justify-center
-                  gap-2
+                  gap-1.5
                   rounded-full
                   bg-[#123c28]
-                  py-3
-                  text-xs
+                  py-2.5
+                  text-[10px]
                   font-semibold
                   text-white
                   transition
                   hover:bg-[#1a5134]
                   disabled:opacity-60
+                  sm:gap-2
+                  sm:py-3
+                  sm:text-xs
                 "
               >
                 {isSavingEdit && (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <Loader2 className="h-3 w-3 animate-spin sm:h-3.5 sm:w-3.5" />
                 )}
                 Simpan Perubahan
               </button>
@@ -1990,12 +2331,14 @@ export default function MapsPage() {
                   border
                   border-[#123c28]/15
                   bg-white
-                  py-3
-                  text-xs
+                  py-2.5
+                  text-[10px]
                   font-bold
                   text-[#123c28]
                   transition
                   hover:bg-[#f0f2ed]
+                  sm:py-3
+                  sm:text-xs
                 "
               >
                 Batal
@@ -2008,23 +2351,24 @@ export default function MapsPage() {
       {/* =====================================================
           DELETE MODAL
       ====================================================== */}
+
       {deletingMap && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#123c28]/40 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm overflow-hidden rounded-[28px] border border-[#123c28]/15 bg-white shadow-2xl">
-            <div className="p-7 text-center">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-50">
-                <AlertTriangle className="h-6 w-6 text-red-600" />
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#123c28]/40 p-2.5 backdrop-blur-sm sm:p-4">
+          <div className="w-full max-w-sm overflow-hidden rounded-[22px] border border-[#123c28]/15 bg-white shadow-2xl sm:rounded-[28px]">
+            <div className="p-5 text-center sm:p-7">
+              <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-red-50 sm:h-14 sm:w-14">
+                <AlertTriangle className="h-5 w-5 text-red-600 sm:h-6 sm:w-6" />
               </div>
 
-              <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.2em] text-[#123c28]/75">
+              <p className="mt-4 text-[8px] font-bold uppercase tracking-[0.18em] text-[#123c28]/75 sm:mt-5 sm:text-[10px] sm:tracking-[0.2em]">
                 DELETE DATA
               </p>
 
-              <h3 className="mt-2 text-xl font-bold tracking-tight text-[#123c28]">
+              <h3 className="mt-1.5 text-lg font-bold tracking-tight text-[#123c28] sm:mt-2 sm:text-xl">
                 Hapus Peta?
               </h3>
 
-              <p className="mt-3 text-xs font-medium leading-6 text-[#123c28]/75">
+              <p className="mt-2 text-[10px] font-medium leading-5 text-[#123c28]/75 sm:mt-3 sm:text-xs sm:leading-6">
                 Peta{" "}
                 <span className="font-bold text-[#123c28]">
                   &quot;
@@ -2034,31 +2378,35 @@ export default function MapsPage() {
                 akan dihapus secara permanen.
               </p>
 
-              <div className="mt-7 flex gap-3">
+              <div className="mt-5 flex gap-2.5 sm:mt-7 sm:gap-3">
                 <button
                   type="button"
                   onClick={confirmDelete}
                   disabled={isDeleting}
                   className="
-                    flex flex-1
+                    flex
+                    flex-1
                     items-center
                     justify-center
-                    gap-2
+                    gap-1.5
                     rounded-full
                     bg-red-600
-                    py-3
-                    text-xs
+                    py-2.5
+                    text-[10px]
                     font-bold
                     text-white
                     transition
                     hover:bg-red-700
                     disabled:opacity-60
+                    sm:gap-2
+                    sm:py-3
+                    sm:text-xs
                   "
                 >
                   {isDeleting ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <Loader2 className="h-3 w-3 animate-spin sm:h-3.5 sm:w-3.5" />
                   ) : (
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                   )}
                   Hapus
                 </button>
@@ -2073,12 +2421,14 @@ export default function MapsPage() {
                     border
                     border-[#123c28]/15
                     bg-[#f5f7f1]
-                    py-3
-                    text-xs
+                    py-2.5
+                    text-[10px]
                     font-bold
                     text-[#123c28]
                     transition
                     hover:bg-[#e9ede3]
+                    sm:py-3
+                    sm:text-xs
                   "
                 >
                   Batal
@@ -2092,22 +2442,27 @@ export default function MapsPage() {
       {/* =====================================================
           PREMIUM MODAL
       ====================================================== */}
-      {toastMessage && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#123c28]/40 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md overflow-hidden rounded-[28px] border border-[#123c28]/15 bg-white shadow-2xl">
-            {/* PREMIUM HEADER */}
-            <div className="relative overflow-hidden bg-[#123c28] px-7 py-8 text-center text-white">
-              <div className="absolute -right-10 -top-16 h-36 w-36 rounded-full border border-white/10" />
 
-              <div className="absolute -left-12 bottom-[-70px] h-40 w-40 rounded-full border border-white/5" />
+      {toastMessage && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#123c28]/40 p-2.5 backdrop-blur-sm sm:p-4">
+          <div className="w-full max-w-md overflow-hidden rounded-[22px] border border-[#123c28]/15 bg-white shadow-2xl sm:rounded-[28px]">
+            {/* PREMIUM HEADER */}
+
+            <div className="relative overflow-hidden bg-[#123c28] px-5 py-6 text-center text-white sm:px-7 sm:py-8">
+              <div className="absolute -right-8 -top-12 h-28 w-28 rounded-full border border-white/10 sm:-right-10 sm:-top-16 sm:h-36 sm:w-36" />
+
+              <div className="absolute -left-10 bottom-[-55px] h-32 w-32 rounded-full border border-white/5 sm:-left-12 sm:bottom-[-70px] sm:h-40 sm:w-40" />
 
               <button
                 type="button"
                 onClick={() => setToastMessage("")}
                 className="
                   absolute
-                  right-4 top-4
-                  flex h-8 w-8
+                  right-3
+                  top-3
+                  flex
+                  h-7
+                  w-7
                   items-center
                   justify-center
                   rounded-full
@@ -2116,54 +2471,64 @@ export default function MapsPage() {
                   transition
                   hover:bg-white/20
                   hover:text-white
+                  sm:right-4
+                  sm:top-4
+                  sm:h-8
+                  sm:w-8
                 "
               >
-                <X className="h-4 w-4" />
+                <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </button>
 
-              <div className="relative mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#d6f347] text-[#123c28]">
-                <Crown className="h-6 w-6" />
+              <div className="relative mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#d6f347] text-[#123c28] sm:h-14 sm:w-14">
+                <Crown className="h-5 w-5 sm:h-6 sm:w-6" />
               </div>
 
-              <p className="relative mt-5 text-[10px] font-bold uppercase tracking-[0.22em] text-white/90">
+              <p className="relative mt-4 text-[8px] font-bold uppercase tracking-[0.2em] text-white/90 sm:mt-5 sm:text-[10px] sm:tracking-[0.22em]">
                 PREMIUM ACCESS
               </p>
 
-              <h3 className="relative mt-2 text-2xl font-bold tracking-tight">
+              <h3 className="relative mt-1.5 text-xl font-bold tracking-tight sm:mt-2 sm:text-2xl">
                 Fitur ini terkunci
               </h3>
 
-              <p className="relative mt-2 text-xs font-medium text-emerald-100">
+              <p className="relative mt-1.5 text-[10px] font-medium text-emerald-100 sm:mt-2 sm:text-xs">
                 Upgrade untuk mendapatkan akses penuh.
               </p>
             </div>
 
             {/* BODY */}
-            <div className="px-7 py-7 text-center">
-              <p className="text-sm font-medium leading-6 text-[#123c28]">
+
+            <div className="px-5 py-5 text-center sm:px-7 sm:py-7">
+              <p className="text-xs font-medium leading-5 text-[#123c28] sm:text-sm sm:leading-6">
                 {toastMessage}
               </p>
 
-              <div className="mt-6 flex flex-col gap-2.5">
+              <div className="mt-5 flex flex-col gap-2 sm:mt-6 sm:gap-2.5">
                 <Link
                   href="/dashboard/subscription"
                   className="
                     inline-flex
                     items-center
                     justify-center
-                    gap-2
+                    gap-1.5
                     rounded-full
                     bg-[#123c28]
-                    px-5 py-3.5
-                    text-xs
+                    px-4
+                    py-3
+                    text-[10px]
                     font-bold
                     text-white
                     transition
                     hover:bg-[#1a5134]
+                    sm:gap-2
+                    sm:px-5
+                    sm:py-3.5
+                    sm:text-xs
                   "
                 >
                   Lihat Paket Langganan
-                  <ArrowUpRight className="h-4 w-4" />
+                  <ArrowUpRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </Link>
 
                 <button
@@ -2171,14 +2536,19 @@ export default function MapsPage() {
                   onClick={() => setToastMessage("")}
                   className="
                     rounded-full
-                    border border-[#123c28]/15
+                    border
+                    border-[#123c28]/15
                     bg-[#f5f7f1]
-                    px-5 py-3.5
-                    text-xs
+                    px-4
+                    py-3
+                    text-[10px]
                     font-bold
                     text-[#123c28]
                     transition
                     hover:bg-[#e9ede3]
+                    sm:px-5
+                    sm:py-3.5
+                    sm:text-xs
                   "
                 >
                   Mungkin Nanti
