@@ -30,7 +30,7 @@ import { fileError } from "./upload-helpers";
 /* Constants                                                                  */
 /* -------------------------------------------------------------------------- */
 
-const MAX_FILE_SIZE_BYTES = 3 * 1024 * 1024 * 1024; // 3 GB
+const MAX_FILE_SIZE_BYTES = 3 * 1024 * 1024 * 1024;
 const MAX_FILE_SIZE_LABEL = "3 GB";
 
 export const inputClass =
@@ -260,10 +260,6 @@ function LayerTypeSelect({
     manualLayerOptions.find((option) => option.value === value) ??
     manualLayerOptions[0];
 
-  const currentConfig = currentOption
-    ? LAYER_TYPE_CONFIG[currentOption.value] || LAYER_TYPE_CONFIG.custom
-    : LAYER_TYPE_CONFIG.custom;
-
   return (
     <div className="relative">
       <button
@@ -427,9 +423,7 @@ export function ManualUploadFlow({
 
   return (
     <div className="space-y-4">
-      {/* ------------------------------------------------------------------ */}
-      {/* HEADER / ADD LAYER                                                 */}
-      {/* ------------------------------------------------------------------ */}
+      {/* HEADER / ADD LAYER */}
 
       <div className="rounded-2xl border border-brand-800/8 bg-brand-50/35 p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -466,9 +460,7 @@ export function ManualUploadFlow({
         )}
       </div>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* EMPTY STATE                                                        */}
-      {/* ------------------------------------------------------------------ */}
+      {/* EMPTY STATE */}
 
       {!slots.length && (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-brand-800/15 bg-white px-5 py-10 text-center">
@@ -497,9 +489,7 @@ export function ManualUploadFlow({
         </div>
       )}
 
-      {/* ------------------------------------------------------------------ */}
-      {/* LAYER LIST                                                         */}
-      {/* ------------------------------------------------------------------ */}
+      {/* LAYER LIST */}
 
       {slots.length > 0 && (
         <div className="space-y-3">
@@ -514,7 +504,8 @@ export function ManualUploadFlow({
                 key={slot.id}
                 className="rounded-2xl border border-brand-800/15 bg-white p-4 shadow-card"
               >
-                {/* Header -------------------------------------------------- */}
+                {/* Header */}
+
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-2.5">
                     <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-900 text-xs font-bold text-white">
@@ -553,7 +544,8 @@ export function ManualUploadFlow({
                   </button>
                 </div>
 
-                {/* Type + name -------------------------------------------- */}
+                {/* Type + name */}
+
                 <div className="grid gap-3 md:grid-cols-[170px_minmax(0,1fr)]">
                   <label className="space-y-1.5 text-2xs font-bold text-brand-900">
                     <span className="block uppercase tracking-[0.1em] text-brand-800/50">
@@ -587,7 +579,8 @@ export function ManualUploadFlow({
                   </label>
                 </div>
 
-                {/* File ---------------------------------------------------- */}
+                {/* File */}
+
                 <div className="mt-3">
                   <MiniDropzone
                     id={`file-${slot.id}`}
@@ -597,7 +590,8 @@ export function ManualUploadFlow({
                   />
                 </div>
 
-                {/* Compact opacity ---------------------------------------- */}
+                {/* Opacity */}
+
                 <div className="mt-3 flex items-center gap-3 rounded-lg bg-brand-50/60 px-3 py-2.5">
                   <SlidersHorizontal
                     className="h-3.5 w-3.5 shrink-0 text-brand-800/45"
@@ -634,7 +628,8 @@ export function ManualUploadFlow({
                   </span>
                 </div>
 
-                {/* Validation --------------------------------------------- */}
+                {/* Validation */}
+
                 <div
                   aria-live="polite"
                   className={`mt-2 flex items-center gap-1.5 text-2xs font-semibold ${
@@ -659,9 +654,7 @@ export function ManualUploadFlow({
         </div>
       )}
 
-      {/* ------------------------------------------------------------------ */}
-      {/* ADD MORE                                                           */}
-      {/* ------------------------------------------------------------------ */}
+      {/* ADD MORE */}
 
       {slots.length > 0 && (
         <div className="flex justify-center pt-1">

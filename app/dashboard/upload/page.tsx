@@ -491,7 +491,6 @@ export default function UploadPage() {
   ------------------------------------------------------------ */
 
   const [batchFiles, setBatchFiles] = useState<BatchFileItem[]>([]);
-
   const [dragActive, setDragActive] = useState(false);
 
   const [expandedBatchItems, setExpandedBatchItems] = useState<Set<string>>(
@@ -504,8 +503,20 @@ export default function UploadPage() {
 
   const [manualSlots, setManualSlots] = useState<ManualSlotItem[]>([]);
 
+  /*
+   * editingFiles / editingDetails hanya mengontrol apakah
+   * sebuah section sedang dalam mode editor.
+   *
+   * detailsStepUnlocked / reviewStepUnlocked mengontrol
+   * apakah user SUDAH menekan tombol Lanjutkan.
+   */
+
   const [editingFiles, setEditingFiles] = useState(true);
   const [editingDetails, setEditingDetails] = useState(true);
+
+  const [filesStepUnlocked, setFilesStepUnlocked] = useState(true);
+  const [detailsStepUnlocked, setDetailsStepUnlocked] = useState(false);
+  const [reviewStepUnlocked, setReviewStepUnlocked] = useState(false);
 
   /* ------------------------------------------------------------
      SUBMIT
@@ -600,15 +611,28 @@ export default function UploadPage() {
         batchFiles.every((item) => Boolean(item.name.trim()))
       : manualFilesReady;
 
-  const currentStep = isSuccess ? 4 : !filesReady ? 1 : !detailReady ? 2 : 3;
+  /*
+   * STEP CURRENT
+   *
+   * Tidak lagi bergantung langsung kepada filesReady/detailReady.
+   * Sekarang berdasarkan aksi tombol user.
+   */
 
-  const showFilesEditor = editingFiles || !filesReady;
+  const currentStep = isSuccess
+    ? 4
+    : !detailsStepUnlocked
+    ? 1
+    : !reviewStepUnlocked
+    ? 2
+    : 3;
 
-  const showDetailsEditor = editingDetails || !detailReady;
+  const showFilesEditor = editingFiles;
 
-  const detailsUnlocked = filesReady;
+  const showDetailsEditor = detailsStepUnlocked && editingDetails;
 
-  const reviewUnlocked = filesReady && detailReady;
+  const detailsUnlocked = detailsStepUnlocked;
+
+  const reviewUnlocked = reviewStepUnlocked;
 
   const reviewChecklist: ReviewChecklistItem[] =
     uploadMode === "batch"
@@ -658,6 +682,63 @@ export default function UploadPage() {
   const totalSizeMB = reviewTotalBytes / (1024 * 1024);
 
   /* ============================================================
+     STEP NAVIGATION
+  ============================================================ */
+
+  const handleContinueToDetails = () => {
+    if (!filesReady) {
+      setMessage(
+        uploadMode === "manual"
+          ? "Lengkapi seluruh layer terlebih dahulu."
+          : "Lengkapi file upload terlebih dahulu."
+      );
+      return;
+    }
+
+    setMessage("");
+    setGeoError(null);
+
+    setFilesStepUnlocked(true);
+    setDetailsStepUnlocked(true);
+    setReviewStepUnlocked(false);
+
+    setEditingFiles(false);
+    setEditingDetails(true);
+  };
+
+  const handleContinueToReview = () => {
+    if (!detailReady) {
+      setMessage("Lengkapi judul, lokasi, dan tanggal survei terlebih dahulu.");
+      return;
+    }
+
+    setMessage("");
+    setGeoError(null);
+
+    setReviewStepUnlocked(true);
+    setEditingDetails(false);
+  };
+
+  const handleEditFiles = () => {
+    setEditingFiles(true);
+
+    setDetailsStepUnlocked(false);
+    setReviewStepUnlocked(false);
+
+    setMessage("");
+    setGeoError(null);
+  };
+
+  const handleEditDetails = () => {
+    setEditingDetails(true);
+
+    setReviewStepUnlocked(false);
+
+    setMessage("");
+    setGeoError(null);
+  };
+
+  /* ============================================================
      BATCH STATE UPDATE
   ============================================================ */
 
@@ -683,21 +764,13 @@ export default function UploadPage() {
 
         return {
           ...item,
-
           layer_type: layerType,
-
           name: isDefaultName ? config.defaultName : item.name,
-
           default_opacity: config.defaultOpacity,
-
           is_base: layerType === "ortho",
-
           detection_status: "detected",
-
           detection_source: "manual",
-
           detection_confidence: "high",
-
           detection_reason: "Tipe layer dipilih secara manual oleh pengguna.",
         };
       });
@@ -722,7 +795,6 @@ export default function UploadPage() {
   ) => {
     if (field === "layer_type") {
       updateBatchLayerType(id, String(value));
-
       return;
     }
 
@@ -780,6 +852,14 @@ export default function UploadPage() {
 
       return;
     }
+
+    /*
+     * Kalau user menambah / mengubah file,
+     * review harus dikunci kembali.
+     */
+    setDetailsStepUnlocked(false);
+    setReviewStepUnlocked(false);
+    setEditingFiles(true);
 
     const newItems: BatchFileItem[] = validFiles.map((file, index) => ({
       id: `${Date.now()}-${index}-${Math.random()}`,
@@ -920,24 +1000,16 @@ export default function UploadPage() {
           if (item.id === id) {
             return {
               ...item,
-
               is_base: true,
-
               layer_type: "ortho",
-
               default_opacity: 1,
-
               name:
                 !item.name || item.name === "Membaca metadata..."
                   ? LAYER_TYPE_CONFIG.ortho.defaultName
                   : item.name,
-
               detection_status: "detected",
-
               detection_source: "manual",
-
               detection_confidence: "high",
-
               detection_reason:
                 "Layer utama ditetapkan secara manual oleh pengguna.",
             };
@@ -950,7 +1022,11 @@ export default function UploadPage() {
         })
       )
     );
+
+    setDetailsStepUnlocked(false);
+    setReviewStepUnlocked(false);
   };
+
   const handleRemoveBatchItem = (id: string) => {
     setBatchFiles((prev) =>
       normalizeBatchBase(prev.filter((item) => item.id !== id))
@@ -958,9 +1034,14 @@ export default function UploadPage() {
 
     setExpandedBatchItems((prev) => {
       const next = new Set(prev);
+
       next.delete(id);
+
       return next;
     });
+
+    setDetailsStepUnlocked(false);
+    setReviewStepUnlocked(false);
   };
 
   const toggleBatchItemExpanded = (id: string) => {
@@ -987,6 +1068,7 @@ export default function UploadPage() {
 
       if (layerType && LAYER_TYPE_CONFIG[layerType]) {
         slot.layer_type = layerType;
+
         slot.default_opacity = LAYER_TYPE_CONFIG[layerType].defaultOpacity;
 
         const currentNameIsDefault =
@@ -1003,12 +1085,23 @@ export default function UploadPage() {
       return [...prev, slot];
     });
 
+    /*
+     * Menambah layer berarti Step 1 berubah,
+     * sehingga Step 2 & 3 harus dikunci lagi.
+     */
+    setEditingFiles(true);
+    setDetailsStepUnlocked(false);
+    setReviewStepUnlocked(false);
+
     setMessage("");
     setGeoError(null);
   };
 
   const handleRemoveManualLayer = (id: string) => {
     setManualSlots((prev) => prev.filter((slot) => slot.id !== id));
+
+    setDetailsStepUnlocked(false);
+    setReviewStepUnlocked(false);
   };
 
   const handleUpdateManualLayer = <K extends keyof ManualSlotItem>(
@@ -1046,6 +1139,13 @@ export default function UploadPage() {
         return updated;
       })
     );
+
+    /*
+     * Setiap perubahan pada manual layer
+     * membuat user harus menekan Lanjutkan lagi.
+     */
+    setDetailsStepUnlocked(false);
+    setReviewStepUnlocked(false);
   };
 
   /* ============================================================
@@ -1073,6 +1173,12 @@ export default function UploadPage() {
 
     setEditingFiles(true);
     setEditingDetails(true);
+
+    setFilesStepUnlocked(true);
+    setDetailsStepUnlocked(false);
+    setReviewStepUnlocked(false);
+
+    setUploadMode("batch");
   };
 
   /* ============================================================
@@ -1159,7 +1265,9 @@ export default function UploadPage() {
     const formData = new FormData();
 
     formData.append("title", title.trim());
+
     formData.append("location", location.trim());
+
     formData.append("survey_date", surveyDate);
 
     if (description) {
@@ -1194,6 +1302,7 @@ export default function UploadPage() {
       });
 
       setUploadProgress(100);
+
       setIsSuccess(true);
 
       setGeoSuccess({
@@ -1211,9 +1320,11 @@ export default function UploadPage() {
 
       if (typeof detail === "object" && detail !== null) {
         setGeoError(detail);
+
         setMessage(detail.message || "Validasi geospasial ditolak.");
       } else {
         setGeoError(null);
+
         setMessage(
           typeof detail === "string" && detail.length
             ? detail
@@ -1222,9 +1333,11 @@ export default function UploadPage() {
       }
 
       setIsSuccess(false);
+
       setGeoSuccess(null);
     } finally {
       submitting.current = false;
+
       setLoading(false);
     }
   };
@@ -1406,6 +1519,8 @@ export default function UploadPage() {
                           setMessage("");
                           setGeoError(null);
                           setEditingFiles(true);
+                          setDetailsStepUnlocked(false);
+                          setReviewStepUnlocked(false);
                         }}
                         className={`inline-flex items-center gap-1.5 rounded-[5px] px-4 py-2 text-2xs font-bold transition ${
                           uploadMode === "batch"
@@ -1424,6 +1539,8 @@ export default function UploadPage() {
                           setMessage("");
                           setGeoError(null);
                           setEditingFiles(true);
+                          setDetailsStepUnlocked(false);
+                          setReviewStepUnlocked(false);
                         }}
                         className={`inline-flex items-center gap-1.5 rounded-[5px] px-4 py-2 text-2xs font-bold transition ${
                           uploadMode === "manual"
@@ -1439,6 +1556,10 @@ export default function UploadPage() {
                       </button>
                     </div>
                   </div>
+
+                  {/* ======================================================
+                     STEP 1
+                  ====================================================== */}
 
                   {showFilesEditor ? (
                     <motion.section
@@ -1534,6 +1655,8 @@ export default function UploadPage() {
                                   onClick={() => {
                                     setBatchFiles([]);
                                     setExpandedBatchItems(new Set());
+                                    setDetailsStepUnlocked(false);
+                                    setReviewStepUnlocked(false);
                                   }}
                                   className="text-2xs font-bold text-brand-800/55 transition hover:text-red-600"
                                 >
@@ -1801,8 +1924,11 @@ export default function UploadPage() {
                         <div className="mt-5 flex justify-end border-t border-brand-800/8 pt-4">
                           <button
                             type="button"
-                            onClick={() => setEditingFiles(false)}
-                            className="btn-brand"
+                            onClick={handleContinueToDetails}
+                            disabled={!filesReady}
+                            className={`btn-brand ${
+                              !filesReady ? "cursor-not-allowed opacity-40" : ""
+                            }`}
                           >
                             Lanjutkan ke detail dataset
                             <ChevronRight className="h-3.5 w-3.5" />
@@ -1816,14 +1942,18 @@ export default function UploadPage() {
                       detail={`${
                         reviewFiles.length
                       } layer · ${totalSizeMB.toFixed(1)} MB`}
-                      onEdit={() => setEditingFiles(true)}
+                      onEdit={handleEditFiles}
                     />
                   )}
+
+                  {/* ======================================================
+                     STEP 2
+                  ====================================================== */}
 
                   {!detailsUnlocked ? (
                     <LockedSection
                       title="Detail dataset"
-                      reason="Selesaikan upload layer terlebih dahulu"
+                      reason="Selesaikan upload layer lalu tekan “Lanjutkan ke detail dataset”"
                     />
                   ) : showDetailsEditor ? (
                     <motion.section
@@ -1997,8 +2127,13 @@ export default function UploadPage() {
                         <div className="mt-5 flex justify-end border-t border-brand-800/8 pt-4">
                           <button
                             type="button"
-                            onClick={() => setEditingDetails(false)}
-                            className="btn-brand"
+                            onClick={handleContinueToReview}
+                            disabled={!detailReady}
+                            className={`btn-brand ${
+                              !detailReady
+                                ? "cursor-not-allowed opacity-40"
+                                : ""
+                            }`}
                           >
                             Lanjutkan ke review
                             <ChevronRight className="h-3.5 w-3.5" />
@@ -2010,14 +2145,18 @@ export default function UploadPage() {
                     <CollapsedSummary
                       title="Detail dataset"
                       detail={`${title} · ${location}`}
-                      onEdit={() => setEditingDetails(true)}
+                      onEdit={handleEditDetails}
                     />
                   )}
+
+                  {/* ======================================================
+                     STEP 3
+                  ====================================================== */}
 
                   {!reviewUnlocked ? (
                     <LockedSection
                       title="Review & kirim"
-                      reason="Lengkapi langkah upload layer dan detail dataset terlebih dahulu"
+                      reason="Lengkapi detail dataset lalu tekan “Lanjutkan ke review”"
                     />
                   ) : (
                     <motion.section
@@ -2058,38 +2197,6 @@ export default function UploadPage() {
                       </div>
 
                       <div className="mt-4">
-                        {metadataStillReading ? (
-                          <div className="rounded-2xl bg-amber-50 px-3.5 py-3">
-                            <div className="flex items-center gap-2">
-                              <RefreshCw className="h-3.5 w-3.5 animate-spin text-amber-600" />
-
-                              <p className="text-xs font-bold text-amber-900">
-                                Sedang membaca metadata GeoTIFF...
-                              </p>
-                            </div>
-                          </div>
-                        ) : submitErrors.length > 0 ? (
-                          <div className="rounded-2xl bg-brand-50 px-3.5 py-3">
-                            <p className="text-2xs font-medium leading-4 text-brand-800/60">
-                              Lengkapi bagian yang masih diperlukan sebelum
-                              upload.
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="rounded-2xl bg-brand-50 px-3.5 py-3">
-                            <div className="flex items-center gap-2">
-                              <CheckCircle2
-                                className="h-3.5 w-3.5 text-brand-600"
-                                strokeWidth={2}
-                              />
-
-                              <p className="text-xs font-bold text-brand-900">
-                                Dataset siap diunggah.
-                              </p>
-                            </div>
-                          </div>
-                        )}
-
                         <button
                           type="submit"
                           disabled={
