@@ -12,6 +12,7 @@
     "@turf/turf": "^7.4.0",
     "axios": "^1.13.2",
     "framer-motion": "^13.2.0",
+    "geotiff": "^3.0.5",
     "lucide-react": "^0.552.0",
     "maplibre-gl": "^6.8.0",
     "motion": "^13.2.0",

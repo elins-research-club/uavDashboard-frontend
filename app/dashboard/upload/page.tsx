@@ -31,7 +31,7 @@ import { ErrorDetailObject, GeoMetadata } from "@/types/map";
 import {
   LAYER_TYPE_CONFIG,
   layerOptions,
-  autoDetectLayer,
+  detectLayer,
   formatFileSize,
   type BatchFileItem,
   type ManualSlotItem,
@@ -54,7 +54,7 @@ import {
 const ICON_STROKE = 1.75;
 const EASE = [0.22, 1, 0.36, 1] as const;
 
-const MAX_FILE_SIZE_BYTES = 3 * 1024 * 1024 * 1024; // 3 GB
+const MAX_FILE_SIZE_BYTES = 3 * 1024 * 1024 * 1024;
 const MAX_FILE_SIZE_LABEL = "3 GB";
 
 /* ============================================================
@@ -69,14 +69,26 @@ function StepRail({
   isSuccess: boolean;
 }) {
   const steps = [
-    { label: "Upload layer", hint: "Pilih layer & file", icon: Upload },
-    { label: "Detail dataset", hint: "Judul, lokasi, tanggal", icon: Calendar },
+    {
+      label: "Upload layer",
+      hint: "Pilih layer & file",
+      icon: Upload,
+    },
+    {
+      label: "Detail dataset",
+      hint: "Judul, lokasi, tanggal",
+      icon: Calendar,
+    },
     {
       label: "Review & kirim",
       hint: "Periksa sebelum submit",
       icon: ShieldCheck,
     },
-    { label: "Selesai", hint: "Dataset tersimpan", icon: CheckCircle2 },
+    {
+      label: "Selesai",
+      hint: "Dataset tersimpan",
+      icon: CheckCircle2,
+    },
   ];
 
   return (
@@ -158,6 +170,7 @@ function SystemStatusPanel({
   uploadProgress: number;
 }) {
   const capPct = Math.min(100, (totalBytes / MAX_FILE_SIZE_BYTES) * 100);
+
   const totalMB = totalBytes / (1024 * 1024);
 
   return (
@@ -166,6 +179,7 @@ function SystemStatusPanel({
         aria-hidden
         className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-brand-500/25 blur-2xl"
       />
+
       <div
         aria-hidden
         className="pointer-events-none absolute -bottom-12 -left-8 h-28 w-28 rounded-full bg-brand-400/15 blur-2xl"
@@ -358,11 +372,91 @@ function LockedSection({ title, reason }: { title: string; reason: string }) {
 
         <div>
           <p className="text-xs font-bold text-brand-800/50">{title}</p>
+
           <p className="mt-0.5 text-2xs font-medium text-brand-800/40">
             {reason}
           </p>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   DETECTION STATUS
+============================================================ */
+
+function DetectionStatus({ item }: { item: BatchFileItem }) {
+  if (item.detection_status === "reading") {
+    return (
+      <div className="mt-0.5 flex items-center gap-1.5">
+        <RefreshCw
+          className="h-2.5 w-2.5 animate-spin text-brand-800/35"
+          strokeWidth={2}
+        />
+
+        <span className="text-[10px] font-medium text-brand-800/40">
+          Membaca metadata...
+        </span>
+      </div>
+    );
+  }
+
+  if (item.detection_source === "metadata") {
+    return (
+      <div className="mt-0.5 flex items-center gap-1.5">
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+
+        <span className="text-[10px] font-medium text-emerald-700">
+          Terdeteksi dari metadata
+        </span>
+      </div>
+    );
+  }
+
+  if (item.detection_source === "raster-structure") {
+    return (
+      <div className="mt-0.5 flex items-center gap-1.5">
+        <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
+
+        <span className="text-[10px] font-medium text-sky-700">
+          Terdeteksi dari struktur raster
+        </span>
+      </div>
+    );
+  }
+
+  if (item.detection_source === "filename") {
+    return (
+      <div className="mt-0.5 flex items-center gap-1.5">
+        <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+
+        <span className="text-[10px] font-medium text-amber-700">
+          Terdeteksi dari nama file
+        </span>
+      </div>
+    );
+  }
+
+  if ((item.detection_source as string) === "manual") {
+    return (
+      <div className="mt-0.5 flex items-center gap-1.5">
+        <span className="h-1.5 w-1.5 rounded-full bg-brand-600" />
+
+        <span className="text-[10px] font-medium text-brand-700">
+          Dipilih manual
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-0.5 flex items-center gap-1.5">
+      <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+
+      <span className="text-[10px] font-medium text-red-600">
+        Tidak yakin · pilih manual
+      </span>
     </div>
   );
 }
@@ -377,30 +471,46 @@ export default function UploadPage() {
 
   const [uploadMode, setUploadMode] = useState<"batch" | "manual">("batch");
 
-  // Metadata
+  /* ------------------------------------------------------------
+     METADATA
+  ------------------------------------------------------------ */
+
   const [title, setTitle] = useState("");
   const [location, setLocation] = useState("");
+
   const [surveyDate, setSurveyDate] = useState(
     new Date().toISOString().split("T")[0]
   );
+
   const [description, setDescription] = useState("");
   const [lockedForFree, setLockedForFree] = useState(false);
   const [purchasable, setPurchasable] = useState(false);
 
-  // Batch
+  /* ------------------------------------------------------------
+     BATCH
+  ------------------------------------------------------------ */
+
   const [batchFiles, setBatchFiles] = useState<BatchFileItem[]>([]);
+
   const [dragActive, setDragActive] = useState(false);
+
   const [expandedBatchItems, setExpandedBatchItems] = useState<Set<string>>(
     new Set()
   );
 
-  // Manual
+  /* ------------------------------------------------------------
+     MANUAL
+  ------------------------------------------------------------ */
+
   const [manualSlots, setManualSlots] = useState<ManualSlotItem[]>([]);
 
   const [editingFiles, setEditingFiles] = useState(true);
   const [editingDetails, setEditingDetails] = useState(true);
 
-  // Submit
+  /* ------------------------------------------------------------
+     SUBMIT
+  ------------------------------------------------------------ */
+
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [message, setMessage] = useState("");
@@ -416,7 +526,12 @@ export default function UploadPage() {
   const [geoError, setGeoError] = useState<ErrorDetailObject | null>(null);
 
   const submitting = useRef(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  /* ============================================================
+     ROLE GUARD
+  ============================================================ */
 
   useEffect(() => {
     if (user && user.role !== "admin") {
@@ -461,6 +576,10 @@ export default function UploadPage() {
 
   const metaChecklist = metadataChecklist(title, location, surveyDate);
 
+  const metadataStillReading =
+    uploadMode === "batch" &&
+    batchFiles.some((item) => item.detection_status === "reading");
+
   const submitErrors =
     uploadMode === "manual"
       ? [
@@ -477,14 +596,18 @@ export default function UploadPage() {
     uploadMode === "batch"
       ? batchFiles.length > 0 &&
         batchFiles.filter((item) => item.is_base).length === 1 &&
-        batchFiles.every((item) => item.name.trim())
+        !metadataStillReading &&
+        batchFiles.every((item) => Boolean(item.name.trim()))
       : manualFilesReady;
 
   const currentStep = isSuccess ? 4 : !filesReady ? 1 : !detailReady ? 2 : 3;
 
   const showFilesEditor = editingFiles || !filesReady;
+
   const showDetailsEditor = editingDetails || !detailReady;
+
   const detailsUnlocked = filesReady;
+
   const reviewUnlocked = filesReady && detailReady;
 
   const reviewChecklist: ReviewChecklistItem[] =
@@ -500,7 +623,7 @@ export default function UploadPage() {
           },
           {
             label: "Nama layer lengkap",
-            ready: batchFiles.every((item) => item.name.trim()),
+            ready: batchFiles.every((item) => Boolean(item.name.trim())),
           },
           ...metaChecklist,
         ]
@@ -535,10 +658,93 @@ export default function UploadPage() {
   const totalSizeMB = reviewTotalBytes / (1024 * 1024);
 
   /* ============================================================
+     BATCH STATE UPDATE
+  ============================================================ */
+
+  const updateBatchLayerType = (id: string, layerType: string) => {
+    setBatchFiles((prev): BatchFileItem[] => {
+      const config = LAYER_TYPE_CONFIG[layerType];
+
+      if (!config) {
+        return prev;
+      }
+
+      let next: BatchFileItem[] = prev.map((item): BatchFileItem => {
+        if (item.id !== id) {
+          return item;
+        }
+
+        const isDefaultName =
+          !item.name ||
+          item.name === "Membaca metadata..." ||
+          Object.values(LAYER_TYPE_CONFIG).some(
+            (itemConfig) => itemConfig.defaultName === item.name
+          );
+
+        return {
+          ...item,
+
+          layer_type: layerType,
+
+          name: isDefaultName ? config.defaultName : item.name,
+
+          default_opacity: config.defaultOpacity,
+
+          is_base: layerType === "ortho",
+
+          detection_status: "detected",
+
+          detection_source: "manual",
+
+          detection_confidence: "high",
+
+          detection_reason: "Tipe layer dipilih secara manual oleh pengguna.",
+        };
+      });
+
+      if (layerType === "ortho") {
+        next = next.map(
+          (item): BatchFileItem => ({
+            ...item,
+            is_base: item.id === id,
+          })
+        );
+      }
+
+      return normalizeBatchBase(next);
+    });
+  };
+
+  const handleUpdateBatchItem = (
+    id: string,
+    field: keyof BatchFileItem,
+    value: any
+  ) => {
+    if (field === "layer_type") {
+      updateBatchLayerType(id, String(value));
+
+      return;
+    }
+
+    setBatchFiles((prev): BatchFileItem[] =>
+      prev.map((item): BatchFileItem => {
+        if (item.id !== id) {
+          return item;
+        }
+
+        return {
+          ...item,
+          [field]: value,
+        };
+      })
+    );
+  };
+
+  /* ============================================================
      FILE HANDLING
   ============================================================ */
 
-  const processIncomingFiles = (incoming: FileList | File[]) => {
+  const processIncomingFiles = async (incoming: FileList | File[]) => {
     if (loading || submitting.current) {
       return;
     }
@@ -547,10 +753,12 @@ export default function UploadPage() {
 
     const isTiff = (file: File) => {
       const lowerName = file.name.toLowerCase();
+
       return lowerName.endsWith(".tif") || lowerName.endsWith(".tiff");
     };
 
     const rightFormat = candidates.filter(isTiff);
+
     const wrongFormatCount = candidates.length - rightFormat.length;
 
     const tooLarge = rightFormat.filter(
@@ -573,20 +781,73 @@ export default function UploadPage() {
       return;
     }
 
-    const newItems = validFiles.map((file, index) => {
-      const detected = autoDetectLayer(file.name);
-
-      return {
-        id: `${Date.now()}-${index}-${Math.random()}`,
-        file,
-        name: detected.name,
-        layer_type: detected.layer_type,
-        is_base: detected.is_base,
-        default_opacity: detected.default_opacity,
-      };
-    });
+    const newItems: BatchFileItem[] = validFiles.map((file, index) => ({
+      id: `${Date.now()}-${index}-${Math.random()}`,
+      file,
+      name: "Membaca metadata...",
+      layer_type: "custom",
+      is_base: false,
+      default_opacity: LAYER_TYPE_CONFIG.custom.defaultOpacity,
+      detection_status: "reading",
+    }));
 
     setBatchFiles((prev) => normalizeBatchBase([...prev, ...newItems]));
+
+    const detectionResults = await Promise.all(
+      newItems.map(async (item) => {
+        try {
+          const detected = await detectLayer(item.file);
+
+          return {
+            id: item.id,
+            detected,
+          };
+        } catch {
+          return {
+            id: item.id,
+            detected: {
+              layer_type: "custom",
+              name: LAYER_TYPE_CONFIG.custom.defaultName,
+              is_base: false,
+              default_opacity: LAYER_TYPE_CONFIG.custom.defaultOpacity,
+              detection_source: "uncertain" as const,
+              detection_confidence: "low" as const,
+              detection_reason:
+                "Tipe layer tidak dapat dibaca secara otomatis.",
+            },
+          };
+        }
+      })
+    );
+
+    setBatchFiles((prev) =>
+      normalizeBatchBase(
+        prev.map((item) => {
+          const result = detectionResults.find((entry) => entry.id === item.id);
+
+          if (!result) {
+            return item;
+          }
+
+          const detected = result.detected;
+
+          return {
+            ...item,
+            name: detected.name,
+            layer_type: detected.layer_type,
+            is_base: detected.is_base,
+            default_opacity: detected.default_opacity,
+            detection_status:
+              detected.detection_confidence === "low"
+                ? "uncertain"
+                : "detected",
+            detection_source: detected.detection_source,
+            detection_confidence: detected.detection_confidence,
+            detection_reason: detected.detection_reason,
+          };
+        })
+      )
+    );
 
     if (!title) {
       const firstClean = validFiles[0].name
@@ -601,23 +862,19 @@ export default function UploadPage() {
       }
     }
 
-    if (tooLarge.length || wrongFormatCount) {
-      const parts: string[] = [];
+    const messages: string[] = [];
 
-      if (tooLarge.length) {
-        parts.push(
-          `${tooLarge.length} file melebihi ${MAX_FILE_SIZE_LABEL} dan dilewati`
-        );
-      }
-
-      if (wrongFormatCount) {
-        parts.push(`${wrongFormatCount} file bukan .tif/.tiff dan dilewati`);
-      }
-
-      setMessage(`${parts.join(", ")}.`);
-    } else {
-      setMessage("");
+    if (tooLarge.length) {
+      messages.push(
+        `${tooLarge.length} file melebihi ${MAX_FILE_SIZE_LABEL} dan dilewati`
+      );
     }
+
+    if (wrongFormatCount) {
+      messages.push(`${wrongFormatCount} file bukan .tif/.tiff dan dilewati`);
+    }
+
+    setMessage(messages.length ? `${messages.join(", ")}.` : "");
 
     setGeoError(null);
   };
@@ -642,7 +899,7 @@ export default function UploadPage() {
     setDragActive(false);
 
     if (event.dataTransfer.files?.length) {
-      processIncomingFiles(event.dataTransfer.files);
+      void processIncomingFiles(event.dataTransfer.files);
     }
   };
 
@@ -650,64 +907,50 @@ export default function UploadPage() {
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     if (event.target.files?.length) {
-      processIncomingFiles(event.target.files);
+      void processIncomingFiles(event.target.files);
     }
 
     event.target.value = "";
   };
 
   const handleSetBaseLayer = (id: string) => {
-    setBatchFiles((prev) =>
-      prev.map((item) => ({
-        ...item,
-        is_base: item.id === id,
-        ...(item.id === id
-          ? {
+    setBatchFiles((prev): BatchFileItem[] =>
+      normalizeBatchBase(
+        prev.map((item): BatchFileItem => {
+          if (item.id === id) {
+            return {
+              ...item,
+
+              is_base: true,
+
               layer_type: "ortho",
+
               default_opacity: 1,
-            }
-          : {}),
-      }))
-    );
-  };
 
-  const handleUpdateBatchItem = (
-    id: string,
-    field: keyof BatchFileItem,
-    value: any
-  ) => {
-    setBatchFiles((prev) =>
-      prev.map((item) => {
-        if (item.id !== id) {
-          return item;
-        }
+              name:
+                !item.name || item.name === "Membaca metadata..."
+                  ? LAYER_TYPE_CONFIG.ortho.defaultName
+                  : item.name,
 
-        const updated = {
-          ...item,
-          [field]: value,
-        };
+              detection_status: "detected",
 
-        if (field === "layer_type") {
-          const config = LAYER_TYPE_CONFIG[value as string];
+              detection_source: "manual",
 
-          if (config) {
-            updated.default_opacity = config.defaultOpacity;
+              detection_confidence: "high",
 
-            const isDefaultName = Object.values(LAYER_TYPE_CONFIG).some(
-              (configItem) => configItem.defaultName === item.name
-            );
-
-            if (!item.name || isDefaultName) {
-              updated.name = config.defaultName;
-            }
+              detection_reason:
+                "Layer utama ditetapkan secara manual oleh pengguna.",
+            };
           }
-        }
 
-        return updated;
-      })
+          return {
+            ...item,
+            is_base: false,
+          };
+        })
+      )
     );
   };
-
   const handleRemoveBatchItem = (id: string) => {
     setBatchFiles((prev) =>
       normalizeBatchBase(prev.filter((item) => item.id !== id))
@@ -735,7 +978,7 @@ export default function UploadPage() {
   };
 
   /* ============================================================
-     MANUAL
+     MANUAL MODE
   ============================================================ */
 
   const handleAddManualLayer = (layerType?: ManualSlotItem["layer_type"]) => {
@@ -818,6 +1061,7 @@ export default function UploadPage() {
     setTitle("");
     setLocation("");
     setDescription("");
+
     setSurveyDate(new Date().toISOString().split("T")[0]);
 
     setLockedForFree(false);
@@ -842,6 +1086,11 @@ export default function UploadPage() {
       return;
     }
 
+    if (metadataStillReading) {
+      setMessage("Tunggu hingga seluruh metadata GeoTIFF selesai dibaca.");
+      return;
+    }
+
     if (submitErrors.length) {
       setIsSuccess(false);
       setMessage(submitErrors.join(" "));
@@ -852,7 +1101,7 @@ export default function UploadPage() {
     let layersConfigPayload: any[] = [];
 
     if (uploadMode === "batch") {
-      if (batchFiles.length === 0) {
+      if (!batchFiles.length) {
         setMessage("Silakan pilih minimal satu file.");
         return;
       }
@@ -888,11 +1137,6 @@ export default function UploadPage() {
 
         filesToUpload.push(slot.file);
 
-        /*
-         * Backend saat ini masih menggunakan konsep is_base.
-         * Layer pertama dijadikan layer utama tampilan secara teknis,
-         * tetapi user tidak diwajibkan mengunggah ortho terlebih dahulu.
-         */
         layersConfigPayload.push({
           filename: slot.file.name,
           name: slot.name.trim() || `Layer ${index + 1}`,
@@ -923,6 +1167,7 @@ export default function UploadPage() {
     }
 
     formData.append("locked_for_free", lockedForFree ? "true" : "false");
+
     formData.append("purchasable", purchasable ? "true" : "false");
 
     formData.append("layers_config", JSON.stringify(layersConfigPayload));
@@ -943,6 +1188,7 @@ export default function UploadPage() {
           }
 
           const percentage = Math.round((loaded * 100) / total);
+
           setUploadProgress(percentage >= 100 ? 99 : percentage);
         },
       });
@@ -968,7 +1214,6 @@ export default function UploadPage() {
         setMessage(detail.message || "Validasi geospasial ditolak.");
       } else {
         setGeoError(null);
-
         setMessage(
           typeof detail === "string" && detail.length
             ? detail
@@ -1020,9 +1265,18 @@ export default function UploadPage() {
 
             {!isSuccess && (geoError || message) && (
               <motion.section
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, ease: EASE }}
+                initial={{
+                  opacity: 0,
+                  y: -8,
+                }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                }}
+                transition={{
+                  duration: 0.4,
+                  ease: EASE,
+                }}
                 className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-4"
               >
                 <div className="flex items-start gap-3">
@@ -1062,9 +1316,18 @@ export default function UploadPage() {
 
             {isSuccess && geoSuccess && (
               <motion.section
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, ease: EASE }}
+                initial={{
+                  opacity: 0,
+                  y: -8,
+                }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                }}
+                transition={{
+                  duration: 0.4,
+                  ease: EASE,
+                }}
                 className="mb-4 rounded-2xl border border-brand-800/15 bg-brand-50 p-4"
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -1179,9 +1442,18 @@ export default function UploadPage() {
 
                   {showFilesEditor ? (
                     <motion.section
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.35, ease: EASE }}
+                      initial={{
+                        opacity: 0,
+                        y: 8,
+                      }}
+                      animate={{
+                        opacity: 1,
+                        y: 0,
+                      }}
+                      transition={{
+                        duration: 0.35,
+                        ease: EASE,
+                      }}
                       className="glass p-5"
                     >
                       <SectionTitle
@@ -1189,7 +1461,7 @@ export default function UploadPage() {
                         title="Upload layer"
                         description={
                           uploadMode === "batch"
-                            ? "Pilih file hasil survei untuk dideteksi otomatis."
+                            ? "Pilih file hasil survei untuk dideteksi otomatis berdasarkan metadata, struktur raster, dan nama file."
                             : "Tambahkan layer sesuai kebutuhan. Tidak perlu upload ortho terlebih dahulu."
                         }
                       />
@@ -1269,7 +1541,7 @@ export default function UploadPage() {
                                 </button>
                               </div>
 
-                              <div className="max-h-[240px] overflow-y-auto rounded-2xl border border-brand-800/15 bg-white">
+                              <div className="max-h-[340px] overflow-y-auto rounded-2xl border border-brand-800/15 bg-white">
                                 {batchFiles.map((item, index) => {
                                   const config =
                                     LAYER_TYPE_CONFIG[item.layer_type] ||
@@ -1278,6 +1550,9 @@ export default function UploadPage() {
                                   const expanded = expandedBatchItems.has(
                                     item.id
                                   );
+
+                                  const uncertain =
+                                    item.detection_source === "uncertain";
 
                                   return (
                                     <div
@@ -1293,12 +1568,14 @@ export default function UploadPage() {
                                           className={`h-2 w-2 shrink-0 rounded-full ${
                                             item.is_base
                                               ? "bg-brand-500"
+                                              : uncertain
+                                              ? "bg-red-400"
                                               : "bg-brand-800/20"
                                           }`}
                                         />
 
                                         <div className="min-w-0 flex-1">
-                                          <div className="flex items-center gap-1.5">
+                                          <div className="flex flex-wrap items-center gap-1.5">
                                             <span
                                               className={`rounded border px-1.5 py-0.5 font-mono text-2xs font-bold uppercase tracking-wide ${config.badgeClass}`}
                                             >
@@ -1311,28 +1588,54 @@ export default function UploadPage() {
                                               </span>
                                             )}
 
-                                            <span className="truncate font-mono text-2xs text-brand-800/45">
+                                            <span className="min-w-0 truncate font-mono text-2xs text-brand-800/45">
                                               {item.file.name}
                                             </span>
                                           </div>
 
-                                          <input
-                                            type="text"
-                                            value={item.name}
-                                            aria-label="Nama layer"
-                                            onChange={(event) =>
-                                              handleUpdateBatchItem(
-                                                item.id,
-                                                "name",
-                                                event.target.value
-                                              )
-                                            }
-                                            className="mt-1 w-full max-w-sm border-0 bg-transparent p-0 text-2xs font-bold text-brand-900 outline-none placeholder:text-brand-800/25"
-                                            placeholder="Nama layer"
-                                          />
+                                          <div className="mt-1">
+                                            <input
+                                              type="text"
+                                              value={item.name}
+                                              aria-label="Nama layer"
+                                              onChange={(event) =>
+                                                handleUpdateBatchItem(
+                                                  item.id,
+                                                  "name",
+                                                  event.target.value
+                                                )
+                                              }
+                                              disabled={
+                                                item.detection_status ===
+                                                "reading"
+                                              }
+                                              className="w-full max-w-sm border-0 bg-transparent p-0 text-2xs font-bold text-brand-900 outline-none placeholder:text-brand-800/25 disabled:cursor-wait disabled:opacity-50"
+                                              placeholder="Nama layer"
+                                            />
+
+                                            <DetectionStatus item={item} />
+
+                                            {uncertain && (
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  toggleBatchItemExpanded(
+                                                    item.id
+                                                  )
+                                                }
+                                                className="mt-1.5 inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-[10px] font-bold text-red-700 transition hover:bg-red-100"
+                                              >
+                                                <Pencil
+                                                  className="h-2.5 w-2.5"
+                                                  strokeWidth={2}
+                                                />
+                                                Edit Deteksi
+                                              </button>
+                                            )}
+                                          </div>
                                         </div>
 
-                                        <span className="hidden font-mono text-2xs font-medium text-brand-800/45 sm:block">
+                                        <span className="hidden shrink-0 font-mono text-2xs font-medium text-brand-800/45 sm:block">
                                           {formatFileSize(item.file.size)}
                                         </span>
 
@@ -1341,7 +1644,12 @@ export default function UploadPage() {
                                           onClick={() =>
                                             toggleBatchItemExpanded(item.id)
                                           }
-                                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-brand-800/15 text-brand-800/55 hover:bg-brand-50"
+                                          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${
+                                            expanded
+                                              ? "border-brand-900 bg-brand-900 text-white"
+                                              : "border-brand-800/15 text-brand-800/55 hover:bg-brand-50"
+                                          }`}
+                                          aria-label="Edit tipe dan pengaturan layer"
                                         >
                                           <SlidersHorizontal
                                             className="h-3.5 w-3.5"
@@ -1355,6 +1663,7 @@ export default function UploadPage() {
                                             handleRemoveBatchItem(item.id)
                                           }
                                           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl text-brand-800/30 transition hover:bg-red-50 hover:text-red-600"
+                                          aria-label="Hapus layer"
                                         >
                                           <X
                                             className="h-3.5 w-3.5"
@@ -1365,9 +1674,25 @@ export default function UploadPage() {
 
                                       {expanded && (
                                         <div className="border-t border-brand-800/8 bg-brand-50/50 px-3 py-2.5">
-                                          <div className="flex flex-wrap items-center gap-2">
+                                          <div className="mb-2 rounded-xl border border-brand-800/10 bg-white p-2.5">
+                                            <div className="mb-1.5 flex items-center justify-between gap-2">
+                                              <span className="text-2xs font-bold text-brand-900">
+                                                Tipe layer
+                                              </span>
+
+                                              {uncertain && (
+                                                <span className="rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-600">
+                                                  Perlu dipilih
+                                                </span>
+                                              )}
+                                            </div>
+
                                             <select
                                               value={item.layer_type}
+                                              disabled={
+                                                item.detection_status ===
+                                                "reading"
+                                              }
                                               onChange={(event) =>
                                                 handleUpdateBatchItem(
                                                   item.id,
@@ -1375,7 +1700,7 @@ export default function UploadPage() {
                                                   event.target.value
                                                 )
                                               }
-                                              className="rounded-lg border border-brand-800/15 bg-white px-2.5 py-1.5 text-2xs font-bold text-brand-900 outline-none"
+                                              className="w-full rounded-lg border border-brand-800/15 bg-white px-2.5 py-2 text-2xs font-bold text-brand-900 outline-none focus:border-brand-600 disabled:cursor-wait disabled:opacity-50"
                                             >
                                               {layerOptions.map((option) => (
                                                 <option
@@ -1387,13 +1712,25 @@ export default function UploadPage() {
                                               ))}
                                             </select>
 
+                                            <p className="mt-1 text-[10px] leading-4 text-brand-800/45">
+                                              {uncertain
+                                                ? "Sistem belum yakin. Pilih tipe layer secara manual."
+                                                : "Anda dapat mengubah hasil deteksi kapan saja."}
+                                            </p>
+                                          </div>
+
+                                          <div className="flex flex-wrap items-center gap-2">
                                             {!item.is_base && (
                                               <button
                                                 type="button"
+                                                disabled={
+                                                  item.detection_status ===
+                                                  "reading"
+                                                }
                                                 onClick={() =>
                                                   handleSetBaseLayer(item.id)
                                                 }
-                                                className="rounded-lg border border-brand-800/15 bg-white px-2.5 py-1.5 text-2xs font-bold text-brand-800"
+                                                className="rounded-lg border border-brand-800/15 bg-white px-2.5 py-1.5 text-2xs font-bold text-brand-800 disabled:cursor-not-allowed disabled:opacity-40"
                                               >
                                                 Jadikan utama
                                               </button>
@@ -1430,6 +1767,14 @@ export default function UploadPage() {
                                               </span>
                                             </div>
                                           </div>
+
+                                          {item.detection_reason && (
+                                            <div className="mt-2 rounded-lg bg-white/70 px-2.5 py-2">
+                                              <p className="text-[10px] leading-4 text-brand-800/50">
+                                                {item.detection_reason}
+                                              </p>
+                                            </div>
+                                          )}
                                         </div>
                                       )}
                                     </div>
@@ -1482,9 +1827,18 @@ export default function UploadPage() {
                     />
                   ) : showDetailsEditor ? (
                     <motion.section
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.35, ease: EASE }}
+                      initial={{
+                        opacity: 0,
+                        y: 8,
+                      }}
+                      animate={{
+                        opacity: 1,
+                        y: 0,
+                      }}
+                      transition={{
+                        duration: 0.35,
+                        ease: EASE,
+                      }}
                       className="glass p-5"
                     >
                       <SectionTitle
@@ -1588,7 +1942,7 @@ export default function UploadPage() {
                                 setDescription(event.target.value)
                               }
                               placeholder="Opsional"
-                              className={`${inputClass} h-9 text-xs text-brand-900 placeholder:text-brand-800/30 focus:border-brand-600 focus:ring-brand-600/20`}
+                              className={`${inputClass} h-9 text-xs text-brand-900 placeholder:text-brand-800/30`}
                             />
                           </div>
                         </div>
@@ -1667,9 +2021,18 @@ export default function UploadPage() {
                     />
                   ) : (
                     <motion.section
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.35, ease: EASE }}
+                      initial={{
+                        opacity: 0,
+                        y: 8,
+                      }}
+                      animate={{
+                        opacity: 1,
+                        y: 0,
+                      }}
+                      transition={{
+                        duration: 0.35,
+                        ease: EASE,
+                      }}
                       className="glass p-5"
                     >
                       <SectionTitle
@@ -1677,11 +2040,11 @@ export default function UploadPage() {
                         title="Review & kirim"
                         description="Periksa sebelum upload."
                         right={
-                          submitErrors.length === 0 && (
+                          submitErrors.length === 0 && !metadataStillReading ? (
                             <span className="icon-ring h-8 w-8 bg-brand-50 text-brand-600">
                               <Check className="h-4 w-4" strokeWidth={2} />
                             </span>
-                          )
+                          ) : undefined
                         }
                       />
 
@@ -1695,7 +2058,17 @@ export default function UploadPage() {
                       </div>
 
                       <div className="mt-4">
-                        {submitErrors.length > 0 ? (
+                        {metadataStillReading ? (
+                          <div className="rounded-2xl bg-amber-50 px-3.5 py-3">
+                            <div className="flex items-center gap-2">
+                              <RefreshCw className="h-3.5 w-3.5 animate-spin text-amber-600" />
+
+                              <p className="text-xs font-bold text-amber-900">
+                                Sedang membaca metadata GeoTIFF...
+                              </p>
+                            </div>
+                          </div>
+                        ) : submitErrors.length > 0 ? (
                           <div className="rounded-2xl bg-brand-50 px-3.5 py-3">
                             <p className="text-2xs font-medium leading-4 text-brand-800/60">
                               Lengkapi bagian yang masih diperlukan sebelum
@@ -1719,9 +2092,13 @@ export default function UploadPage() {
 
                         <button
                           type="submit"
-                          disabled={loading || submitErrors.length > 0}
+                          disabled={
+                            loading ||
+                            metadataStillReading ||
+                            submitErrors.length > 0
+                          }
                           className={`mt-3 flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-xs font-bold transition ${
-                            submitErrors.length === 0
+                            submitErrors.length === 0 && !metadataStillReading
                               ? "bg-brand-900 text-white shadow-card hover:-translate-y-0.5 hover:bg-brand-800 hover:shadow-card-hover"
                               : "cursor-not-allowed bg-brand-800/8 text-brand-800/30"
                           }`}
