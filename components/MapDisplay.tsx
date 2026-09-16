@@ -2340,6 +2340,76 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               console.error("Gagal menghapus layer:", error);
             }
           }}
+          token={tokenRef.current ?? undefined}
+          onReorderLayer={async (layerId, direction) => {
+            const sorted = [...mapLayersRef.current].sort(
+              (a, b) => a.display_order - b.display_order
+            );
+            const idx = sorted.findIndex((l) => l.id === layerId);
+            if (idx < 0) return;
+            const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+            if (swapIdx < 0 || swapIdx >= sorted.length) return;
+
+            const layerA = sorted[idx];
+            const layerB = sorted[swapIdx];
+            const orderA = layerA.display_order;
+            const orderB = layerB.display_order;
+
+            const baseUrl =
+              process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
+            const activeMapId = mapIdRef.current;
+            const activeToken = tokenRef.current;
+            if (!activeMapId) return;
+            const headers: Record<string, string> = {
+              "Content-Type": "application/json",
+            };
+            if (activeToken) headers.Authorization = `Bearer ${activeToken}`;
+
+            await Promise.all([
+              fetch(`${baseUrl}/maps/${activeMapId}/layers/${layerA.id}`, {
+                method: "PATCH",
+                headers,
+                body: JSON.stringify({ display_order: orderB }),
+              }),
+              fetch(`${baseUrl}/maps/${activeMapId}/layers/${layerB.id}`, {
+                method: "PATCH",
+                headers,
+                body: JSON.stringify({ display_order: orderA }),
+              }),
+            ]);
+
+            // Update local state
+            const newLayers = mapLayersRef.current.map((l) => {
+              if (l.id === layerA.id) return { ...l, display_order: orderB };
+              if (l.id === layerB.id) return { ...l, display_order: orderA };
+              return l;
+            });
+            const reordered = [...newLayers].sort(
+              (a, b) => a.display_order - b.display_order
+            );
+            setMapLayers(reordered);
+            mapLayersRef.current = reordered;
+
+            // Update MapLibre layer z-order
+            const map = mapRef.current;
+            if (map) {
+              // Re-insert layers in new order (bottom to top)
+              reordered.forEach((l, i) => {
+                const mlId = `layer-render-${l.id}`;
+                if (map.getLayer(mlId)) {
+                  const nextLayer = reordered[i + 1];
+                  const beforeId = nextLayer
+                    ? `layer-render-${nextLayer.id}`
+                    : undefined;
+                  if (beforeId && map.getLayer(beforeId)) {
+                    map.moveLayer(mlId, beforeId);
+                  } else {
+                    map.moveLayer(mlId);
+                  }
+                }
+              });
+            }
+          }}
         />
 
         {/* =================================================

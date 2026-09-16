@@ -6,21 +6,26 @@ import {
   Activity,
   Aperture,
   Atom,
+  ChevronDown,
+  ChevronUp,
   Eye,
   EyeOff,
   Flame,
   Globe,
   Grid,
   Layers,
+  Loader2,
   Map as MapIcon,
   Maximize2,
   Minimize2,
   Mountain,
+  Plus,
   RefreshCw,
   Shield,
   Sliders,
   Sprout,
   Trash2,
+  Upload,
   X,
 } from "lucide-react";
 
@@ -43,6 +48,10 @@ interface LayerControlPanelProps {
   onDeleteLayer?: (layerId: string) => void;
 
   onRetryConvert?: (layerId: string) => void;
+
+  onReorderLayer?: (layerId: string, direction: "up" | "down") => Promise<void>;
+
+  token?: string;
 
   /* Basemap */
 
@@ -169,6 +178,9 @@ export default function LayerControlPanel({
   onToggleVisibility,
   onChangeOpacity,
   onDeleteLayer,
+  onLayerUploaded,
+  onReorderLayer,
+  token,
   basemap,
   onChangeBasemap,
   terrainEnabled,
@@ -181,6 +193,61 @@ export default function LayerControlPanel({
   >(null);
 
   const panelRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  /* Add-layer form state */
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addName, setAddName] = useState("");
+  const [addType, setAddType] = useState("ortho");
+  const [addFile, setAddFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [reorderingId, setReorderingId] = useState<string | null>(null);
+
+  const LAYER_TYPES = [
+    { value: "ortho", label: "Ortofoto (Ortho)" },
+    { value: "ndvi", label: "Vegetasi (NDVI)" },
+    { value: "vari", label: "Vegetasi Visible (VARI)" },
+    { value: "spectral", label: "Spektral Multi-band" },
+    { value: "nitrogen", label: "Hara Nitrogen (N)" },
+    { value: "phosphorus", label: "Hara Fosfor (P)" },
+    { value: "kalium", label: "Hara Kalium (K)" },
+    { value: "dsm", label: "Elevasi Permukaan (DSM)" },
+    { value: "custom", label: "Kustom" },
+  ];
+
+  const handleUploadLayer = async () => {
+    if (!mapId || !addFile || !addName.trim()) return;
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
+      const fd = new FormData();
+      fd.append("name", addName.trim());
+      fd.append("layer_type", addType);
+      fd.append("file", addFile);
+      const headers: Record<string, string> = {};
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const res = await fetch(`${baseUrl}/maps/${mapId}/layers`, {
+        method: "POST",
+        headers,
+        body: fd,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as { detail?: string }).detail || `Upload gagal (${res.status})`);
+      }
+      setShowAddForm(false);
+      setAddName("");
+      setAddType("ortho");
+      setAddFile(null);
+      onLayerUploaded?.();
+    } catch (e) {
+      setUploadError(e instanceof Error ? e.message : "Upload gagal");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const hasLayers = layers.length > 0;
 
@@ -477,14 +544,25 @@ export default function LayerControlPanel({
                   Layer Analisis Lahan
                 </h4>
               </div>
-
-
             </div>
 
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-[9.5px] font-semibold text-gray-600 border border-gray-200/50">
                 {activeCount}/{layers.length}
               </span>
+
+              {mapId && (
+                <button
+                  type="button"
+                  onClick={() => { setShowAddForm((v) => !v); setUploadError(null); }}
+                  title="Tambah layer ke peta ini"
+                  aria-label="Tambah layer"
+                  className={`flex items-center gap-1 rounded-lg px-2 py-1 text-[9.5px] font-bold transition ${showAddForm ? "bg-[#123c28] text-white" : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"}`}
+                >
+                  <Plus className="h-3 w-3" />
+                  Tambah
+                </button>
+              )}
 
               <button
                 type="button"
@@ -499,11 +577,99 @@ export default function LayerControlPanel({
           </div>
 
           {/* =================================================
+              ADD LAYER FORM
+          ================================================== */}
+
+          {showAddForm && mapId && (
+            <div className="border-b border-gray-100 bg-emerald-50/60 px-4 py-3 space-y-2.5">
+              {/* hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".tif,.tiff"
+                className="hidden"
+                onChange={(e) => setAddFile(e.target.files?.[0] ?? null)}
+              />
+
+              {/* Name */}
+              <div>
+                <label className="block text-[9px] font-bold text-gray-500 mb-1">NAMA LAYER</label>
+                <input
+                  type="text"
+                  value={addName}
+                  onChange={(e) => setAddName(e.target.value)}
+                  placeholder="mis. NDVI Juli 2025"
+                  className="w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-[10px] text-gray-800 placeholder-gray-400 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-200"
+                />
+              </div>
+
+              {/* Type */}
+              <div>
+                <label className="block text-[9px] font-bold text-gray-500 mb-1">TIPE LAYER</label>
+                <select
+                  value={addType}
+                  onChange={(e) => setAddType(e.target.value)}
+                  className="w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-[10px] text-gray-800 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-200"
+                >
+                  {LAYER_TYPES.map((t) => (
+                    <option key={t.value} value={t.value}>{t.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* File picker */}
+              <div>
+                <label className="block text-[9px] font-bold text-gray-500 mb-1">FILE GeoTIFF</label>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex w-full items-center gap-2 rounded-lg border border-dashed border-gray-300 bg-white px-3 py-2 text-[9.5px] text-gray-500 transition hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-700"
+                >
+                  <Upload className="h-3.5 w-3.5 shrink-0" />
+                  {addFile ? (
+                    <span className="truncate font-semibold text-emerald-700">{addFile.name}</span>
+                  ) : (
+                    <span>Pilih file .tif / .tiff…</span>
+                  )}
+                </button>
+              </div>
+
+              {/* Error */}
+              {uploadError && (
+                <p className="text-[9px] font-semibold text-red-600">{uploadError}</p>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-2 pt-0.5">
+                <button
+                  type="button"
+                  onClick={handleUploadLayer}
+                  disabled={uploading || !addFile || !addName.trim()}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#123c28] px-3 py-1.5 text-[10px] font-bold text-white transition hover:bg-[#0c271a] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {uploading ? (
+                    <><Loader2 className="h-3 w-3 animate-spin" /> Mengunggah…</>
+                  ) : (
+                    <><Upload className="h-3 w-3" /> Upload Layer</>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowAddForm(false); setUploadError(null); setAddFile(null); setAddName(""); }}
+                  className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-[10px] font-semibold text-gray-600 transition hover:bg-gray-50"
+                >
+                  Batal
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* =================================================
               NO LAYERS
           ================================================== */}
 
-          {!mapId || !hasLayers ? (
-            <div className="flex min-h-[180px] items-center justify-center p-5">
+          {!hasLayers ? (
+            <div className="flex min-h-[120px] items-center justify-center p-5">
               <div className="text-center">
                 <Layers className="mx-auto mb-2 h-5 w-5 text-gray-300" />
 
@@ -701,6 +867,42 @@ export default function LayerControlPanel({
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
+                          )}
+
+                          {/* REORDER UP/DOWN */}
+                          {onReorderLayer && layers.length > 1 && (
+                            <div className="flex flex-col gap-0.5">
+                              <button
+                                type="button"
+                                title="Naikkan urutan layer"
+                                disabled={index === 0 || reorderingId === layer.id}
+                                onClick={async () => {
+                                  setReorderingId(layer.id);
+                                  await onReorderLayer(layer.id, "up");
+                                  setReorderingId(null);
+                                }}
+                                className="flex h-4 w-4 items-center justify-center rounded text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-30 active:scale-90"
+                              >
+                                {reorderingId === layer.id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <ChevronUp className="h-3 w-3" />
+                                )}
+                              </button>
+                              <button
+                                type="button"
+                                title="Turunkan urutan layer"
+                                disabled={index === layers.length - 1 || reorderingId === layer.id}
+                                onClick={async () => {
+                                  setReorderingId(layer.id);
+                                  await onReorderLayer(layer.id, "down");
+                                  setReorderingId(null);
+                                }}
+                                className="flex h-4 w-4 items-center justify-center rounded text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-30 active:scale-90"
+                              >
+                                <ChevronDown className="h-3 w-3" />
+                              </button>
+                            </div>
                           )}
                         </div>
                       </div>
