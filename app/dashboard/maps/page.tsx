@@ -190,27 +190,24 @@ export default function MapsPage() {
     api
       .get("/maps")
       .then(({ data }) => {
-        const rawMaps: any[] = data.maps ?? [];
-
-        const mapList: MapData[] = rawMaps.filter((m) => {
-          if (!m.layers || m.layers.length === 0) {
-            return true;
-          }
-
-          return m.layers.every(
-            (l: any) =>
-              l.conversion_status === "completed" ||
-              l.conversion_status === "failed"
-          );
-        });
+        const mapList: MapData[] = data.maps ?? [];
 
         setMaps(mapList);
 
-        setSelectedLayer((previous) =>
-          mapList.some((map) => map.id === previous)
-            ? previous
-            : mapList[0]?.id || ""
-        );
+        const urlId =
+          typeof window !== "undefined"
+            ? new URLSearchParams(window.location.search).get("id")
+            : null;
+
+        setSelectedLayer((previous) => {
+          if (urlId && mapList.some((map) => map.id === urlId)) {
+            return urlId;
+          }
+          if (previous && mapList.some((map) => map.id === previous)) {
+            return previous;
+          }
+          return mapList[0]?.id || "";
+        });
       })
       .catch(
         (requestError: {

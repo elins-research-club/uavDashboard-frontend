@@ -324,6 +324,80 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     }, [currentMeta]);
 
     /* =====================================================
+       BAKING POLL — auto-refresh layer status while any
+       layer is pending/processing, hide from MapLibre
+    ====================================================== */
+
+    useEffect(() => {
+      const hasBaking = mapLayers.some(
+        (l) => l.conversion_status === "pending" || l.conversion_status === "processing"
+      );
+      if (!hasBaking || !mapId) return;
+
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
+      let cancelled = false;
+
+      const poll = async () => {
+        try {
+          const headers: Record<string, string> = {};
+          if (tokenRef.current) headers.Authorization = `Bearer ${tokenRef.current}`;
+          const res = await fetch(`${baseUrl}/maps/${mapId}/layers`, { headers });
+          if (!res.ok || cancelled) return;
+          const fresh: MapLayerItem[] = await res.json();
+
+          // Update state with fresh statuses
+          setMapLayers((prev) =>
+            prev.map((l) => {
+              const updated = fresh.find((f) => f.id === l.id);
+              return updated ? { ...l, ...updated } : l;
+            })
+          );
+          mapLayersRef.current = mapLayersRef.current.map((l) => {
+            const updated = fresh.find((f) => f.id === l.id);
+            return updated ? { ...l, ...updated } : l;
+          });
+
+          // For any layer that just completed, add it to MapLibre
+          const map = mapRef.current;
+          if (map && currentMetaRef.current) {
+            fresh.forEach((fl) => {
+              if (fl.conversion_status === "completed" && fl.pmtiles_url) {
+                const sourceId = `layer-source-${fl.id}`;
+                const layerId = `layer-render-${fl.id}`;
+                if (!map.getSource(sourceId)) {
+                  const apiOrigin = baseUrl.replace(/\/api\/?$/, "");
+                  map.addSource(sourceId, {
+                    type: "raster",
+                    url: `pmtiles://${apiOrigin}${fl.pmtiles_url}`,
+                    tileSize: 256,
+                  });
+                }
+                if (!map.getLayer(layerId)) {
+                  map.addLayer({
+                    id: layerId,
+                    type: "raster",
+                    source: sourceId,
+                    layout: { visibility: fl.is_visible ? "visible" : "none" },
+                    paint: { "raster-opacity": fl.default_opacity, "raster-resampling": "linear", "raster-fade-duration": 150 },
+                  });
+                }
+              }
+            });
+          }
+        } catch {
+          // network error — keep polling, don't clear
+        }
+      };
+
+      poll();
+      const timer = setInterval(poll, 3000);
+      return () => {
+        cancelled = true;
+        clearInterval(timer);
+      };
+    }, [mapId, mapLayers.map((l) => l.conversion_status).join(",")]);
+
+    /* =====================================================
        AUTO RESIZE
     ====================================================== */
 
@@ -674,6 +748,12 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             : undefined;
 
           currentLayers.forEach((layer) => {
+            // Skip baking layers — not renderable yet
+            if (
+              layer.conversion_status === "pending" ||
+              layer.conversion_status === "processing"
+            ) return;
+
             const sourceId = `layer-source-${layer.id}`;
 
             const layerId = `layer-render-${layer.id}`;
@@ -846,15 +926,14 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
           headers,
         });
 
-        if (!response.ok) {
-          throw new Error("Gagal mengambil batas peta");
+        let data: BoundsResponse | null = null;
+        if (response.ok) {
+          data = (await response.json()) as BoundsResponse;
+          setCurrentMeta(data);
+          currentMetaRef.current = data;
+        } else {
+          console.warn(`[MapDisplay] Batas peta tidak ditemukan untuk ID ${activeMapId} (HTTP ${response.status})`);
         }
-
-        const data = (await response.json()) as BoundsResponse;
-
-        setCurrentMeta(data);
-
-        currentMetaRef.current = data;
 
         try {
           const layersRes = await fetch(
@@ -870,23 +949,28 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             mapLayersRef.current = lData;
 
             setupUavLayer(data, lData);
-          } else {
+          } else if (data) {
             setupUavLayer(data);
           }
         } catch {
-          setupUavLayer(data);
+          if (data) {
+            setupUavLayer(data);
+          }
         }
 
-        fetch(`${baseUrl}/maps/${activeMapId}/spatial-info`, { headers })
-          .then((res) => (res.ok ? res.json() : null))
-          .then((sData) => {
-            if (sData) {
-              setSpatialInfo(sData);
-            }
-          })
-          .catch(() => {});
+        if (response.ok) {
+          fetch(`${baseUrl}/maps/${activeMapId}/spatial-info`, { headers })
+            .then((res) => (res.ok ? res.json() : null))
+            .then((sData) => {
+              if (sData) {
+                setSpatialInfo(sData);
+              }
+            })
+            .catch(() => {});
+        }
 
         if (
+          data &&
           data.bounds &&
           Array.isArray(data.bounds) &&
           data.bounds.length === 2
@@ -909,7 +993,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             duration: 1000,
             essential: true,
           });
-        } else if (data.center) {
+        } else if (data?.center) {
           const [lat, lng] = data.center;
 
           map.flyTo({
@@ -922,7 +1006,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
           });
         }
       } catch (error) {
-        console.error("Error fetching map bounds:", error);
+        console.warn("[MapDisplay] Gagal memuat batas peta:", error);
       } finally {
         setLoading(false);
       }
@@ -2354,64 +2438,65 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               console.error("Gagal menghapus layer:", error);
             }
           }}
-          token={tokenRef.current ?? undefined}
-          onReorderLayer={async (layerId, direction) => {
-            const sorted = [...mapLayersRef.current].sort(
-              (a, b) => a.display_order - b.display_order
-            );
-            const idx = sorted.findIndex((l) => l.id === layerId);
-            if (idx < 0) return;
-            const swapIdx = direction === "up" ? idx - 1 : idx + 1;
-            if (swapIdx < 0 || swapIdx >= sorted.length) return;
-
-            const layerA = sorted[idx];
-            const layerB = sorted[swapIdx];
-            const orderA = layerA.display_order;
-            const orderB = layerB.display_order;
-
-            const baseUrl =
-              process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
+          onRetryConvert={async (layerId) => {
             const activeMapId = mapIdRef.current;
             const activeToken = tokenRef.current;
             if (!activeMapId) return;
-            const headers: Record<string, string> = {
-              "Content-Type": "application/json",
-            };
+
+            const baseUrl =
+              process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
+            const headers: Record<string, string> = {};
             if (activeToken) headers.Authorization = `Bearer ${activeToken}`;
 
-            await Promise.all([
-              fetch(`${baseUrl}/maps/${activeMapId}/layers/${layerA.id}`, {
-                method: "PATCH",
-                headers,
-                body: JSON.stringify({ display_order: orderB }),
-              }),
-              fetch(`${baseUrl}/maps/${activeMapId}/layers/${layerB.id}`, {
-                method: "PATCH",
-                headers,
-                body: JSON.stringify({ display_order: orderA }),
-              }),
-            ]);
+            try {
+              const res = await fetch(
+                `${baseUrl}/maps/${activeMapId}/layers/${layerId}/convert`,
+                {
+                  method: "POST",
+                  headers,
+                }
+              );
+              if (res.ok) {
+                setMapLayers((prev) =>
+                  prev.map((l) =>
+                    l.id === layerId
+                      ? { ...l, conversion_status: "pending", conversion_error: null }
+                      : l
+                  )
+                );
+                mapLayersRef.current = mapLayersRef.current.map((l) =>
+                  l.id === layerId
+                    ? { ...l, conversion_status: "pending", conversion_error: null }
+                    : l
+                );
+              }
+            } catch (error) {
+              console.error("Gagal memicu ulang konversi:", error);
+            }
+          }}
+          token={tokenRef.current ?? undefined}
+          onReorderLayers={async (newLayers) => {
+            const activeMapId = mapIdRef.current;
+            const activeToken = tokenRef.current;
+            if (!activeMapId) return;
 
-            // Update local state
-            const newLayers = mapLayersRef.current.map((l) => {
-              if (l.id === layerA.id) return { ...l, display_order: orderB };
-              if (l.id === layerB.id) return { ...l, display_order: orderA };
-              return l;
-            });
-            const reordered = [...newLayers].sort(
-              (a, b) => a.display_order - b.display_order
-            );
-            setMapLayers(reordered);
-            mapLayersRef.current = reordered;
+            // Berikan nilai display_order baru berurutan sesuai urutan drag
+            const updated = newLayers.map((layer, idx) => ({
+              ...layer,
+              display_order: idx,
+            }));
 
-            // Update MapLibre layer z-order
+            // Update visual state seketika
+            setMapLayers(updated);
+            mapLayersRef.current = updated;
+
+            // Update MapLibre layer z-order secara instan
             const map = mapRef.current;
             if (map) {
-              // Re-insert layers in new order (bottom to top)
-              reordered.forEach((l, i) => {
+              updated.forEach((l, i) => {
                 const mlId = `layer-render-${l.id}`;
                 if (map.getLayer(mlId)) {
-                  const nextLayer = reordered[i + 1];
+                  const nextLayer = updated[i + 1];
                   const beforeId = nextLayer
                     ? `layer-render-${nextLayer.id}`
                     : undefined;
@@ -2422,6 +2507,59 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                   }
                 }
               });
+            }
+
+            // Persist ke database di backend
+            const baseUrl =
+              process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
+            const headers: Record<string, string> = {
+              "Content-Type": "application/json",
+            };
+            if (activeToken) headers.Authorization = `Bearer ${activeToken}`;
+
+            try {
+              await Promise.all(
+                updated.map((layer) =>
+                  fetch(`${baseUrl}/maps/${activeMapId}/layers/${layer.id}`, {
+                    method: "PATCH",
+                    headers,
+                    body: JSON.stringify({ display_order: layer.display_order }),
+                  })
+                )
+              );
+            } catch (err) {
+              console.error("Gagal persist urutan layer:", err);
+            }
+          }}
+          onSetBaseLayer={async (layerId) => {
+            const activeMapId = mapIdRef.current;
+            const activeToken = tokenRef.current;
+            if (!activeMapId) return;
+
+            // Update visual state seketika
+            const updated = mapLayersRef.current.map((l) => ({
+              ...l,
+              is_base_layer: l.id === layerId,
+            }));
+            setMapLayers(updated);
+            mapLayersRef.current = updated;
+
+            // Persist ke backend
+            const baseUrl =
+              process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
+            const headers: Record<string, string> = {
+              "Content-Type": "application/json",
+            };
+            if (activeToken) headers.Authorization = `Bearer ${activeToken}`;
+
+            try {
+              await fetch(`${baseUrl}/maps/${activeMapId}/layers/${layerId}`, {
+                method: "PATCH",
+                headers,
+                body: JSON.stringify({ is_base_layer: true }),
+              });
+            } catch (err) {
+              console.error("Gagal mengubah base layer:", err);
             }
           }}
         />
@@ -3094,11 +3232,14 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             </div>
 
             {/* Spatial Reference / Info Banner */}
-            <div className="my-2.5 flex items-center gap-2 rounded-xl bg-[#123c28] px-3 py-2 border border-emerald-100/80 text-[11px] text-white">
-              <Info className="h-3.5 w-3.5 text-white shrink-0" />
-              <span className="font-medium leading-tight">
-                Luas lahan terverifikasi dihitung pada ellipsoid WGS-84
-                (EPSG:4326) menggunakan fungsi geodetik PostGIS backend.
+            <div className="my-2.5 flex items-start sm:items-center gap-2.5 rounded-xl border border-emerald-200/90 bg-gradient-to-r from-emerald-50/95 via-white to-teal-50/80 p-2.5 shadow-[0_2px_8px_-2px_rgba(18,60,40,0.1),0_1px_3px_rgba(18,60,40,0.06)] ring-1 ring-emerald-900/5">
+              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-emerald-100/90 text-emerald-800 shadow-2xs border border-emerald-200/80">
+                <Info className="h-3.5 w-3.5 stroke-[2.3]" />
+              </div>
+              <span className="text-[10.5px] font-medium text-emerald-950 leading-snug">
+                Luas lahan terverifikasi dihitung pada ellipsoid{" "}
+                <strong className="font-bold text-emerald-900">WGS-84 (EPSG:4326)</strong>{" "}
+                menggunakan fungsi geodetik PostGIS backend.
               </span>
             </div>
 
