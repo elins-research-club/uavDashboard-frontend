@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactElement } from "react";
+import { useEffect, useMemo, useState, type ReactElement } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useUserRole } from "@/context/UserRoleContext";
@@ -16,21 +16,27 @@ import {
   ShieldCheck,
   Users,
   X,
-  Zap,
 } from "lucide-react";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+/* ============================================================
+   TYPES
+============================================================ */
 
 interface Role {
   id: string;
   name: string;
   permissions: string[];
+  is_system_role: boolean;
+  is_protected: boolean;
 }
 
 interface PermissionGroup {
   title: string;
   description: string;
-  permissions: { key: string; label: string }[];
+  permissions: {
+    key: string;
+    label: string;
+  }[];
 }
 
 interface Plan {
@@ -51,19 +57,9 @@ type PlanSaveMessage = {
   text: string;
 } | null;
 
-// ─── Permission Catalog ───────────────────────────────────────────────────────
-
-const ALL_PERMISSIONS = [
-  { key: "all", label: "Full Access (Super Admin)" },
-  { key: "manage_users", label: "Kelola Pengguna" },
-  { key: "manage_maps", label: "Kelola Peta" },
-  { key: "manage_pricing", label: "Kelola Harga Paket" },
-  { key: "upload_map", label: "Upload Peta" },
-  { key: "view_map", label: "Lihat Peta" },
-  { key: "download_map", label: "Download Peta" },
-];
-
-// ─── Tier Styles ──────────────────────────────────────────────────────────────
+/* ============================================================
+   TIER STYLES
+============================================================ */
 
 const TIER_STYLES: Record<
   string,
@@ -82,6 +78,7 @@ const TIER_STYLES: Record<
     orbTint: "#8cc7a5",
     icon: <Layers className="h-4 w-4" strokeWidth={1.75} />,
   },
+
   desa: {
     bg: "bg-[#e7efc4]",
     text: "text-[#4a5f0e]",
@@ -89,6 +86,7 @@ const TIER_STYLES: Record<
     orbTint: "#91b928",
     icon: <Users className="h-4 w-4" strokeWidth={1.75} />,
   },
+
   kecamatan: {
     bg: "bg-[#fbe8c2]",
     text: "text-[#8a5a06]",
@@ -97,8 +95,6 @@ const TIER_STYLES: Record<
     icon: <Crown className="h-4 w-4" strokeWidth={1.75} />,
   },
 };
-
-// ─── Helper ───────────────────────────────────────────────────────────────────
 
 function getTierStyle(tier: string) {
   return (
@@ -109,7 +105,9 @@ function getTierStyle(tier: string) {
   );
 }
 
-// ─── Decorative Orb ───────────────────────────────────────────────────────────
+/* ============================================================
+   DECORATIVE ORB
+============================================================ */
 
 function AdminOrb({ tint, dark = false }: { tint: string; dark?: boolean }) {
   return (
@@ -121,7 +119,9 @@ function AdminOrb({ tint, dark = false }: { tint: string; dark?: boolean }) {
         className={`absolute -inset-5 rounded-full blur-xl ${
           dark ? "opacity-20" : "opacity-25"
         }`}
-        style={{ background: `${tint}35` }}
+        style={{
+          background: `${tint}35`,
+        }}
       />
 
       <div
@@ -137,7 +137,9 @@ function AdminOrb({ tint, dark = false }: { tint: string; dark?: boolean }) {
   );
 }
 
-// ─── Role Permission Editor ───────────────────────────────────────────────────
+/* ============================================================
+   ROLE PERMISSION EDITOR
+============================================================ */
 
 function RolePermissionEditor({
   roles,
@@ -150,6 +152,7 @@ function RolePermissionEditor({
   saveRole,
   cancelEdit,
   saveMessage,
+  canManageRoles,
 }: {
   roles: Role[];
   permissionGroups: PermissionGroup[];
@@ -161,20 +164,45 @@ function RolePermissionEditor({
   saveRole: (roleId: string) => Promise<void>;
   cancelEdit: () => void;
   saveMessage: SaveMessage;
+  canManageRoles: boolean;
 }) {
   const selectedRole = roles.find((role) => role.id === selectedRoleId);
 
+  const selectedRoleProtected =
+    Boolean(selectedRole?.is_protected) || selectedRole?.name === "god";
+
   const toggleGroup = (permissions: string[]) => {
+    if (!canManageRoles || selectedRoleProtected) {
+      return;
+    }
+
+    const selectablePermissions = permissions.filter(
+      (permission) => permission !== "all"
+    );
+
     const allSelected =
-      editedPermissions.includes("all") ||
-      permissions.every((permission) => editedPermissions.includes(permission));
+      selectablePermissions.length > 0 &&
+      selectablePermissions.every((permission) =>
+        editedPermissions.includes(permission)
+      );
 
-    permissions.forEach((permission) => {
-      const shouldToggle = allSelected
-        ? editedPermissions.includes(permission)
-        : !editedPermissions.includes(permission);
+    if (allSelected) {
+      setTimeout(() => {
+        selectablePermissions.forEach((permission) =>
+          togglePermission(permission)
+        );
+      }, 0);
+      return;
+    }
 
-      if (shouldToggle) {
+    const next = new Set(
+      editedPermissions.filter((permission) => permission !== "all")
+    );
+
+    selectablePermissions.forEach((permission) => next.add(permission));
+
+    selectablePermissions.forEach((permission) => {
+      if (!editedPermissions.includes(permission)) {
         togglePermission(permission);
       }
     });
@@ -183,8 +211,14 @@ function RolePermissionEditor({
   if (roleLoading || !selectedRole) {
     return (
       <motion.section
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{
+          opacity: 0,
+          y: 12,
+        }}
+        animate={{
+          opacity: 1,
+          y: 0,
+        }}
         transition={{
           duration: 0.5,
           ease: [0.22, 1, 0.36, 1],
@@ -200,6 +234,7 @@ function RolePermissionEditor({
             <p className="text-sm font-bold text-brand-900">
               Memuat data role...
             </p>
+
             <p className="mt-1 text-xs font-medium text-brand-800/55">
               Mengambil konfigurasi akses terbaru.
             </p>
@@ -211,8 +246,14 @@ function RolePermissionEditor({
 
   return (
     <motion.section
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{
+        opacity: 0,
+        y: 12,
+      }}
+      animate={{
+        opacity: 1,
+        y: 0,
+      }}
       transition={{
         duration: 0.5,
         delay: 0.06,
@@ -229,9 +270,11 @@ function RolePermissionEditor({
 
           <div>
             <p className="micro-label">RBAC</p>
+
             <h2 className="text-base font-bold tracking-[-0.02em] text-brand-900">
               Edit Role & Permission
             </h2>
+
             <p className="mt-1 max-w-xl text-xs font-medium leading-5 text-brand-800/55">
               Atur fitur dan akses yang dapat digunakan oleh setiap role pada
               platform.
@@ -247,16 +290,38 @@ function RolePermissionEditor({
           <select
             value={selectedRoleId}
             onChange={(event) => setSelectedRoleId(event.target.value)}
-            className="glass-input w-full cursor-pointer"
+            className="glass-input w-full cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={!canManageRoles}
           >
             {roles.map((role) => (
               <option key={role.id} value={role.id}>
-                {role.name}
+                {role.name === "god" ? "God · Protected" : role.name}
               </option>
             ))}
           </select>
         </label>
       </div>
+
+      {/* Protected notice */}
+      {selectedRoleProtected && (
+        <div className="flex items-start gap-3 border-b border-violet-200/50 bg-violet-50/70 px-6 py-4 sm:px-7">
+          <ShieldCheck
+            className="mt-0.5 h-4 w-4 flex-shrink-0 text-violet-700"
+            strokeWidth={1.75}
+          />
+
+          <div>
+            <p className="text-xs font-bold text-violet-800">
+              Protected System Role
+            </p>
+
+            <p className="mt-1 text-xs font-medium leading-5 text-violet-700/70">
+              Role God memiliki akses penuh dan tidak dapat diedit dari Admin
+              Panel.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Permission Groups */}
       <div className="grid gap-3 p-4 sm:p-5 lg:grid-cols-2">
@@ -265,17 +330,26 @@ function RolePermissionEditor({
             (permission) => permission.key
           );
 
+          const selectableKeys = groupKeys.filter((key) => key !== "all");
+
           const allSelected =
             editedPermissions.includes("all") ||
-            groupKeys.every((permission) =>
-              editedPermissions.includes(permission)
-            );
+            (selectableKeys.length > 0 &&
+              selectableKeys.every((permission) =>
+                editedPermissions.includes(permission)
+              ));
 
           return (
             <motion.div
               key={group.title}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{
+                opacity: 0,
+                y: 10,
+              }}
+              animate={{
+                opacity: 1,
+                y: 0,
+              }}
               transition={{
                 duration: 0.45,
                 delay: 0.12 + index * 0.04,
@@ -296,10 +370,21 @@ function RolePermissionEditor({
                   )}
                 </div>
 
-                <label className="inline-flex w-fit cursor-pointer items-center gap-2 rounded-full bg-brand-50 px-3 py-1.5 text-2xs font-bold text-brand-800 transition hover:bg-brand-100">
+                <label
+                  className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-1.5 text-2xs font-bold ${
+                    canManageRoles && !selectedRoleProtected
+                      ? "cursor-pointer bg-brand-50 text-brand-800 transition hover:bg-brand-100"
+                      : "cursor-not-allowed bg-brand-50/50 text-brand-800/35"
+                  }`}
+                >
                   <input
                     type="checkbox"
                     checked={allSelected}
+                    disabled={
+                      !canManageRoles ||
+                      selectedRoleProtected ||
+                      selectableKeys.length === 0
+                    }
                     onChange={() => toggleGroup(groupKeys)}
                     className="h-3.5 w-3.5 accent-[#123c28]"
                   />
@@ -309,14 +394,23 @@ function RolePermissionEditor({
 
               <div className="grid gap-2 sm:grid-cols-2">
                 {group.permissions.map((permission) => {
+                  const isAll = permission.key === "all";
+
                   const checked =
                     editedPermissions.includes(permission.key) ||
                     editedPermissions.includes("all");
 
+                  const disabled =
+                    !canManageRoles || selectedRoleProtected || isAll;
+
                   return (
                     <label
                       key={permission.key}
-                      className={`flex cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-2.5 text-xs font-semibold transition-all ${
+                      className={`flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-xs font-semibold transition-all ${
+                        disabled
+                          ? "cursor-not-allowed opacity-55"
+                          : "cursor-pointer"
+                      } ${
                         checked
                           ? "border-brand-800/10 bg-brand-50/80 text-brand-900"
                           : "border-brand-800/8 bg-white/50 text-brand-800/65 hover:border-brand-800/15 hover:bg-white"
@@ -325,6 +419,7 @@ function RolePermissionEditor({
                       <input
                         type="checkbox"
                         checked={checked}
+                        disabled={disabled}
                         onChange={() => togglePermission(permission.key)}
                         className="h-3.5 w-3.5 accent-[#123c28]"
                       />
@@ -349,7 +444,9 @@ function RolePermissionEditor({
           </p>
 
           <p className="mt-0.5 text-2xs font-medium text-brand-800/45">
-            Perubahan akan diterapkan pada role yang sedang dipilih.
+            {selectedRoleProtected
+              ? "Role ini dilindungi dan tidak dapat diubah."
+              : "Perubahan akan diterapkan pada role yang sedang dipilih."}
           </p>
         </div>
 
@@ -357,7 +454,8 @@ function RolePermissionEditor({
           <button
             type="button"
             onClick={cancelEdit}
-            className="inline-flex items-center gap-1.5 rounded-full border border-brand-800/10 bg-white px-4 py-2.5 text-xs font-bold text-brand-800/70 transition hover:bg-brand-50 hover:text-brand-900"
+            disabled={!canManageRoles}
+            className="inline-flex items-center gap-1.5 rounded-full border border-brand-800/10 bg-white px-4 py-2.5 text-xs font-bold text-brand-800/70 transition hover:bg-brand-50 hover:text-brand-900 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <X className="h-3.5 w-3.5" strokeWidth={2} />
             Batal
@@ -366,7 +464,8 @@ function RolePermissionEditor({
           <button
             type="button"
             onClick={() => saveRole(selectedRole.id)}
-            className="btn-brand"
+            disabled={!canManageRoles || selectedRoleProtected}
+            className="btn-brand disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Save className="h-3.5 w-3.5" strokeWidth={2} />
             Simpan Role
@@ -389,114 +488,250 @@ function RolePermissionEditor({
   );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+/* ============================================================
+   MAIN COMPONENT
+============================================================ */
 
 export default function AdminPage() {
   const router = useRouter();
-  const { user } = useUserRole();
+
+  const { user, isLoading: authLoading, hasPermission } = useUserRole();
+
+  const canManageRoles = hasPermission("manage_roles");
+
+  const canManagePricing = hasPermission("manage_pricing");
+
+  const canOpenAdminPanel = canManageRoles || canManagePricing;
 
   const [activeTab, setActiveTab] = useState<"roles" | "pricing">("roles");
 
-  // Roles
+  /* ==========================================================
+     ROLES
+  ========================================================== */
+
   const [roles, setRoles] = useState<Role[]>([]);
+
   const [permissionGroups, setPermissionGroups] = useState<PermissionGroup[]>(
     []
   );
+
   const [selectedRoleId, setSelectedRoleId] = useState("");
-  const [editingRole, setEditingRole] = useState<string | null>(null);
+
   const [editedPermissions, setEditedPermissions] = useState<string[]>([]);
+
   const [roleLoading, setRoleLoading] = useState(false);
 
   const [roleSaveMsg, setRoleSaveMsg] = useState<SaveMessage>(null);
 
-  // Pricing
+  /* ==========================================================
+     PRICING
+  ========================================================== */
+
   const [plans, setPlans] = useState<Plan[]>([]);
+
   const [editingPlan, setEditingPlan] = useState<string | null>(null);
+
   const [editedPrice, setEditedPrice] = useState("0");
+
   const [editedFeatures, setEditedFeatures] = useState("");
 
   const [planSaveMsg, setPlanSaveMsg] = useState<PlanSaveMessage>(null);
 
-  // ─── Auth Guard ────────────────────────────────────────────────────────────
+  /* ==========================================================
+     AUTH GUARD
+  ========================================================== */
 
   useEffect(() => {
-    if (user && user.role !== "admin") {
-      router.push("/dashboard");
-    }
-  }, [user, router]);
-
-  // ─── Fetch Data ────────────────────────────────────────────────────────────
-
-  useEffect(() => {
-    setRoleLoading(true);
-
-    api
-      .get("/admin/roles")
-      .then(({ data }) => {
-        setRoles(data);
-
-        if (data[0]) {
-          setSelectedRoleId(data[0].id);
-          startEditRole(data[0]);
-        }
-      })
-      .catch(() => {
-        setRoles([]);
-      })
-      .finally(() => {
-        setRoleLoading(false);
-      });
-
-    api
-      .get("/admin/plans")
-      .then(({ data }) => {
-        setPlans(data);
-      })
-      .catch(() => {
-        setPlans([]);
-      });
-
-    api
-      .get("/admin/permission-catalog")
-      .then(({ data }) => {
-        setPermissionGroups(data);
-      })
-      .catch(() => {
-        setPermissionGroups([]);
-      });
-  }, []);
-
-  // ─── Role Handlers ─────────────────────────────────────────────────────────
-
-  const startEditRole = (role: Role) => {
-    setEditingRole(role.id);
-    setEditedPermissions([...role.permissions]);
-  };
-
-  const togglePermission = (permission: string) => {
-    if (permission === "all") {
-      setEditedPermissions(["all"]);
+    if (authLoading) {
       return;
     }
 
-    setEditedPermissions((prev) =>
-      prev.includes(permission)
-        ? prev.filter((item) => item !== permission)
-        : [...prev.filter((item) => item !== "all"), permission]
-    );
+    if (!user) {
+      router.replace("/login");
+      return;
+    }
+
+    if (!canOpenAdminPanel) {
+      router.replace("/dashboard");
+    }
+  }, [authLoading, user, canOpenAdminPanel, router]);
+
+  /* ==========================================================
+     DEFAULT TAB
+  ========================================================== */
+
+  useEffect(() => {
+    if (authLoading) {
+      return;
+    }
+
+    if (!canManageRoles && canManagePricing) {
+      setActiveTab("pricing");
+    }
+
+    if (canManageRoles) {
+      setActiveTab("roles");
+    }
+  }, [authLoading, canManageRoles, canManagePricing]);
+
+  /* ==========================================================
+     FETCH ROLES
+  ========================================================== */
+
+  useEffect(() => {
+    if (authLoading || !user || !canManageRoles) {
+      return;
+    }
+
+    let cancelled = false;
+
+    setRoleLoading(true);
+
+    Promise.all([
+      api.get<Role[]>("/admin/roles"),
+
+      api.get<PermissionGroup[]>("/admin/permission-catalog"),
+    ])
+      .then(([roleResponse, permissionResponse]) => {
+        if (cancelled) {
+          return;
+        }
+
+        const fetchedRoles = roleResponse.data;
+
+        setRoles(fetchedRoles);
+
+        setPermissionGroups(permissionResponse.data);
+
+        if (fetchedRoles.length === 0) {
+          return;
+        }
+
+        const editableRole = fetchedRoles.find(
+          (role) => !role.is_protected && role.name !== "god"
+        );
+
+        const firstRole = editableRole || fetchedRoles[0];
+
+        setSelectedRoleId(firstRole.id);
+
+        setEditedPermissions(firstRole.permissions || []);
+      })
+      .catch(() => {
+        if (cancelled) {
+          return;
+        }
+
+        setRoles([]);
+        setPermissionGroups([]);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setRoleLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, user, canManageRoles]);
+
+  /* ==========================================================
+     FETCH PLANS
+  ========================================================== */
+
+  useEffect(() => {
+    if (authLoading || !user || !canManagePricing) {
+      return;
+    }
+
+    let cancelled = false;
+
+    api
+      .get<Plan[]>("/admin/plans")
+      .then(({ data }) => {
+        if (!cancelled) {
+          setPlans(data);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPlans([]);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, user, canManagePricing]);
+
+  /* ==========================================================
+     ROLE HELPERS
+  ========================================================== */
+
+  const selectedRole = useMemo(
+    () => roles.find((role) => role.id === selectedRoleId),
+    [roles, selectedRoleId]
+  );
+
+  const startEditRole = (role: Role) => {
+    setSelectedRoleId(role.id);
+
+    setEditedPermissions(role.permissions || []);
+  };
+
+  const togglePermission = (permission: string) => {
+    if (
+      permission === "all" ||
+      !canManageRoles ||
+      selectedRole?.is_protected ||
+      selectedRole?.name === "god"
+    ) {
+      return;
+    }
+
+    setEditedPermissions((previous) => {
+      const exists = previous.includes(permission);
+
+      if (exists) {
+        return previous.filter((item) => item !== permission);
+      }
+
+      return [...previous.filter((item) => item !== "all"), permission];
+    });
   };
 
   const saveRole = async (roleId: string) => {
-    try {
-      const { data } = await api.put(`/admin/roles/${roleId}`, {
-        permissions: editedPermissions,
+    if (!canManageRoles) {
+      return;
+    }
+
+    const role = roles.find((item) => item.id === roleId);
+
+    if (!role || role.is_protected || role.name === "god") {
+      setRoleSaveMsg({
+        id: roleId,
+        type: "error",
+        text: "Protected system role tidak dapat diubah.",
       });
 
-      setRoles((prev) =>
-        prev.map((role) => (role.id === roleId ? data : role))
+      return;
+    }
+
+    try {
+      const permissions = editedPermissions.filter(
+        (permission) => permission !== "all"
       );
 
-      setEditingRole(null);
+      const { data } = await api.put<Role>(`/admin/roles/${roleId}`, {
+        permissions,
+      });
+
+      setRoles((previous) =>
+        previous.map((item) => (item.id === roleId ? data : item))
+      );
+
+      setEditedPermissions(data.permissions || []);
 
       setRoleSaveMsg({
         id: roleId,
@@ -504,40 +739,47 @@ export default function AdminPage() {
         text: "Role berhasil diperbarui.",
       });
 
-      setTimeout(() => {
-        setRoleSaveMsg(null);
-      }, 3000);
-    } catch {
+      window.setTimeout(() => setRoleSaveMsg(null), 3000);
+    } catch (error: any) {
       setRoleSaveMsg({
         id: roleId,
         type: "error",
-        text: "Gagal menyimpan role.",
+        text: error.response?.data?.detail || "Gagal menyimpan role.",
       });
     }
   };
 
-  // ─── Plan Handlers ─────────────────────────────────────────────────────────
+  /* ==========================================================
+     PLAN HELPERS
+  ========================================================== */
 
   const startEditPlan = (plan: Plan) => {
     setEditingPlan(plan.id);
+
     setEditedPrice(plan.price.toString());
+
     setEditedFeatures(plan.features?.join("\n") || "");
   };
 
   const savePlan = async (planId: string) => {
+    if (!canManagePricing) {
+      return;
+    }
+
     try {
       const features = editedFeatures
         .split("\n")
         .map((feature) => feature.trim())
         .filter(Boolean);
 
-      const { data } = await api.put(`/admin/plans/${planId}`, {
+      const { data } = await api.put<Plan>(`/admin/plans/${planId}`, {
         price: Number(editedPrice) || 0,
+
         features,
       });
 
-      setPlans((prev) =>
-        prev.map((plan) => (plan.id === planId ? data : plan))
+      setPlans((previous) =>
+        previous.map((plan) => (plan.id === planId ? data : plan))
       );
 
       setEditingPlan(null);
@@ -547,18 +789,30 @@ export default function AdminPage() {
         text: "Harga paket berhasil diperbarui.",
       });
 
-      setTimeout(() => {
-        setPlanSaveMsg(null);
-      }, 3000);
-    } catch {
+      window.setTimeout(() => setPlanSaveMsg(null), 3000);
+    } catch (error: any) {
       setPlanSaveMsg({
         type: "error",
-        text: "Gagal menyimpan harga.",
+        text: error.response?.data?.detail || "Gagal menyimpan harga.",
       });
     }
   };
 
-  // ─── Render ────────────────────────────────────────────────────────────────
+  /* ==========================================================
+     RENDER GUARD
+  ========================================================== */
+
+  if (authLoading || !user || !canOpenAdminPanel) {
+    return null;
+  }
+
+  /* ==========================================================
+     AVAILABLE TABS
+  ========================================================== */
+
+  const showRolesTab = canManageRoles;
+
+  const showPricingTab = canManagePricing;
 
   return (
     <main className="min-h-screen bg-page text-brand-900">
@@ -566,9 +820,16 @@ export default function AdminPage() {
         {/* ==================================================
             HEADER
         =================================================== */}
+
         <motion.header
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{
+            opacity: 0,
+            y: 12,
+          }}
+          animate={{
+            opacity: 1,
+            y: 0,
+          }}
           transition={{
             duration: 0.5,
             ease: [0.22, 1, 0.36, 1],
@@ -589,7 +850,8 @@ export default function AdminPage() {
 
             <span className="liquid-badge px-4 py-2 text-xs font-bold text-brand-800">
               <ShieldCheck className="h-3.5 w-3.5" strokeWidth={1.75} />
-              Administrator
+
+              {user.role === "god" ? "God · Protected" : "Administrator"}
             </span>
           </div>
         </motion.header>
@@ -597,57 +859,69 @@ export default function AdminPage() {
         {/* ==================================================
             TABS
         =================================================== */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{
-            duration: 0.45,
-            delay: 0.06,
-            ease: [0.22, 1, 0.36, 1],
-          }}
-          className="mb-6"
-        >
-          <div className="inline-flex items-center gap-1 rounded-full border border-brand-800/10 bg-white/70 p-1 shadow-sm">
-            <button
-              type="button"
-              onClick={() => setActiveTab("roles")}
-              className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-bold transition-all ${
-                activeTab === "roles"
-                  ? "bg-brand-800 text-white shadow-sm"
-                  : "text-brand-800/60 hover:text-brand-900"
-              }`}
-            >
-              <ShieldCheck className="h-3.5 w-3.5" strokeWidth={1.75} />
-              Manajemen Role
-            </button>
 
-            <button
-              type="button"
-              onClick={() => setActiveTab("pricing")}
-              className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-bold transition-all ${
-                activeTab === "pricing"
-                  ? "bg-brand-800 text-white shadow-sm"
-                  : "text-brand-800/60 hover:text-brand-900"
-              }`}
-            >
-              <CreditCard className="h-3.5 w-3.5" strokeWidth={1.75} />
-              Harga Subscription
-            </button>
-          </div>
-        </motion.div>
+        {(showRolesTab || showPricingTab) && (
+          <motion.div
+            initial={{
+              opacity: 0,
+              y: 10,
+            }}
+            animate={{
+              opacity: 1,
+              y: 0,
+            }}
+            transition={{
+              duration: 0.45,
+              delay: 0.06,
+              ease: [0.22, 1, 0.36, 1],
+            }}
+            className="mb-6"
+          >
+            <div className="inline-flex items-center gap-1 rounded-full border border-brand-800/10 bg-white/70 p-1 shadow-sm">
+              {showRolesTab && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("roles")}
+                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-bold transition-all ${
+                    activeTab === "roles"
+                      ? "bg-brand-800 text-white shadow-sm"
+                      : "text-brand-800/60 hover:text-brand-900"
+                  }`}
+                >
+                  <ShieldCheck className="h-3.5 w-3.5" strokeWidth={1.75} />
+                  Manajemen Role
+                </button>
+              )}
+
+              {showPricingTab && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("pricing")}
+                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-bold transition-all ${
+                    activeTab === "pricing"
+                      ? "bg-brand-800 text-white shadow-sm"
+                      : "text-brand-800/60 hover:text-brand-900"
+                  }`}
+                >
+                  <CreditCard className="h-3.5 w-3.5" strokeWidth={1.75} />
+                  Harga Subscription
+                </button>
+              )}
+            </div>
+          </motion.div>
+        )}
 
         {/* ==================================================
             ROLE MANAGEMENT
         =================================================== */}
-        {activeTab === "roles" && (
+
+        {activeTab === "roles" && showRolesTab && (
           <RolePermissionEditor
             roles={roles}
             permissionGroups={permissionGroups}
             roleLoading={roleLoading}
             selectedRoleId={selectedRoleId}
             setSelectedRoleId={(roleId) => {
-              setSelectedRoleId(roleId);
-
               const role = roles.find((item) => item.id === roleId);
 
               if (role) {
@@ -658,26 +932,31 @@ export default function AdminPage() {
             togglePermission={togglePermission}
             saveRole={saveRole}
             cancelEdit={() => {
-              const role = roles.find((item) => item.id === selectedRoleId);
-
-              if (role) {
-                startEditRole(role);
+              if (selectedRole) {
+                startEditRole(selectedRole);
               }
             }}
             saveMessage={roleSaveMsg}
+            canManageRoles={canManageRoles}
           />
         )}
 
         {/* ==================================================
             PRICING MANAGEMENT
         =================================================== */}
-        {activeTab === "pricing" && (
+
+        {activeTab === "pricing" && showPricingTab && (
           <div>
-            {/* Save Message */}
             {planSaveMsg && (
               <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{
+                  opacity: 0,
+                  y: 8,
+                }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                }}
                 className={`mb-5 flex items-start gap-3 rounded-2xl border px-5 py-4 text-xs font-bold ${
                   planSaveMsg.type === "success"
                     ? "border-[#91b928]/25 bg-[#f3f8e2] text-[#4a5f0e]"
@@ -700,10 +979,15 @@ export default function AdminPage() {
               </motion.div>
             )}
 
-            {/* Section Intro */}
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{
+                opacity: 0,
+                y: 10,
+              }}
+              animate={{
+                opacity: 1,
+                y: 0,
+              }}
               transition={{
                 duration: 0.45,
                 delay: 0.08,
@@ -717,17 +1001,23 @@ export default function AdminPage() {
 
               <div>
                 <p className="micro-label">Subscription</p>
+
                 <h2 className="text-base font-bold tracking-[-0.02em] text-brand-900">
                   Konfigurasi Harga & Fitur
                 </h2>
               </div>
             </motion.div>
 
-            {/* Plans */}
             {plans.length === 0 ? (
               <motion.section
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{
+                  opacity: 0,
+                  y: 12,
+                }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                }}
                 className="glass mb-6 px-6 py-16 text-center"
               >
                 <span className="icon-ring mx-auto h-12 w-12">
@@ -746,20 +1036,30 @@ export default function AdminPage() {
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
                 {plans.map((plan, index) => {
                   const style = getTierStyle(plan.tier);
+
                   const isEditing = editingPlan === plan.id;
+
                   const isPopular = plan.tier === "desa";
 
                   return (
                     <motion.article
                       key={plan.id}
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
+                      initial={{
+                        opacity: 0,
+                        y: 12,
+                      }}
+                      animate={{
+                        opacity: 1,
+                        y: 0,
+                      }}
                       transition={{
                         duration: 0.5,
                         delay: 0.1 + index * 0.07,
                         ease: [0.22, 1, 0.36, 1],
                       }}
-                      whileHover={{ y: isEditing ? 0 : -3 }}
+                      whileHover={{
+                        y: isEditing ? 0 : -3,
+                      }}
                       className={`group relative flex min-h-[440px] flex-col overflow-hidden rounded-3xl p-6 transition-shadow duration-300 ${
                         isPopular
                           ? "bg-brand-800 text-white shadow-card-hover"
@@ -768,7 +1068,6 @@ export default function AdminPage() {
                     >
                       <AdminOrb tint={style.orbTint} dark={isPopular} />
 
-                      {/* Plan Header */}
                       <div className="relative mb-7 flex items-center justify-between gap-3">
                         <span
                           className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-2xs font-bold ${
@@ -778,6 +1077,7 @@ export default function AdminPage() {
                           }`}
                         >
                           {style.icon}
+
                           <span className="capitalize">{plan.tier}</span>
                         </span>
 
@@ -788,7 +1088,6 @@ export default function AdminPage() {
                         )}
                       </div>
 
-                      {/* Price */}
                       <div className="relative mb-6">
                         <p
                           className={`micro-label ${
@@ -812,6 +1111,7 @@ export default function AdminPage() {
 
                             <input
                               type="number"
+                              min="0"
                               value={editedPrice}
                               onChange={(event) =>
                                 setEditedPrice(event.target.value)
@@ -836,14 +1136,12 @@ export default function AdminPage() {
                         )}
                       </div>
 
-                      {/* Divider */}
                       <div
                         className={`border-t ${
                           isPopular ? "border-white/12" : "border-brand-800/8"
                         }`}
                       />
 
-                      {/* Features */}
                       <div className="relative flex-1 py-6">
                         <p
                           className={`micro-label ${
@@ -912,7 +1210,6 @@ export default function AdminPage() {
                         )}
                       </div>
 
-                      {/* Actions */}
                       {isEditing ? (
                         <div className="relative flex gap-2">
                           <button
@@ -961,10 +1258,15 @@ export default function AdminPage() {
               </div>
             )}
 
-            {/* Simulation Notice */}
             <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{
+                opacity: 0,
+                y: 12,
+              }}
+              animate={{
+                opacity: 1,
+                y: 0,
+              }}
               transition={{
                 duration: 0.5,
                 delay: 0.32,
@@ -984,8 +1286,7 @@ export default function AdminPage() {
                 <p className="mt-1 text-xs font-medium leading-5 text-[#8a5a06]/75">
                   Platform ini berjalan tanpa payment gateway. Perubahan harga
                   di sini akan disimpan ke database dan mempengaruhi tampilan
-                  halaman Langganan. Untuk mengubah tier seorang user, gunakan
-                  menu Manajemen User di sidebar.
+                  halaman Langganan.
                 </p>
               </div>
             </motion.div>

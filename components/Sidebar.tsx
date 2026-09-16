@@ -6,6 +6,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import styles from "./Sidebar.module.css";
 import { useUserRole } from "@/context/UserRoleContext";
+
 import {
   LayoutDashboard,
   Map,
@@ -21,44 +22,97 @@ import {
   PanelLeftOpen,
 } from "lucide-react";
 
+/* ============================================================
+   TYPES
+============================================================ */
+
 type MenuItem = {
   href: string;
   label: string;
   icon: ReactNode;
 };
 
+/* ============================================================
+   CONSTANTS
+============================================================ */
+
 const COLLAPSE_STORAGE_KEY = "sidebar:collapsed";
+
 const ICON_STROKE = 1.75;
 
-/** Label tier — satu sumber kebenaran, dipakai konsisten di seluruh app. */
+/* ============================================================
+   TIER LABEL
+============================================================ */
+
 export const getTierLabel = (tier?: string) => {
-  if (tier === "kecamatan") return "Enterprise";
-  if (tier === "desa") return "Koperasi Desa";
+  if (tier === "kecamatan") {
+    return "Enterprise";
+  }
+
+  if (tier === "desa") {
+    return "Koperasi Desa";
+  }
+
   return "Kelompok Tani";
 };
 
-function SidebarTooltip({ label, children, enabled = true }: { label: string; children: ReactNode; enabled?: boolean }) {
+/* ============================================================
+   TOOLTIP
+============================================================ */
+
+function SidebarTooltip({
+  label,
+  children,
+  enabled = true,
+}: {
+  label: string;
+  children: ReactNode;
+  enabled?: boolean;
+}) {
   const id = useId();
+
   const anchor = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
+
+  const [position, setPosition] = useState<{
+    left: number;
+    top: number;
+  } | null>(null);
 
   const show = () => {
-    if (!enabled) return;
+    if (!enabled) {
+      return;
+    }
+
     const rect = anchor.current?.getBoundingClientRect();
-    if (rect) setPosition({ left: rect.right + 12, top: rect.top + rect.height / 2 });
+
+    if (rect) {
+      setPosition({
+        left: rect.right + 12,
+        top: rect.top + rect.height / 2,
+      });
+    }
   };
 
   useEffect(() => {
     const hide = () => setPosition(null);
-    window.addEventListener("resize", hide);
-    window.addEventListener("scroll", hide, true);
+
     const escape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") hide();
+      if (event.key === "Escape") {
+        hide();
+      }
     };
+
+    window.addEventListener("resize", hide);
+
+    window.addEventListener("scroll", hide, true);
+
     window.addEventListener("keydown", escape);
+
     return () => {
       window.removeEventListener("resize", hide);
+
       window.removeEventListener("scroll", hide, true);
+
       window.removeEventListener("keydown", escape);
     };
   }, []);
@@ -68,43 +122,67 @@ function SidebarTooltip({ label, children, enabled = true }: { label: string; ch
       ref={anchor}
       onMouseEnter={show}
       onMouseLeave={() => {
-        if (!anchor.current?.contains(document.activeElement)) setPosition(null);
+        if (!anchor.current?.contains(document.activeElement)) {
+          setPosition(null);
+        }
       }}
       onFocus={show}
       onBlur={() => setPosition(null)}
       onClick={() => setPosition(null)}
     >
       {children}
-      {enabled && position && createPortal(
-        <span id={id} role="tooltip" className={styles.tooltip} style={position}>
-          {label}
-        </span>,
-        document.body,
-      )}
+
+      {enabled &&
+        position &&
+        createPortal(
+          <span
+            id={id}
+            role="tooltip"
+            className={styles.tooltip}
+            style={position}
+          >
+            {label}
+          </span>,
+          document.body
+        )}
     </div>
   );
 }
 
+/* ============================================================
+   SIDEBAR
+============================================================ */
+
 export default function Sidebar({
   collapsible = true,
 }: {
-  /** Mobile drawer sebaiknya selalu expanded — set false di sana. */
   collapsible?: boolean;
 }) {
   const pathname = usePathname();
-  const { user } = useUserRole();
+
+  const { user, hasPermission, isGod } = useUserRole();
 
   const [collapsed, setCollapsed] = useState(false);
 
-  /* Persist preferensi collapse (sejalan dengan pola localStorage di /settings) */
+  /* ==========================================================
+     COLLAPSE STORAGE
+  ========================================================== */
+
   useEffect(() => {
-    if (!collapsible) return;
+    if (!collapsible) {
+      return;
+    }
+
     const stored = localStorage.getItem(COLLAPSE_STORAGE_KEY);
-    if (stored === "true") setCollapsed(true);
+
+    if (stored === "true") {
+      setCollapsed(true);
+    }
   }, [collapsible]);
 
   const toggleCollapsed = (next: boolean) => {
     setCollapsed(next);
+
     localStorage.setItem(COLLAPSE_STORAGE_KEY, String(next));
   };
 
@@ -112,17 +190,35 @@ export default function Sidebar({
 
   const isActive = (path: string) => pathname === path;
 
+  /* ==========================================================
+     PERMISSIONS
+  ========================================================== */
+
+  const canManageUsers = hasPermission("manage_users");
+
+  const canManageRoles = hasPermission("manage_roles");
+
+  const canManagePricing = hasPermission("manage_pricing");
+
+  const canUploadMaps = hasPermission("upload_map");
+
+  /* ==========================================================
+     MAIN MENU
+  ========================================================== */
+
   const mainMenuItems: MenuItem[] = [
     {
       href: "/dashboard",
       label: "Ringkasan",
       icon: <LayoutDashboard size={18} strokeWidth={ICON_STROKE} />,
     },
+
     {
       href: "/dashboard/maps",
       label: "Peta Saya",
       icon: <Map size={18} strokeWidth={ICON_STROKE} />,
     },
+
     {
       href: "/dashboard/subscription",
       label: "Langganan",
@@ -130,26 +226,41 @@ export default function Sidebar({
     },
   ];
 
-  const adminMenuItems: MenuItem[] =
-    user?.role === "admin"
-      ? [
-        {
+  /* ==========================================================
+     ADMIN MENU
+  ========================================================== */
+
+  const adminMenuItems: MenuItem[] = [
+    canManageUsers
+      ? {
           href: "/dashboard/users",
           label: "Manajemen User",
           icon: <Users size={18} strokeWidth={ICON_STROKE} />,
-        },
-        {
+        }
+      : null,
+
+    canManageRoles || canManagePricing
+      ? {
           href: "/dashboard/admin",
           label: "Admin Panel",
           icon: <ShieldCheck size={18} strokeWidth={ICON_STROKE} />,
-        },
-        {
+        }
+      : null,
+
+    canUploadMaps
+      ? {
           href: "/dashboard/upload",
           label: "Upload Peta",
           icon: <Upload size={18} strokeWidth={ICON_STROKE} />,
-        },
-      ]
-      : [];
+        }
+      : null,
+  ].filter(Boolean) as MenuItem[];
+
+  const showAdministration = adminMenuItems.length > 0;
+
+  /* ==========================================================
+     SETTINGS
+  ========================================================== */
 
   const settingsMenuItems: MenuItem[] = [
     {
@@ -157,6 +268,7 @@ export default function Sidebar({
       label: "Pengaturan",
       icon: <Settings size={18} strokeWidth={ICON_STROKE} />,
     },
+
     {
       href: "/dashboard/help",
       label: "Bantuan",
@@ -164,15 +276,26 @@ export default function Sidebar({
     },
   ];
 
-  const tierLabel = getTierLabel(user?.tier);
+  /* ==========================================================
+     PROFILE
+  ========================================================== */
+
+  const tierLabel = getTierLabel(
+    user?.subscription?.tier ?? user?.tier ?? undefined
+  );
+
   const userInitials = (user?.username || "Pengguna").slice(0, 2).toUpperCase();
 
-  /* ============================================================
-     MENU ITEM
-     - Active: glass tipis + accent bar (tetap tampil saat collapsed)
-     - Collapsed: tooltip custom (brand-900), bukan title bawaan browser
-     - Fokus keyboard terlihat jelas
-  ============================================================ */
+  const profileLabel = isGod
+    ? `${user?.username || "God"} · God · Protected`
+    : user?.role === "admin"
+    ? `${user?.username || "Administrator"} · Administrator`
+    : `${user?.username || "Pengguna"} · ${tierLabel}`;
+
+  /* ==========================================================
+     MENU ITEM RENDERER
+  ========================================================== */
+
   const renderMenuItem = (item: MenuItem) => {
     const active = isActive(item.href);
 
@@ -184,18 +307,26 @@ export default function Sidebar({
         className={`${styles.item} ${active ? styles.active : ""}`}
       >
         {item.icon}
+
         {!isCollapsed && <span className={styles.label}>{item.label}</span>}
       </Link>
-
     );
+
     return (
       <li key={item.href}>
-        {isCollapsed ? <SidebarTooltip label={item.label}>{link}</SidebarTooltip> : link}
+        {isCollapsed ? (
+          <SidebarTooltip label={item.label}>{link}</SidebarTooltip>
+        ) : (
+          link
+        )}
       </li>
     );
   };
 
-  /* Section header — saat collapsed diganti divider agar grouping tetap terbaca */
+  /* ==========================================================
+     SECTION LABEL
+  ========================================================== */
+
   const renderSectionLabel = (label: string, id: string) =>
     isCollapsed ? (
       <div aria-hidden className={styles.divider} />
@@ -205,6 +336,10 @@ export default function Sidebar({
       </p>
     );
 
+  /* ==========================================================
+     RENDER
+  ========================================================== */
+
   return (
     <aside
       className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ""}`}
@@ -212,9 +347,8 @@ export default function Sidebar({
       {/* ==================================================
           HEADER
       =================================================== */}
-      <div
-        className={styles.header}
-      >
+
+      <div className={styles.header}>
         {isCollapsed ? (
           <SidebarTooltip label="Buka sidebar">
             <button
@@ -224,25 +358,19 @@ export default function Sidebar({
               aria-expanded={false}
               className={`${styles.toggle} ${styles.expand}`}
             >
-              <PanelLeftOpen
-                size={18}
-                strokeWidth={ICON_STROKE}
-              />
+              <PanelLeftOpen size={18} strokeWidth={ICON_STROKE} />
             </button>
-
           </SidebarTooltip>
         ) : (
           <>
-            <Link
-              href="/dashboard"
-              className={styles.brand}
-            >
+            <Link href="/dashboard" className={styles.brand}>
               <span className={styles.logo}>
                 <Drone size={20} strokeWidth={ICON_STROKE} />
               </span>
 
               <span className={styles.brandCopy}>
                 <strong>UAV</strong>
+
                 <small>DAAS PLATFORM</small>
               </span>
             </Link>
@@ -263,14 +391,13 @@ export default function Sidebar({
       </div>
 
       {/* ==================================================
-          NAVIGASI
+          NAVIGATION
       =================================================== */}
-      <nav
-        aria-label="Navigasi utama"
-        className={styles.nav}
-      >
+
+      <nav aria-label="Navigasi utama" className={styles.nav}>
         {/* Workspace */}
         {renderSectionLabel("Workspace", "nav-workspace")}
+
         <ul
           aria-labelledby={isCollapsed ? undefined : "nav-workspace"}
           className={styles.list}
@@ -279,17 +406,21 @@ export default function Sidebar({
         </ul>
 
         {/* Administration */}
-        {user?.role === "admin" && (
-          <div className={styles.section} style={{ marginTop: 26 }}>
+        {showAdministration && (
+          <div
+            className={styles.section}
+            style={{
+              marginTop: 26,
+            }}
+          >
             {isCollapsed ? (
               <div aria-hidden className={styles.divider} />
             ) : (
               <div className={styles.sectionLabel}>
-                <p id="nav-admin">
-                  Administration
-                </p>
+                <p id="nav-admin">Administration</p>
+
                 <span className={styles.sectionBadge}>
-                  Admin
+                  {isGod ? "God" : "Admin"}
                 </span>
               </div>
             )}
@@ -304,8 +435,14 @@ export default function Sidebar({
         )}
 
         {/* Preferences */}
-        <div className={styles.section} style={{ marginTop: 26 }}>
+        <div
+          className={styles.section}
+          style={{
+            marginTop: 26,
+          }}
+        >
           {renderSectionLabel("Preferences", "nav-preferences")}
+
           <ul
             aria-labelledby={isCollapsed ? undefined : "nav-preferences"}
             className={styles.list}
@@ -317,20 +454,17 @@ export default function Sidebar({
 
       {/* ==================================================
           FOOTER / USER
-          Interaktif → diarahkan ke /dashboard/settings
-          (logout tetap eksklusif di halaman settings)
       =================================================== */}
+
       <div className={styles.footer}>
-        <SidebarTooltip enabled={isCollapsed} label={`${user?.username || "Pengguna"} · ${tierLabel}`}>
+        <SidebarTooltip enabled={isCollapsed} label={profileLabel}>
           <Link
             href="/dashboard/settings"
             title={undefined}
-            aria-label={isCollapsed ? `${user?.username || "Pengguna"} · ${tierLabel}` : undefined}
+            aria-label={isCollapsed ? profileLabel : undefined}
             className={styles.profile}
           >
-            <span className={styles.avatar}>
-              {userInitials}
-            </span>
+            <span className={styles.avatar}>{userInitials}</span>
 
             {!isCollapsed && (
               <span className={styles.profileCopy}>
@@ -339,13 +473,26 @@ export default function Sidebar({
                 </span>
 
                 <span className="mt-0.5 flex items-center gap-1">
-                  {user?.role === "admin" ? (
+                  {isGod ? (
+                    <>
+                      <ShieldCheck
+                        size={11}
+                        strokeWidth={ICON_STROKE}
+                        className="shrink-0 text-violet-600"
+                      />
+
+                      <span className="truncate text-2xs font-bold text-violet-700">
+                        God · Protected
+                      </span>
+                    </>
+                  ) : user?.role === "admin" ? (
                     <>
                       <ShieldCheck
                         size={11}
                         strokeWidth={ICON_STROKE}
                         className="shrink-0 text-brand-700"
                       />
+
                       <span className="truncate text-2xs font-medium text-brand-800/60">
                         Administrator
                       </span>
@@ -357,6 +504,7 @@ export default function Sidebar({
                         strokeWidth={ICON_STROKE}
                         className="shrink-0 text-brand-500"
                       />
+
                       <span className="truncate text-2xs font-medium text-brand-800/60">
                         {tierLabel}
                       </span>
@@ -366,7 +514,6 @@ export default function Sidebar({
               </span>
             )}
           </Link>
-
         </SidebarTooltip>
       </div>
     </aside>

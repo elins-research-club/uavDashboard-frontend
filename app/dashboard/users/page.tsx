@@ -15,12 +15,14 @@ import {
   FileSpreadsheet,
   FileText,
   Search,
+  ShieldCheck,
   Timer,
   UserX,
   Users,
 } from "lucide-react";
+
 import api from "@/lib/api";
-import { useUserRole } from "@/context/UserRoleContext";
+import { useUserRole, type AuthUser } from "@/context/UserRoleContext";
 
 /* ============================================================
    TYPES & CONSTANTS
@@ -32,11 +34,13 @@ type Subscription = {
   end_date?: string | null;
 };
 
-type UserRecord = {
+type UserRecord = AuthUser & {
   id: string;
   username: string;
   email: string;
-  role: "admin" | "member";
+  role: "god" | "admin" | "member" | string;
+  is_protected?: boolean;
+  permissions?: string[];
   created_at: string;
   subscription?: Subscription | null;
 };
@@ -49,14 +53,19 @@ type SortKey =
   | "tier"
   | "status"
   | "remaining";
+
 type SortDirection = "asc" | "desc";
+
 type SubscriptionState = "active" | "expiring" | "free" | "expired";
 
 const ICON_STROKE = 1.75;
+
 const EASE = [0.22, 1, 0.36, 1] as const;
+
 const PAGE_SIZE = 10;
 
 const TIER_OPTIONS = ["free", "desa", "kecamatan"] as const;
+
 const TIER_LABELS: Record<string, string> = {
   free: "Free",
   desa: "Desa",
@@ -70,38 +79,62 @@ const STATUS_LABELS: Record<SubscriptionState, string> = {
   expired: "Berakhir",
 };
 
-/* Warna aksen badge — glass-nya dari .liquid-badge,
-   di sini hanya menentukan warna teks + dot indikator. */
 const STATUS_ACCENTS: Record<SubscriptionState, string> = {
   active: "text-emerald-700",
   expiring: "text-amber-700",
   free: "text-slate-600",
   expired: "text-red-700",
 };
+
 const STATUS_DOTS: Record<SubscriptionState, string> = {
   active: "bg-emerald-500",
   expiring: "bg-amber-500",
   free: "bg-slate-400",
   expired: "bg-red-500",
 };
+
 const TIER_ACCENTS: Record<string, string> = {
   free: "text-brand-800/70",
   desa: "text-emerald-800",
   kecamatan: "text-amber-700",
 };
 
-const COLUMNS: { key: SortKey; label: string }[] = [
-  { key: "username", label: "User" },
-  { key: "email", label: "Email" },
-  { key: "created_at", label: "Terdaftar" },
-  { key: "role", label: "Role" },
-  { key: "tier", label: "Tier" },
-  { key: "status", label: "Status" },
-  { key: "remaining", label: "Sisa Langganan" },
+const COLUMNS: {
+  key: SortKey;
+  label: string;
+}[] = [
+  {
+    key: "username",
+    label: "User",
+  },
+  {
+    key: "email",
+    label: "Email",
+  },
+  {
+    key: "created_at",
+    label: "Terdaftar",
+  },
+  {
+    key: "role",
+    label: "Role",
+  },
+  {
+    key: "tier",
+    label: "Tier",
+  },
+  {
+    key: "status",
+    label: "Status",
+  },
+  {
+    key: "remaining",
+    label: "Sisa Langganan",
+  },
 ];
 
 /* ============================================================
-   KOMPONEN KECIL — avatar, badge, stat card
+   SMALL COMPONENTS
 ============================================================ */
 
 function Avatar({ name }: { name: string }) {
@@ -126,10 +159,44 @@ function StateBadge({ state }: { state: SubscriptionState }) {
 function TierBadge({ tier }: { tier: string }) {
   return (
     <span
-      className={`liquid-badge px-2.5 py-1 text-2xs font-bold uppercase tracking-wide ${TIER_ACCENTS[tier] || TIER_ACCENTS.free
-        }`}
+      className={`liquid-badge px-2.5 py-1 text-2xs font-bold uppercase tracking-wide ${
+        TIER_ACCENTS[tier] || TIER_ACCENTS.free
+      }`}
     >
       {TIER_LABELS[tier] || TIER_LABELS.free}
+    </span>
+  );
+}
+
+function RoleBadge({
+  role,
+  isProtected,
+}: {
+  role: string;
+  isProtected: boolean;
+}) {
+  if (isProtected || role === "god") {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="liquid-badge px-2.5 py-1 text-2xs font-bold uppercase tracking-wide text-violet-700">
+          <ShieldCheck className="h-3 w-3" strokeWidth={ICON_STROKE} />
+          God
+        </span>
+
+        <span className="text-2xs font-bold uppercase tracking-wide text-brand-800/45">
+          Protected
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <span
+      className={`liquid-badge px-2.5 py-1 text-2xs font-bold uppercase tracking-wide ${
+        role === "admin" ? "text-emerald-800" : "text-slate-600"
+      }`}
+    >
+      {role === "admin" ? "Admin" : "Member"}
     </span>
   );
 }
@@ -158,23 +225,36 @@ function StatCard({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, delay, ease: EASE }}
-      className={`group relative min-h-[112px] overflow-hidden rounded-3xl border p-4 text-left shadow-card transition-all duration-300 outline-none hover:-translate-y-0.5 hover:shadow-card-hover focus-visible:ring-2 focus-visible:ring-brand-600/40 ${active
+      initial={{
+        opacity: 0,
+        y: 10,
+      }}
+      animate={{
+        opacity: 1,
+        y: 0,
+      }}
+      transition={{
+        duration: 0.45,
+        delay,
+        ease: EASE,
+      }}
+      className={`group relative min-h-[112px] overflow-hidden rounded-3xl border p-4 text-left shadow-card transition-all duration-300 outline-none hover:-translate-y-0.5 hover:shadow-card-hover focus-visible:ring-2 focus-visible:ring-brand-600/40 ${
+        active
           ? "border-brand-600/40 bg-white"
           : "border-brand-800/15 bg-white/80 backdrop-blur-xl hover:border-brand-800/25"
-        }`}
+      }`}
     >
-      {/* Orb dekoratif — 3 layer, pola sama dengan StatCard dashboard */}
       <div
         aria-hidden
         className="pointer-events-none absolute -bottom-6 -right-6 h-20 w-20 transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-[1.35]"
       >
         <div
           className="absolute -inset-3 rounded-full opacity-60 blur-lg"
-          style={{ background: `${orbTint}26` }}
+          style={{
+            background: `${orbTint}26`,
+          }}
         />
+
         <div
           className="absolute inset-0 rounded-full"
           style={{
@@ -182,12 +262,14 @@ function StatCard({
             boxShadow: `inset -4px -6px 10px ${orbTint}33, inset 3px 4px 8px rgba(255,255,255,0.75), 0 6px 14px ${orbTint}2e`,
           }}
         />
+
         <div className="absolute left-[18%] top-[14%] h-3.5 w-3.5 rounded-full bg-white/90 blur-[3px]" />
       </div>
 
       <div className="relative flex h-full flex-col justify-between gap-3">
         <div className="flex items-center justify-between gap-2">
           <span className="micro-label">{label}</span>
+
           <span className="icon-ring h-8 w-8 flex-shrink-0 rounded-full">
             <Icon
               className={`h-4 w-4 ${iconClass}`}
@@ -195,9 +277,8 @@ function StatCard({
             />
           </span>
         </div>
-        <strong
-          className={`text-2xl font-bold tracking-tight ${iconClass}`}
-        >
+
+        <strong className={`text-2xl font-bold tracking-tight ${iconClass}`}>
           {value}
         </strong>
       </div>
@@ -211,112 +292,186 @@ function StatCard({
 
 export default function UsersPage() {
   const router = useRouter();
-  const { user } = useUserRole();
+
+  const { user, isLoading: authLoading, hasPermission } = useUserRole();
+
+  const canManageUsers = hasPermission("manage_users");
 
   const [users, setUsers] = useState<UserRecord[]>([]);
+
   const [loading, setLoading] = useState(true);
+
   const [updatingId, setUpdatingId] = useState("");
+
   const [message, setMessage] = useState("");
+
   const [msgType, setMsgType] = useState<"success" | "error">("error");
 
   const [search, setSearch] = useState("");
+
   const [stateFilter, setStateFilter] = useState<SubscriptionState | null>(
     null
   );
+
   const [page, setPage] = useState(1);
+
   const [sortKey, setSortKey] = useState<SortKey>("created_at");
+
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+
   const [exportOpen, setExportOpen] = useState(false);
 
-  /* ---------- data & guard ---------- */
+  /* ==========================================================
+     DATA & GUARD
+  ========================================================== */
 
   useEffect(() => {
-    if (user && user.role !== "admin") {
+    if (authLoading) {
+      return;
+    }
+
+    if (!user) {
+      router.replace("/login");
+      return;
+    }
+
+    if (!canManageUsers) {
       router.replace("/dashboard");
       return;
     }
-    if (!user) return;
+
+    let cancelled = false;
+
+    setLoading(true);
 
     api
-      .get("/admin/users")
-      .then(({ data }) => setUsers(data))
-      .catch((error) =>
-        setMessage(
-          error.response?.data?.detail || "Gagal memuat daftar user."
-        )
-      )
-      .finally(() => setLoading(false));
-  }, [router, user]);
+      .get<UserRecord[]>("/admin/users")
+      .then(({ data }) => {
+        if (cancelled) {
+          return;
+        }
 
-  /* ---------- helpers ---------- */
+        setUsers(data);
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return;
+        }
+
+        setMessage(error.response?.data?.detail || "Gagal memuat daftar user.");
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router, user, authLoading, canManageUsers]);
+
+  /* ==========================================================
+     HELPERS
+  ========================================================== */
 
   const getState = (item: UserRecord): SubscriptionState => {
     const subscription = item.subscription;
-    if (!subscription || subscription.tier === "free") return "free";
+
+    if (!subscription || subscription.tier === "free") {
+      return "free";
+    }
+
     const endDate = subscription.end_date
       ? new Date(subscription.end_date)
       : null;
+
     if (
       subscription.status === "expired" ||
       (endDate && endDate <= new Date())
     ) {
       return "expired";
     }
-    if (
-      endDate &&
-      endDate.getTime() - Date.now() <= 30 * 24 * 60 * 60 * 1000
-    ) {
+
+    if (endDate && endDate.getTime() - Date.now() <= 30 * 24 * 60 * 60 * 1000) {
       return "expiring";
     }
+
     return "active";
   };
 
   const remaining = (item: UserRecord) => {
     const subscription = item.subscription;
-    if (!subscription || subscription.tier === "free") return "Selamanya";
-    if (!subscription.end_date) return "Tidak terbatas";
+
+    if (!subscription || subscription.tier === "free") {
+      return "Selamanya";
+    }
+
+    if (!subscription.end_date) {
+      return "Tidak terbatas";
+    }
+
     const days = Math.ceil(
       (new Date(subscription.end_date).getTime() - Date.now()) / 86400000
     );
+
     return days <= 0 ? "Berakhir" : `${days} hari`;
   };
 
   const showMessage = (text: string, type: "success" | "error") => {
     setMsgType(type);
     setMessage(text);
+
     window.setTimeout(() => setMessage(""), 3000);
   };
 
-  /* ---------- derived ---------- */
+  /* ==========================================================
+     DERIVED USERS
+  ========================================================== */
 
   const sortedUsers = useMemo(() => {
     const query = search.trim().toLowerCase();
 
     return users
       .filter((item) =>
-        `${item.username} ${item.email} ${item.role} ${item.subscription?.tier || "free"
-          }`
+        `${item.username} ${item.email} ${item.role} ${
+          item.subscription?.tier || "free"
+        }`
           .toLowerCase()
           .includes(query)
       )
       .filter((item) => !stateFilter || getState(item) === stateFilter)
       .sort((first, second) => {
         const value = (item: UserRecord) => {
-          if (sortKey === "status") return getState(item);
-          if (sortKey === "remaining") return remaining(item);
-          if (sortKey === "tier") return item.subscription?.tier || "free";
+          if (sortKey === "status") {
+            return getState(item);
+          }
+
+          if (sortKey === "remaining") {
+            return remaining(item);
+          }
+
+          if (sortKey === "tier") {
+            return item.subscription?.tier || "free";
+          }
+
           return item[sortKey];
         };
+
         const result = String(value(first)).localeCompare(
           String(value(second)),
           "id",
-          { numeric: true }
+          {
+            numeric: true,
+          }
         );
+
         return sortDirection === "asc" ? result : -result;
       });
   }, [users, search, stateFilter, sortKey, sortDirection]);
 
   const totalPages = Math.max(1, Math.ceil(sortedUsers.length / PAGE_SIZE));
+
   const visibleUsers = sortedUsers.slice(
     (page - 1) * PAGE_SIZE,
     page * PAGE_SIZE
@@ -324,12 +479,17 @@ export default function UsersPage() {
 
   const stats = {
     active: users.filter((item) => getState(item) === "active").length,
+
     expiring: users.filter((item) => getState(item) === "expiring").length,
+
     free: users.filter((item) => getState(item) === "free").length,
+
     expired: users.filter((item) => getState(item) === "expired").length,
   };
 
-  /* ---------- actions ---------- */
+  /* ==========================================================
+     ACTIONS
+  ========================================================== */
 
   const sortBy = (key: SortKey) => {
     if (sortKey === key) {
@@ -338,22 +498,59 @@ export default function UsersPage() {
       setSortKey(key);
       setSortDirection("asc");
     }
+
     setPage(1);
   };
 
   const toggleStateFilter = (state: SubscriptionState) => {
     setStateFilter((current) => (current === state ? null : state));
+
     setPage(1);
   };
 
-  const updateRole = async (id: string, role: UserRecord["role"]) => {
+  const updateRole = async (id: string, role: "admin" | "member") => {
+    if (!canManageUsers) {
+      showMessage(
+        "Anda tidak memiliki permission untuk mengelola user.",
+        "error"
+      );
+      return;
+    }
+
+    const target = users.find((item) => item.id === id);
+
+    if (!target) {
+      return;
+    }
+
+    if (target.is_protected || target.role === "god") {
+      showMessage(
+        "Akun God adalah protected account dan tidak dapat diubah.",
+        "error"
+      );
+      return;
+    }
+
+    if (target.id === user?.id) {
+      showMessage(
+        "Role akun yang sedang digunakan tidak dapat diubah.",
+        "error"
+      );
+      return;
+    }
+
     setUpdatingId(id);
+
     try {
-      const { data } = await api.patch(`/admin/users/${id}/role`, { role });
+      const { data } = await api.patch<UserRecord>(`/admin/users/${id}/role`, {
+        role,
+      });
+
       setUsers((current) =>
         current.map((item) => (item.id === id ? data : item))
       );
-      showMessage(`Role user berhasil diubah ke "${role}"`, "success");
+
+      showMessage(`Role user berhasil diubah ke "${role}".`, "success");
     } catch (error: any) {
       showMessage(
         error.response?.data?.detail || "Role user gagal diubah.",
@@ -365,25 +562,27 @@ export default function UsersPage() {
   };
 
   const updateTier = async (id: string, tier: string) => {
-    setUpdatingId(`${id}-tier`);
-    try {
-      await api.patch(`/admin/users/${id}/tier`, { tier });
-      setUsers((current) =>
-        current.map((item) =>
-          item.id === id
-            ? {
-              ...item,
-              subscription: {
-                ...(item.subscription || {}),
-                tier,
-                status: "active",
-              },
-            }
-            : item
-        )
-      );
+    if (!canManageUsers) {
       showMessage(
-        `Tier subscription berhasil diubah ke "${TIER_LABELS[tier] || tier}"`,
+        "Anda tidak memiliki permission untuk mengelola user.",
+        "error"
+      );
+      return;
+    }
+
+    setUpdatingId(`${id}-tier`);
+
+    try {
+      const { data } = await api.patch<UserRecord>(`/admin/users/${id}/tier`, {
+        tier,
+      });
+
+      setUsers((current) =>
+        current.map((item) => (item.id === id ? data : item))
+      );
+
+      showMessage(
+        `Tier subscription berhasil diubah ke "${TIER_LABELS[tier] || tier}".`,
         "success"
       );
     } catch (error: any) {
@@ -406,6 +605,7 @@ export default function UsersPage() {
       remaining(item),
       new Date(item.created_at).toLocaleDateString("id-ID"),
     ]);
+
     const csv = [
       "Nama,Email,Role,Tier,Status,Sisa Langganan,Tanggal Daftar",
       ...rows.map((row) =>
@@ -414,12 +614,19 @@ export default function UsersPage() {
     ].join("\n");
 
     const link = document.createElement("a");
+
     link.href = URL.createObjectURL(
-      new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" })
+      new Blob(["\uFEFF" + csv], {
+        type: "text/csv;charset=utf-8",
+      })
     );
+
     link.download = "daftar-user.csv";
+
     link.click();
+
     URL.revokeObjectURL(link.href);
+
     setExportOpen(false);
   };
 
@@ -427,69 +634,165 @@ export default function UsersPage() {
     const rows = sortedUsers
       .map(
         (item) =>
-          `<tr><td>${item.username}</td><td>${item.email}</td><td>${item.role}</td><td>${item.subscription?.tier || "free"
-          }</td><td>${getState(item)}</td><td>${remaining(item)}</td></tr>`
+          `<tr>
+              <td>${item.username}</td>
+              <td>${item.email}</td>
+              <td>${item.role}</td>
+              <td>${item.subscription?.tier || "free"}</td>
+              <td>${getState(item)}</td>
+              <td>${remaining(item)}</td>
+            </tr>`
       )
       .join("");
 
     const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
+
+    if (!printWindow) {
+      return;
+    }
+
     printWindow.document.write(
-      `<html><head><title>Daftar User</title><style>body{font-family:Arial;padding:24px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ddd;padding:8px;text-align:left}th{background:#eef3e8}</style></head><body><h1>Daftar User AMX UAV DaaS</h1><table><thead><tr><th>Nama</th><th>Email</th><th>Role</th><th>Tier</th><th>Status</th><th>Sisa</th></tr></thead><tbody>${rows}</tbody></table></body></html>`
+      `<html>
+        <head>
+          <title>Daftar User</title>
+          <style>
+            body {
+              font-family: Arial;
+              padding: 24px;
+            }
+
+            table {
+              border-collapse: collapse;
+              width: 100%;
+            }
+
+            th,
+            td {
+              border: 1px solid #ddd;
+              padding: 8px;
+              text-align: left;
+            }
+
+            th {
+              background: #eef3e8;
+            }
+          </style>
+        </head>
+
+        <body>
+          <h1>Daftar User AMX UAV DaaS</h1>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Nama</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Tier</th>
+                <th>Status</th>
+                <th>Sisa</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>
+        </body>
+      </html>`
     );
+
     printWindow.document.close();
     printWindow.focus();
     printWindow.print();
     printWindow.close();
+
     setExportOpen(false);
   };
 
-  /* ---------- guard render ---------- */
+  /* ==========================================================
+     RENDER GUARDS
+  ========================================================== */
 
-  if (user?.role !== "admin") return null;
+  if (authLoading || !user || !canManageUsers) {
+    return null;
+  }
+
+  /* ==========================================================
+     STAT CARDS
+  ========================================================== */
 
   const statCards = [
     {
       state: "active" as SubscriptionState,
+
       label: "Active Users",
+
       value: stats.active,
+
       icon: CircleCheck,
+
       iconClass: "text-emerald-700",
+
       orbTint: "#2e7d54",
     },
+
     {
       state: "expiring" as SubscriptionState,
+
       label: "Hampir Berakhir",
+
       value: stats.expiring,
+
       icon: Timer,
+
       iconClass: "text-amber-700",
+
       orbTint: "#d99a2b",
     },
+
     {
       state: "free" as SubscriptionState,
+
       label: "User Free",
+
       value: stats.free,
+
       icon: Users,
+
       iconClass: "text-slate-600",
+
       orbTint: "#94a3b8",
     },
+
     {
       state: "expired" as SubscriptionState,
+
       label: "Langganan Berakhir",
+
       value: stats.expired,
+
       icon: UserX,
+
       iconClass: "text-red-700",
+
       orbTint: "#dc4c4c",
     },
   ];
+
+  /* ==========================================================
+     PAGE
+  ========================================================== */
 
   return (
     <main className="bg-page min-h-screen text-brand-900">
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         {/* ================= HEADER ================= */}
+
         <header className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="micro-label">Admin & Kontrol Akses</p>
+
             <h1 className="mt-3 text-3xl font-bold tracking-[-0.035em] text-brand-900 sm:text-4xl">
               Manajemen <span className="text-brand-600">User</span>
             </h1>
@@ -505,8 +808,9 @@ export default function UsersPage() {
               <Download className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} />
               Export
               <ChevronDown
-                className={`h-3.5 w-3.5 transition-transform duration-300 ${exportOpen ? "rotate-180" : ""
-                  }`}
+                className={`h-3.5 w-3.5 transition-transform duration-300 ${
+                  exportOpen ? "rotate-180" : ""
+                }`}
                 strokeWidth={ICON_STROKE}
               />
             </button>
@@ -520,6 +824,7 @@ export default function UsersPage() {
                   className="fixed inset-0 z-10 cursor-default"
                   onClick={() => setExportOpen(false)}
                 />
+
                 <div className="absolute right-0 z-20 mt-2 w-52 rounded-2xl border border-white/60 bg-white/90 p-1.5 shadow-glass-lg backdrop-blur-xl">
                   <button
                     type="button"
@@ -534,6 +839,7 @@ export default function UsersPage() {
                     </span>
                     PDF (Print)
                   </button>
+
                   <button
                     type="button"
                     onClick={exportExcel}
@@ -554,6 +860,7 @@ export default function UsersPage() {
         </header>
 
         {/* ================= STAT CARDS ================= */}
+
         <div className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {statCards.map((card, index) => (
             <StatCard
@@ -567,13 +874,15 @@ export default function UsersPage() {
         </div>
 
         {/* ================= TOAST ================= */}
+
         {message && (
           <div
             role="status"
-            className={`mb-5 flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold shadow-card backdrop-blur-xl ${msgType === "success"
+            className={`mb-5 flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold shadow-card backdrop-blur-xl ${
+              msgType === "success"
                 ? "border-emerald-200/70 bg-emerald-50/80 text-emerald-800"
                 : "border-red-200/70 bg-red-50/80 text-red-700"
-              }`}
+            }`}
           >
             {msgType === "success" ? (
               <CircleCheck
@@ -586,24 +895,39 @@ export default function UsersPage() {
                 strokeWidth={ICON_STROKE}
               />
             )}
+
             {message}
           </div>
         )}
 
         {/* ================= TABLE ================= */}
+
         <motion.section
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.24, ease: EASE }}
+          initial={{
+            opacity: 0,
+            y: 12,
+          }}
+          animate={{
+            opacity: 1,
+            y: 0,
+          }}
+          transition={{
+            duration: 0.5,
+            delay: 0.24,
+            ease: EASE,
+          }}
           className="glass overflow-hidden"
         >
-          {/* toolbar */}
+          {/* TOOLBAR */}
+
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-brand-800/8 p-4">
             <div className="flex flex-wrap items-center gap-3">
               <h2 className="text-base font-bold">Semua Pengguna</h2>
+
               <span className="liquid-badge px-2.5 py-1 text-2xs font-bold text-brand-800">
                 {sortedUsers.length}
               </span>
+
               {stateFilter && (
                 <button
                   type="button"
@@ -620,6 +944,7 @@ export default function UsersPage() {
                 className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-brand-800/35"
                 strokeWidth={ICON_STROKE}
               />
+
               <input
                 value={search}
                 onChange={(event) => {
@@ -632,15 +957,17 @@ export default function UsersPage() {
             </div>
           </div>
 
-          {/* body */}
+          {/* BODY */}
+
           {loading ? (
             <div className="flex flex-col items-center gap-3 p-12 text-brand-800/60">
               <span className="h-6 w-6 animate-spin rounded-full border-2 border-brand-800/15 border-t-brand-700" />
+
               <p className="text-sm font-semibold">Memuat daftar user...</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1000px] text-left">
+              <table className="w-full min-w-[1100px] text-left">
                 <thead className="border-b border-brand-800/10 bg-white/60">
                   <tr>
                     {COLUMNS.map(({ key, label }) => (
@@ -663,6 +990,7 @@ export default function UsersPage() {
                           className="inline-flex items-center gap-1.5 rounded-lg px-1 py-0.5 outline-none transition focus-visible:ring-2 focus-visible:ring-brand-600/40"
                         >
                           <span className="micro-label">{label}</span>
+
                           {sortKey === key ? (
                             sortDirection === "asc" ? (
                               <ArrowUpAZ
@@ -690,22 +1018,45 @@ export default function UsersPage() {
                 <tbody className="divide-y divide-brand-800/8">
                   {visibleUsers.map((item) => {
                     const state = getState(item);
+
                     const tier = item.subscription?.tier || "free";
+
                     const isSelf = item.id === user?.id;
+
+                    const isProtected =
+                      Boolean(item.is_protected) || item.role === "god";
+
+                    const canEditRole =
+                      canManageUsers && !isSelf && !isProtected;
+
+                    const canEditTier = canManageUsers;
 
                     return (
                       <tr
                         key={item.id}
                         className="transition-colors hover:bg-white/70"
                       >
-                        {/* user */}
+                        {/* USER */}
+
                         <td className="px-4 py-4">
                           <div className="flex items-center gap-3">
                             <Avatar name={item.username} />
+
                             <div className="min-w-0">
-                              <p className="text-sm font-bold text-brand-900">
-                                {item.username}
-                              </p>
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-bold text-brand-900">
+                                  {item.username}
+                                </p>
+
+                                {isProtected && (
+                                  <ShieldCheck
+                                    className="h-3.5 w-3.5 text-violet-600"
+                                    strokeWidth={ICON_STROKE}
+                                    aria-label="Protected account"
+                                  />
+                                )}
+                              </div>
+
                               {isSelf && (
                                 <span className="liquid-badge mt-1 px-2 py-0.5 text-2xs font-bold uppercase text-emerald-800">
                                   Anda
@@ -715,68 +1066,101 @@ export default function UsersPage() {
                           </div>
                         </td>
 
-                        {/* email */}
+                        {/* EMAIL */}
+
                         <td className="px-4 py-4 text-sm font-medium text-brand-800/80">
                           {item.email}
                         </td>
 
-                        {/* terdaftar */}
+                        {/* CREATED */}
+
                         <td className="px-4 py-4 text-sm font-medium text-brand-800/80">
                           {new Date(item.created_at).toLocaleDateString(
                             "id-ID",
-                            { day: "numeric", month: "short", year: "numeric" }
+                            {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            }
                           )}
                         </td>
 
-                        {/* role */}
+                        {/* ROLE */}
+
                         <td className="px-4 py-4">
-                          <select
-                            value={item.role}
-                            disabled={updatingId === item.id || isSelf}
-                            onChange={(event) =>
-                              updateRole(
-                                item.id,
-                                event.target.value as UserRecord["role"]
-                              )
-                            }
-                            className="rounded-full border border-brand-800/15 bg-white/80 px-3 py-2 text-xs font-semibold text-brand-800 outline-none backdrop-blur-sm transition focus:border-brand-700/40 focus:ring-4 focus:ring-brand-700/10 disabled:opacity-50"
-                          >
-                            <option value="member">Member</option>
-                            <option value="admin">Admin</option>
-                          </select>
+                          {isProtected ? (
+                            <RoleBadge role={item.role} isProtected={true} />
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <select
+                                value={item.role}
+                                disabled={
+                                  !canEditRole || updatingId === item.id
+                                }
+                                onChange={(event) =>
+                                  updateRole(
+                                    item.id,
+                                    event.target.value as "admin" | "member"
+                                  )
+                                }
+                                className="rounded-full border border-brand-800/15 bg-white/80 px-3 py-2 text-xs font-semibold text-brand-800 outline-none backdrop-blur-sm transition focus:border-brand-700/40 focus:ring-4 focus:ring-brand-700/10 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                <option value="member">Member</option>
+
+                                <option value="admin">Admin</option>
+                              </select>
+
+                              {isSelf && (
+                                <span className="text-2xs font-medium text-brand-800/45">
+                                  Akun aktif
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </td>
 
-                        {/* tier */}
+                        {/* TIER */}
+
                         <td className="px-4 py-4">
                           <div className="flex items-center gap-2">
                             <TierBadge tier={tier} />
-                            <select
-                              value={tier}
-                              disabled={updatingId === `${item.id}-tier`}
-                              onChange={(event) =>
-                                updateTier(item.id, event.target.value)
-                              }
-                              className="rounded-full border border-brand-800/15 bg-white/80 px-3 py-2 text-xs font-semibold text-brand-800 outline-none backdrop-blur-sm transition focus:border-brand-700/40 focus:ring-4 focus:ring-brand-700/10 disabled:opacity-50"
-                            >
-                              {TIER_OPTIONS.map((option) => (
-                                <option key={option} value={option}>
-                                  {TIER_LABELS[option]}
-                                </option>
-                              ))}
-                            </select>
+
+                            {canEditTier ? (
+                              <select
+                                value={tier}
+                                disabled={updatingId === `${item.id}-tier`}
+                                onChange={(event) =>
+                                  updateTier(item.id, event.target.value)
+                                }
+                                className="rounded-full border border-brand-800/15 bg-white/80 px-3 py-2 text-xs font-semibold text-brand-800 outline-none backdrop-blur-sm transition focus:border-brand-700/40 focus:ring-4 focus:ring-brand-700/10 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {TIER_OPTIONS.map((option) => (
+                                  <option key={option} value={option}>
+                                    {TIER_LABELS[option]}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              <span className="text-2xs font-medium text-brand-800/45">
+                                Read only
+                              </span>
+                            )}
                           </div>
                         </td>
 
-                        {/* status */}
+                        {/* STATUS */}
+
                         <td className="px-4 py-4">
                           <StateBadge state={state} />
                         </td>
 
-                        {/* sisa langganan */}
+                        {/* REMAINING */}
+
                         <td className="px-4 py-4">
                           <p className="text-sm font-semibold text-brand-900">
                             {remaining(item)}
                           </p>
+
                           {item.subscription?.end_date && (
                             <p className="mt-0.5 text-xs font-medium text-brand-800/55">
                               s/d{" "}
@@ -800,18 +1184,23 @@ export default function UsersPage() {
                               strokeWidth={ICON_STROKE}
                             />
                           </span>
+
                           <p className="mt-3 text-sm font-bold text-brand-900">
                             User tidak ditemukan
                           </p>
+
                           <p className="mt-1 text-xs font-medium text-brand-800/60">
                             Coba kata kunci lain atau hapus filter status.
                           </p>
+
                           {(search || stateFilter) && (
                             <button
                               type="button"
                               onClick={() => {
                                 setSearch("");
+
                                 setStateFilter(null);
+
                                 setPage(1);
                               }}
                               className="btn-ghost mt-4"
@@ -828,16 +1217,15 @@ export default function UsersPage() {
             </div>
           )}
 
-          {/* pagination */}
+          {/* PAGINATION */}
+
           {!loading && (
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-brand-800/8 px-4 py-3.5">
               <span className="text-xs font-medium text-brand-800/60">
                 Menampilkan{" "}
                 <strong className="text-brand-900">
-                  {sortedUsers.length
-                    ? (page - 1) * PAGE_SIZE + 1
-                    : 0}
-                  –{Math.min(page * PAGE_SIZE, sortedUsers.length)}
+                  {sortedUsers.length ? (page - 1) * PAGE_SIZE + 1 : 0}–
+                  {Math.min(page * PAGE_SIZE, sortedUsers.length)}
                 </strong>{" "}
                 dari{" "}
                 <strong className="text-brand-900">{sortedUsers.length}</strong>{" "}
@@ -852,10 +1240,7 @@ export default function UsersPage() {
                   aria-label="Halaman sebelumnya"
                   className="icon-ring h-9 w-9 rounded-full outline-none transition hover:bg-white/70 focus-visible:ring-2 focus-visible:ring-brand-600/40 disabled:opacity-40 disabled:hover:bg-white/40"
                 >
-                  <ChevronLeft
-                    className="h-4 w-4"
-                    strokeWidth={ICON_STROKE}
-                  />
+                  <ChevronLeft className="h-4 w-4" strokeWidth={ICON_STROKE} />
                 </button>
 
                 <span className="liquid-badge px-3 py-1.5 text-xs font-bold text-brand-800">
@@ -869,10 +1254,7 @@ export default function UsersPage() {
                   aria-label="Halaman berikutnya"
                   className="icon-ring h-9 w-9 rounded-full outline-none transition hover:bg-white/70 focus-visible:ring-2 focus-visible:ring-brand-600/40 disabled:opacity-40 disabled:hover:bg-white/40"
                 >
-                  <ChevronRight
-                    className="h-4 w-4"
-                    strokeWidth={ICON_STROKE}
-                  />
+                  <ChevronRight className="h-4 w-4" strokeWidth={ICON_STROKE} />
                 </button>
               </div>
             </div>
