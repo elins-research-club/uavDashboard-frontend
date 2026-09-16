@@ -28,6 +28,10 @@ import {
   ArrowLeftRight,
   X,
   Grid,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 
 import LayerControlPanel from "@/components/LayerControlPanel";
@@ -2246,6 +2250,14 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       });
     }, []);
 
+    const handleZoomIn = useCallback(() => {
+      mapRef.current?.zoomIn({ duration: 400 });
+    }, []);
+
+    const handleZoomOut = useCallback(() => {
+      mapRef.current?.zoomOut({ duration: 400 });
+    }, []);
+
     const handleToggle3D = useCallback(() => {
       setTerrainEnabled((current) => !current);
     }, []);
@@ -3757,6 +3769,46 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             <span className="pl-0.5 pr-1 text-[8px] font-bold text-gray-700 sm:pl-1 sm:pr-1.5 sm:text-[10px]">
               {bearing}° {getDirection(bearing)}
             </span>
+
+            {/* DIVIDER */}
+            <div className="mx-0.5 h-4 w-px bg-gray-200 sm:mx-1 sm:h-5" />
+
+            {/* ZOOM IN */}
+            <button
+              type="button"
+              onClick={handleZoomIn}
+              title="Perbesar Peta (Zoom In)"
+              aria-label="Zoom In"
+              className="flex h-6 w-6 items-center justify-center rounded-full text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 sm:h-7 sm:w-7"
+            >
+              <ZoomIn className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+            </button>
+
+            {/* ZOOM OUT */}
+            <button
+              type="button"
+              onClick={handleZoomOut}
+              title="Perkecil Peta (Zoom Out)"
+              aria-label="Zoom Out"
+              className="flex h-6 w-6 items-center justify-center rounded-full text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 sm:h-7 sm:w-7"
+            >
+              <ZoomOut className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+            </button>
+
+            {/* FULLSCREEN */}
+            <button
+              type="button"
+              onClick={handleToggleFullscreen}
+              title={isFullscreen ? "Keluar Layar Penuh" : "Layar Penuh"}
+              aria-label={isFullscreen ? "Keluar Layar Penuh" : "Layar Penuh"}
+              className="flex h-6 w-6 items-center justify-center rounded-full text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 sm:h-7 sm:w-7"
+            >
+              {isFullscreen ? (
+                <Minimize2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+              ) : (
+                <Maximize2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+              )}
+            </button>
           </div>
         </div>
 

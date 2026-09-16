@@ -111,20 +111,18 @@ function StepRail({
             <li key={step.label} className="relative flex gap-3 pb-6 last:pb-0">
               {!last && (
                 <span
-                  className={`absolute left-[15px] top-8 h-full w-px ${
-                    done ? "bg-brand-900" : "bg-brand-800/12"
-                  }`}
+                  className={`absolute left-[15px] top-8 h-full w-px ${done ? "bg-brand-900" : "bg-brand-800/12"
+                    }`}
                 />
               )}
 
               <span
-                className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${
-                  done
-                    ? "border-brand-900 bg-brand-900 text-white"
-                    : active
+                className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${done
+                  ? "border-brand-900 bg-brand-900 text-white"
+                  : active
                     ? "border-brand-600 bg-white text-brand-900"
                     : "border-brand-800/15 bg-white text-brand-800/30"
-                }`}
+                  }`}
               >
                 {done ? (
                   <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
@@ -139,9 +137,8 @@ function StepRail({
 
               <div className="min-w-0 pt-0.5">
                 <p
-                  className={`text-xs font-bold ${
-                    active || done ? "text-brand-900" : "text-brand-800/40"
-                  }`}
+                  className={`text-xs font-bold ${active || done ? "text-brand-900" : "text-brand-800/40"
+                    }`}
                 >
                   {step.label}
                 </p>
@@ -182,6 +179,20 @@ function SystemStatusPanel({
   const capPct = Math.min(100, (totalBytes / MAX_FILE_SIZE_BYTES) * 100);
 
   const totalMB = totalBytes / (1024 * 1024);
+  const isBaking = pmtilesStatus === "baking";
+  const isValidating = !isBaking && uploadProgress >= 99;
+  const stageLabel = isBaking
+    ? "2. Kompilasi PMTiles"
+    : isValidating
+      ? "1. Memeriksa berkas"
+      : "1. Upload berkas";
+  const progress = isBaking
+    ? pmtilesProgress.total > 0
+      ? Math.round((pmtilesProgress.completed / pmtilesProgress.total) * 100)
+      : undefined
+    : isValidating
+      ? undefined
+      : uploadProgress;
 
   return (
     <div className="relative overflow-hidden rounded-3xl border border-brand-800/40 bg-brand-900 p-4 text-white shadow-glass-lg">
@@ -243,55 +254,50 @@ function SystemStatusPanel({
           </div>
         </div>
 
+        {/* Keep the live region mounted; announce stage changes, not every percent. */}
+        <p role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+          {loading ? `${stageLabel}. Formulir dikunci selama proses berlangsung.` : ""}
+        </p>
+
         {loading && (
-          <div className="mt-3.5 border-t border-white/10 pt-3">
-            {pmtilesStatus === "baking" ? (
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between font-mono text-2xs">
-                  <span className="flex items-center gap-1.5 font-semibold text-brand-300">
-                    <RefreshCw className="h-3 w-3 animate-spin" />
-                    2. Kompilasi PMTiles
-                  </span>
-                  <span className="text-white font-semibold">
-                    {pmtilesProgress.completed}/{pmtilesProgress.total} layer
-                  </span>
-                </div>
+          <div id="upload-engine-progress" className="mt-3.5 space-y-2 border-t border-white/10 pt-3">
+            <div className="flex items-center justify-between gap-2 font-mono text-2xs">
+              <span className="flex items-center gap-1.5 font-semibold text-brand-300">
+                <RefreshCw className="h-3 w-3 shrink-0 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+                {stageLabel}
+              </span>
+              <span className="font-semibold tabular-nums text-white">
+                {isBaking
+                  ? `${pmtilesProgress.completed}/${pmtilesProgress.total} layer`
+                  : isValidating
+                    ? "Menunggu server"
+                    : `${uploadProgress}%`}
+              </span>
+            </div>
 
-                <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
-                  <div
-                    className="h-full rounded-full bg-brand-300 transition-all duration-500"
-                    style={{
-                      width: `${
-                        pmtilesProgress.total > 0
-                          ? Math.max(15, Math.round((pmtilesProgress.completed / pmtilesProgress.total) * 100))
-                          : 25
-                      }%`,
-                    }}
-                  />
-                </div>
+            <div
+              role="progressbar"
+              aria-label={stageLabel}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={progress}
+              aria-valuetext={progress === undefined ? "Menunggu respons server" : undefined}
+              className="h-1.5 overflow-hidden rounded-full bg-white/10"
+            >
+              <div
+                className={`h-full rounded-full bg-brand-300 ${progress === undefined ? "animate-pulse motion-reduce:animate-none" : "transition-[width] duration-300 motion-reduce:transition-none"}`}
+                style={{ width: progress === undefined ? "100%" : `${progress}%` }}
+              />
+            </div>
 
-                <p className="text-3xs text-white/50">
-                  Membangun piramida ubin untuk render instan di peta...
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-1">
-                <div className="flex items-center justify-between font-mono text-2xs">
-                  <span className="flex items-center gap-1.5 text-white/60">
-                    <RefreshCw className="h-2.5 w-2.5 animate-spin text-brand-300" />
-                    1. Upload berkas
-                  </span>
-                  <span className="text-white">{uploadProgress}%</span>
-                </div>
-
-                <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
-                  <div
-                    className="h-full rounded-full bg-white transition-all duration-300"
-                    style={{ width: `${uploadProgress}%` }}
-                  />
-                </div>
-              </div>
-            )}
+            <p className="text-2xs leading-relaxed text-white/70">
+              {isBaking
+                ? "Membangun piramida ubin untuk render instan di peta."
+                : isValidating
+                  ? "Menunggu pemeriksaan berkas oleh server."
+                  : "Mengirim berkas ke server."}{" "}
+              Formulir dikunci selama proses berlangsung.
+            </p>
           </div>
         )}
       </div>
@@ -648,21 +654,21 @@ export default function UploadPage() {
   const submitErrors =
     uploadMode === "manual"
       ? [
-          ...(manualSlots.length
-            ? manualLayerErrors.flat()
-            : ["Tambahkan minimal satu layer."]),
-          ...(!title.trim() ? ["Judul peta wajib diisi."] : []),
-          ...(!location.trim() ? ["Lokasi survei wajib diisi."] : []),
-          ...(!surveyDate ? ["Tanggal survei wajib diisi."] : []),
-        ]
+        ...(manualSlots.length
+          ? manualLayerErrors.flat()
+          : ["Tambahkan minimal satu layer."]),
+        ...(!title.trim() ? ["Judul peta wajib diisi."] : []),
+        ...(!location.trim() ? ["Lokasi survei wajib diisi."] : []),
+        ...(!surveyDate ? ["Tanggal survei wajib diisi."] : []),
+      ]
       : batchErrors(batchFiles, title, location, surveyDate);
 
   const filesReady =
     uploadMode === "batch"
       ? batchFiles.length > 0 &&
-        batchFiles.filter((item) => item.is_base).length === 1 &&
-        !metadataStillReading &&
-        batchFiles.every((item) => Boolean(item.name.trim()))
+      batchFiles.filter((item) => item.is_base).length === 1 &&
+      !metadataStillReading &&
+      batchFiles.every((item) => Boolean(item.name.trim()))
       : manualFilesReady;
 
   // Section berikutnya hanya terbuka setelah user MENEKAN tombol
@@ -673,10 +679,10 @@ export default function UploadPage() {
   const currentStep = isSuccess
     ? 4
     : !filesConfirmed
-    ? 1
-    : !detailsConfirmed
-    ? 2
-    : 3;
+      ? 1
+      : !detailsConfirmed
+        ? 2
+        : 3;
 
   const showFilesEditor = editingFiles || !filesReady;
 
@@ -685,39 +691,39 @@ export default function UploadPage() {
   const reviewChecklist: ReviewChecklistItem[] =
     uploadMode === "batch"
       ? [
-          {
-            label: "File GeoTIFF dipilih",
-            ready: batchFiles.length > 0,
-          },
-          {
-            label: "Layer utama dipilih",
-            ready: batchFiles.filter((item) => item.is_base).length === 1,
-          },
-          {
-            label: "Nama layer lengkap",
-            ready: batchFiles.every((item) => Boolean(item.name.trim())),
-          },
-          ...metaChecklist,
-        ]
+        {
+          label: "File GeoTIFF dipilih",
+          ready: batchFiles.length > 0,
+        },
+        {
+          label: "Layer utama dipilih",
+          ready: batchFiles.filter((item) => item.is_base).length === 1,
+        },
+        {
+          label: "Nama layer lengkap",
+          ready: batchFiles.every((item) => Boolean(item.name.trim())),
+        },
+        ...metaChecklist,
+      ]
       : [
-          {
-            label: "Minimal satu layer dipilih",
-            ready: manualSlots.length > 0,
-          },
-          {
-            label: "Semua layer memiliki file",
-            ready:
-              manualSlots.length > 0 &&
-              manualSlots.every((slot) => Boolean(slot.file)),
-          },
-          {
-            label: "Semua layer memiliki nama",
-            ready:
-              manualSlots.length > 0 &&
-              manualSlots.every((slot) => Boolean(slot.name.trim())),
-          },
-          ...metaChecklist,
-        ];
+        {
+          label: "Minimal satu layer dipilih",
+          ready: manualSlots.length > 0,
+        },
+        {
+          label: "Semua layer memiliki file",
+          ready:
+            manualSlots.length > 0 &&
+            manualSlots.every((slot) => Boolean(slot.file)),
+        },
+        {
+          label: "Semua layer memiliki nama",
+          ready:
+            manualSlots.length > 0 &&
+            manualSlots.every((slot) => Boolean(slot.name.trim())),
+        },
+        ...metaChecklist,
+      ];
 
   const reviewFiles =
     uploadMode === "batch" ? batchFiles.map((item) => item.file) : manualFiles;
@@ -1369,9 +1375,13 @@ export default function UploadPage() {
 
         {/* Menunjukkan status baking PMTiles dari upload sebelumnya,
             bertahan lintas navigasi & reload halaman. */}
-        <BakingStatusBanner />
+        <BakingStatusBanner
+          suppressed={loading}
+          uploadedDataset={isSuccess ? geoSuccess : null}
+          onNewUpload={isSuccess ? resetForNewUpload : undefined}
+        />
 
-        <form onSubmit={handleSubmit} noValidate aria-busy={loading}>
+        <form onSubmit={handleSubmit} noValidate>
           <fieldset disabled={loading} className="border-0 p-0">
             <legend className="sr-only">Formulir upload dataset</legend>
 
@@ -1426,69 +1436,6 @@ export default function UploadPage() {
               </motion.section>
             )}
 
-            {isSuccess && geoSuccess && (
-              <motion.section
-                initial={{
-                  opacity: 0,
-                  y: -8,
-                }}
-                animate={{
-                  opacity: 1,
-                  y: 0,
-                }}
-                transition={{
-                  duration: 0.4,
-                  ease: EASE,
-                }}
-                className="mb-4 rounded-2xl border border-brand-800/15 bg-brand-50 p-4"
-              >
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                  <div className="flex min-w-0 flex-1 items-start gap-3">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-brand-900 text-brand-300">
-                      <CheckCircle2 className="h-5 w-5" />
-                    </span>
-
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="micro-label">Upload & Konversi Berhasil</p>
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-3xs font-bold text-emerald-800">
-                          PMTiles Siap ✓
-                        </span>
-                      </div>
-
-                      <h3 className="mt-1 text-sm font-bold text-brand-900">
-                        {geoSuccess.title}
-                      </h3>
-
-                      <p className="mt-0.5 text-xs font-medium text-brand-800/60">
-                        {geoSuccess.totalLayers} layer tersimpan. Sedang
-                        diproses menjadi PMTiles di background — lihat progres
-                        di atas.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex shrink-0 gap-2">
-                    <button
-                      type="button"
-                      onClick={resetForNewUpload}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-brand-800/15 bg-white px-4 py-2.5 text-xs font-bold text-brand-800/70 transition hover:border-brand-800/25 hover:text-brand-900"
-                    >
-                      Upload dataset lain
-                    </button>
-
-                    <Link
-                      href={`/dashboard/maps?id=${geoSuccess.mapId}`}
-                      className="btn-brand"
-                    >
-                      Buka di Map Viewer
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </Link>
-                  </div>
-                </div>
-              </motion.section>
-            )}
-
             {!isSuccess && (
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
                 <aside className="lg:col-span-4 lg:order-2">
@@ -1507,7 +1454,7 @@ export default function UploadPage() {
                   </div>
                 </aside>
 
-                <div className="space-y-4 lg:col-span-8 lg:order-1">
+                <div aria-busy={loading} className="space-y-4 lg:col-span-8 lg:order-1">
                   <div className="glass flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <p className="text-xs font-bold text-brand-900">
@@ -1531,11 +1478,10 @@ export default function UploadPage() {
                           setFilesConfirmed(false);
                           setDetailsConfirmed(false);
                         }}
-                        className={`inline-flex items-center gap-1.5 rounded-[5px] px-4 py-2 text-2xs font-bold transition ${
-                          uploadMode === "batch"
-                            ? "bg-brand-900 text-white shadow-card"
-                            : "text-brand-800/60 hover:text-brand-900"
-                        }`}
+                        className={`inline-flex items-center gap-1.5 rounded-[5px] px-4 py-2 text-2xs font-bold transition ${uploadMode === "batch"
+                          ? "bg-brand-900 text-white shadow-card"
+                          : "text-brand-800/60 hover:text-brand-900"
+                          }`}
                       >
                         <Wand2 className="h-3.5 w-3.5" strokeWidth={1.75} />
                         Mudah
@@ -1551,11 +1497,10 @@ export default function UploadPage() {
                           setFilesConfirmed(false);
                           setDetailsConfirmed(false);
                         }}
-                        className={`inline-flex items-center gap-1.5 rounded-[5px] px-4 py-2 text-2xs font-bold transition ${
-                          uploadMode === "manual"
-                            ? "bg-brand-900 text-white shadow-card"
-                            : "text-brand-800/60 hover:text-brand-900"
-                        }`}
+                        className={`inline-flex items-center gap-1.5 rounded-[5px] px-4 py-2 text-2xs font-bold transition ${uploadMode === "manual"
+                          ? "bg-brand-900 text-white shadow-card"
+                          : "text-brand-800/60 hover:text-brand-900"
+                          }`}
                       >
                         <SlidersHorizontal
                           className="h-3.5 w-3.5"
@@ -1599,11 +1544,10 @@ export default function UploadPage() {
                             onDragLeave={handleDrag}
                             onDragOver={handleDrag}
                             onDrop={handleDrop}
-                            className={`flex min-h-[190px] flex-col items-center justify-center rounded-2xl border-2 border-dashed px-5 py-7 text-center transition ${
-                              dragActive
-                                ? "border-brand-600 bg-brand-50"
-                                : "border-brand-800/15 bg-white hover:border-brand-800/25 hover:bg-brand-50/20"
-                            }`}
+                            className={`flex min-h-[190px] flex-col items-center justify-center rounded-2xl border-2 border-dashed px-5 py-7 text-center transition ${dragActive
+                              ? "border-brand-600 bg-brand-50"
+                              : "border-brand-800/15 bg-white hover:border-brand-800/25 hover:bg-brand-50/20"
+                              }`}
                           >
                             <input
                               ref={fileInputRef}
@@ -1691,13 +1635,12 @@ export default function UploadPage() {
                                     >
                                       <div className="flex items-center gap-2.5 px-3 py-2.5">
                                         <span
-                                          className={`h-2 w-2 shrink-0 rounded-full ${
-                                            item.is_base
-                                              ? "bg-brand-500"
-                                              : uncertain
+                                          className={`h-2 w-2 shrink-0 rounded-full ${item.is_base
+                                            ? "bg-brand-500"
+                                            : uncertain
                                               ? "bg-red-400"
                                               : "bg-brand-800/20"
-                                          }`}
+                                            }`}
                                         />
 
                                         <div className="min-w-0 flex-1">
@@ -1770,11 +1713,10 @@ export default function UploadPage() {
                                           onClick={() =>
                                             toggleBatchItemExpanded(item.id)
                                           }
-                                          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${
-                                            expanded
-                                              ? "border-brand-900 bg-brand-900 text-white"
-                                              : "border-brand-800/15 text-brand-800/55 hover:bg-brand-50"
-                                          }`}
+                                          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${expanded
+                                            ? "border-brand-900 bg-brand-900 text-white"
+                                            : "border-brand-800/15 text-brand-800/55 hover:bg-brand-50"
+                                            }`}
                                           aria-label="Edit tipe dan pengaturan layer"
                                         >
                                           <SlidersHorizontal
@@ -1942,9 +1884,8 @@ export default function UploadPage() {
                   ) : (
                     <CollapsedSummary
                       title="Upload layer"
-                      detail={`${
-                        reviewFiles.length
-                      } layer · ${totalSizeMB.toFixed(1)} MB`}
+                      detail={`${reviewFiles.length
+                        } layer · ${totalSizeMB.toFixed(1)} MB`}
                       onEdit={() => setEditingFiles(true)}
                     />
                   )}
@@ -2009,11 +1950,10 @@ export default function UploadPage() {
                                       setTitle(`Survei Pertanian ${preset}`);
                                     }
                                   }}
-                                  className={`rounded-full border px-2.5 py-1.5 text-2xs font-bold transition ${
-                                    active
-                                      ? "border-brand-900 bg-brand-900 text-white"
-                                      : "border-brand-800/15 bg-white text-brand-800/60 hover:border-brand-800/20 hover:text-brand-900"
-                                  }`}
+                                  className={`rounded-full border px-2.5 py-1.5 text-2xs font-bold transition ${active
+                                    ? "border-brand-900 bg-brand-900 text-white"
+                                    : "border-brand-800/15 bg-white text-brand-800/60 hover:border-brand-800/20 hover:text-brand-900"
+                                    }`}
                                 >
                                   {preset.split(",")[0]}
                                 </button>
@@ -2190,7 +2130,7 @@ export default function UploadPage() {
                       </div>
 
                       <div className="mt-4">
-                        {metadataStillReading ? (
+                        {!loading && (metadataStillReading ? (
                           <div className="rounded-2xl bg-amber-50 px-3.5 py-3">
                             <div className="flex items-center gap-2">
                               <RefreshCw className="h-3.5 w-3.5 animate-spin text-amber-600" />
@@ -2207,20 +2147,7 @@ export default function UploadPage() {
                               upload.
                             </p>
                           </div>
-                        ) : (
-                          <div className="rounded-2xl bg-brand-50 px-3.5 py-3">
-                            <div className="flex items-center gap-2">
-                              <CheckCircle2
-                                className="h-3.5 w-3.5 text-brand-600"
-                                strokeWidth={2}
-                              />
-
-                              <p className="text-xs font-bold text-brand-900">
-                                Dataset siap diunggah.
-                              </p>
-                            </div>
-                          </div>
-                        )}
+                        ) : null)}
 
                         <button
                           type="submit"
@@ -2229,34 +2156,18 @@ export default function UploadPage() {
                             metadataStillReading ||
                             submitErrors.length > 0
                           }
-                          className={`mt-3 flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-xs font-bold transition ${
-                            submitErrors.length === 0 && !metadataStillReading
-                              ? "bg-brand-900 text-white shadow-card hover:-translate-y-0.5 hover:bg-brand-800 hover:shadow-card-hover"
-                              : "cursor-not-allowed bg-brand-800/8 text-brand-800/30"
-                          }`}
+                          aria-describedby={loading ? "upload-engine-progress" : undefined}
+                          className={`mt-3 flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:bg-brand-900 disabled:hover:shadow-none ${submitErrors.length === 0 && !metadataStillReading
+                            ? "bg-brand-900 text-white shadow-card hover:-translate-y-0.5 hover:bg-brand-800 hover:shadow-card-hover"
+                            : "cursor-not-allowed bg-brand-800/8 text-brand-800/30"
+                            }`}
                         >
-                          {loading ? (
-                            <>
-                              <RefreshCw
-                                className="h-3.5 w-3.5 animate-spin"
-                                strokeWidth={1.75}
-                              />
-
-                              {pmtilesStatus === "baking"
-                                ? `Mengompilasi PMTiles (${pmtilesProgress.completed}/${pmtilesProgress.total})...`
-                                : uploadProgress >= 99
-                                ? "Memeriksa berkas..."
-                                : "Mengunggah..."}
-                            </>
-                          ) : (
-                            <>
-                              Validasi & Import
-                              <ChevronRight
-                                className="h-3.5 w-3.5"
-                                strokeWidth={2}
-                              />
-                            </>
-                          )}
+                          Validasi & Import
+                          <ChevronRight
+                            className="h-3.5 w-3.5"
+                            strokeWidth={2}
+                            aria-hidden="true"
+                          />
                         </button>
                       </div>
                     </motion.section>

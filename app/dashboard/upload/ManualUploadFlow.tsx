@@ -99,13 +99,12 @@ function MiniDropzone({
   return (
     <div>
       <div
-        className={`relative overflow-hidden rounded-2xl border border-dashed p-3 transition ${
-          dragging
+        className={`relative overflow-hidden rounded-2xl border border-dashed p-3 transition ${dragging
             ? "border-brand-600 bg-brand-600/5"
             : file
-            ? "border-brand-600/15 bg-brand-50/40"
-            : "border-brand-800/15 bg-brand-50/25"
-        }`}
+              ? "border-brand-600/15 bg-brand-50/40"
+              : "border-brand-800/15 bg-brand-50/25"
+          }`}
         onDragOver={(event) => {
           event.preventDefault();
 
@@ -218,9 +217,8 @@ function MiniDropzone({
 
       <p
         aria-live="polite"
-        className={`mt-1.5 flex items-center gap-1.5 text-2xs font-semibold ${
-          error ? "text-red-600" : "text-brand-800/45"
-        }`}
+        className={`mt-1.5 flex items-center gap-1.5 text-2xs font-semibold ${error ? "text-red-600" : "text-brand-800/45"
+          }`}
       >
         {error ? (
           <>
@@ -275,9 +273,8 @@ function LayerTypeSelect({
         </span>
 
         <ChevronDown
-          className={`h-3.5 w-3.5 shrink-0 text-brand-800/35 transition-transform ${
-            open ? "rotate-180" : ""
-          }`}
+          className={`h-3.5 w-3.5 shrink-0 text-brand-800/35 transition-transform ${open ? "rotate-180" : ""
+            }`}
           strokeWidth={1.75}
         />
       </button>
@@ -297,11 +294,10 @@ function LayerTypeSelect({
                     onChange(option.value as ManualSlotItem["layer_type"]);
                     setOpen(false);
                   }}
-                  className={`flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-2xs font-semibold transition ${
-                    active
+                  className={`flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-2xs font-semibold transition ${active
                       ? "bg-brand-50 text-brand-900"
                       : "text-brand-800/70 hover:bg-brand-50/70 hover:text-brand-900"
-                  }`}
+                    }`}
                   role="option"
                   aria-selected={active}
                 >
@@ -355,9 +351,8 @@ function LayerTypePicker({
         <span className="truncate">Pilih jenis layer...</span>
 
         <ChevronDown
-          className={`h-3.5 w-3.5 shrink-0 text-brand-800/35 transition-transform ${
-            open ? "rotate-180" : ""
-          }`}
+          className={`h-3.5 w-3.5 shrink-0 text-brand-800/35 transition-transform ${open ? "rotate-180" : ""
+            }`}
           strokeWidth={1.75}
         />
       </button>
@@ -632,9 +627,8 @@ export function ManualUploadFlow({
 
                 <div
                   aria-live="polite"
-                  className={`mt-2 flex items-center gap-1.5 text-2xs font-semibold ${
-                    slotErrors.length ? "text-red-600" : "text-emerald-600"
-                  }`}
+                  className={`mt-2 flex items-center gap-1.5 text-2xs font-semibold ${slotErrors.length ? "text-red-600" : "text-emerald-600"
+                    }`}
                 >
                   {slotErrors.length ? (
                     <>
@@ -790,37 +784,28 @@ export function UploadReview({
         </ul>
       </div>
 
-      <div
-        id="submit-readiness"
-        role="status"
-        className={`mt-4 flex items-center gap-2 rounded-2xl px-3.5 py-3 text-2xs font-bold ${
-          loading
-            ? "bg-brand-900 text-white"
-            : ready
-            ? "bg-emerald-50 text-emerald-700"
-            : "bg-brand-50 text-brand-800/60"
-        }`}
-      >
-        {loading ? (
-          <>
-            <RefreshCw
-              className="h-3.5 w-3.5 shrink-0 animate-spin"
-              aria-hidden="true"
-            />
-            Unggah berjalan · formulir dikunci
-          </>
-        ) : ready ? (
-          <>
-            <CheckCircle2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-            Dataset siap diunggah
-          </>
-        ) : (
-          <>
-            <Circle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-            Lengkapi bagian yang masih diperlukan
-          </>
-        )}
-      </div>
+      {!loading && (
+        <div
+          id="submit-readiness"
+          role="status"
+          className={`mt-4 flex items-center gap-2 rounded-2xl px-3.5 py-3 text-2xs font-bold ${ready
+              ? "bg-emerald-50 text-emerald-700"
+              : "bg-brand-50 text-brand-800/60"
+            }`}
+        >
+          {ready ? (
+            <>
+              <CheckCircle2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              Dataset siap diunggah
+            </>
+          ) : (
+            <>
+              <Circle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              Lengkapi bagian yang masih diperlukan
+            </>
+          )}
+        </div>
+      )}
     </section>
   );
 }
@@ -834,35 +819,35 @@ export function UploadGuide() {
     icon: React.ReactNode;
     text: React.ReactNode;
   }[] = [
-    {
-      icon: <FileText className="h-4 w-4" aria-hidden="true" />,
-      text: (
-        <>
-          <strong>GeoTIFF (.tif/.tiff)</strong> adalah raster hasil pengolahan
-          drone seperti Pix4D atau DroneDeploy. Ukuran maksimum{" "}
-          <strong>{MAX_FILE_SIZE_LABEL}</strong> per file.
-        </>
-      ),
-    },
-    {
-      icon: <Layers className="h-4 w-4" aria-hidden="true" />,
-      text: (
-        <>
-          <strong>Ortho</strong> = foto dasar · <strong>NDVI/VARI</strong> =
-          vegetasi · <strong>N/P/K</strong> = hara · <strong>DSM</strong> =
-          elevasi.
-        </>
-      ),
-    },
-    {
-      icon: <ShieldCheck className="h-4 w-4" aria-hidden="true" />,
-      text: "CRS dan metadata diperiksa otomatis oleh server setelah unggah.",
-    },
-    {
-      icon: <RefreshCw className="h-4 w-4" aria-hidden="true" />,
-      text: "Peta diproses ke PMTiles di background dan dapat membutuhkan beberapa saat.",
-    },
-  ];
+      {
+        icon: <FileText className="h-4 w-4" aria-hidden="true" />,
+        text: (
+          <>
+            <strong>GeoTIFF (.tif/.tiff)</strong> adalah raster hasil pengolahan
+            drone seperti Pix4D atau DroneDeploy. Ukuran maksimum{" "}
+            <strong>{MAX_FILE_SIZE_LABEL}</strong> per file.
+          </>
+        ),
+      },
+      {
+        icon: <Layers className="h-4 w-4" aria-hidden="true" />,
+        text: (
+          <>
+            <strong>Ortho</strong> = foto dasar · <strong>NDVI/VARI</strong> =
+            vegetasi · <strong>N/P/K</strong> = hara · <strong>DSM</strong> =
+            elevasi.
+          </>
+        ),
+      },
+      {
+        icon: <ShieldCheck className="h-4 w-4" aria-hidden="true" />,
+        text: "CRS dan metadata diperiksa otomatis oleh server setelah unggah.",
+      },
+      {
+        icon: <RefreshCw className="h-4 w-4" aria-hidden="true" />,
+        text: "Peta diproses ke PMTiles di background dan dapat membutuhkan beberapa saat.",
+      },
+    ];
 
   return (
     <details className="glass group p-5">

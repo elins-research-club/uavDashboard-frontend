@@ -39,12 +39,24 @@ body {
       0 2px 8px rgba(18, 60, 40, 0.08);
   }
 
-  .liquid-badge::before {
+  /* Opt-in specular surface. Avoid on containers with non-portalled overlays. */
+  .glass-specular {
+    @apply relative overflow-hidden;
+  }
+
+  .glass-specular::before,
+  .liquid-badge::before,
+  .icon-ring::before {
     content: "";
-    @apply pointer-events-none absolute inset-x-2 top-0 h-1/2 rounded-full;
+    @apply pointer-events-none absolute top-0 h-1/2 rounded-full;
     background: linear-gradient(180deg,
         rgba(255, 255, 255, 0.55),
         rgba(255, 255, 255, 0));
+  }
+
+  .glass-specular::before,
+  .liquid-badge::before {
+    @apply inset-x-2;
   }
 
   /* Liquid badge varian gelap (di atas foto / brand-900) */
@@ -103,10 +115,6 @@ body {
   }
 
   .icon-ring::before {
-    content: "";
-    @apply pointer-events-none absolute inset-x-1.5 top-0 h-1/2 rounded-full;
-    background: linear-gradient(180deg,
-        rgba(255, 255, 255, 0.55),
-        rgba(255, 255, 255, 0));
+    @apply inset-x-1.5;
   }
 }

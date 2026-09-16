@@ -3,7 +3,7 @@
  * Perubahan di sini akan mempengaruhi seluruh situs.
  */
 import "./globals.css";
-import { Inter } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import { UserRoleProvider } from "@/context/UserRoleContext";
 
 /* Sans-serif geometris seperti desain referensi sidebar
@@ -12,6 +12,12 @@ const inter = Inter({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-inter",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-mono",
 });
 
 export const metadata = {
@@ -23,7 +29,7 @@ export default function RootLayout({ children }) {
   return (
     // TAMBAHKAN 'suppressHydrationWarning' DI KEDUA BARIS INI
     <html lang="en" suppressHydrationWarning={true}>
-      <body suppressHydrationWarning={true} className={inter.variable}>
+      <body suppressHydrationWarning={true} className={`${inter.variable} ${jetbrainsMono.variable}`}>
         <UserRoleProvider>{children}</UserRoleProvider>
       </body>
     </html>

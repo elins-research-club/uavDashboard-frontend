@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useUserRole } from "@/context/UserRoleContext";
 import api from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 import {
   Map as MapIcon,
@@ -339,9 +340,8 @@ export default function MapsPage() {
       return;
     }
 
-    const shareUrl = `${window.location.origin}${
-      window.location.pathname
-    }?map=${encodeURIComponent(selectedMapRaw.id)}`;
+    const shareUrl = `${window.location.origin}${window.location.pathname
+      }?map=${encodeURIComponent(selectedMapRaw.id)}`;
 
     const shareTitle = selectedMapRaw.title || "Peta Geospasial";
 
@@ -662,7 +662,7 @@ export default function MapsPage() {
         lg:py-6
       "
     >
-      <div className="mx-auto max-w-7xl">
+      <div className="w-full">
         {/* ===================================================
             PAGE HEADER
         ==================================================== */}
@@ -882,10 +882,9 @@ export default function MapsPage() {
                         sm:gap-2
                         sm:px-4
                         sm:text-[11px]
-                        ${
-                          !isAdmin && user?.tier === "free"
-                            ? "cursor-not-allowed border border-[#123c28]/10 bg-[#fafbf8] text-[#123c28]/35"
-                            : "bg-[#123c28] text-white hover:bg-[#1a5134]"
+                        ${!isAdmin && user?.tier === "free"
+                          ? "cursor-not-allowed border border-[#123c28]/10 bg-[#fafbf8] text-[#123c28]/35"
+                          : "bg-[#123c28] text-white hover:bg-[#1a5134]"
                         }
                       `}
                     >
@@ -904,92 +903,7 @@ export default function MapsPage() {
                       </span>
                     </button>
 
-                    {/* MAP CONTROLS */}
 
-                    <div className="flex h-8 items-center gap-0 rounded-full border border-[#123c28]/10 bg-white p-0.5 sm:h-10 sm:gap-0.5 sm:p-1">
-                      <button
-                        type="button"
-                        onClick={handleZoomIn}
-                        disabled={!selectedMapRaw}
-                        title="Zoom In"
-                        aria-label="Zoom In"
-                        className="
-                          flex
-                          h-7
-                          w-7
-                          items-center
-                          justify-center
-                          rounded-full
-                          text-[#123c28]/70
-                          transition
-                          hover:bg-[#f3f6ed]
-                          hover:text-[#123c28]
-                          disabled:cursor-not-allowed
-                          disabled:opacity-30
-                          sm:h-8
-                          sm:w-8
-                        "
-                      >
-                        <ZoomIn className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={handleZoomOut}
-                        disabled={!selectedMapRaw}
-                        title="Zoom Out"
-                        aria-label="Zoom Out"
-                        className="
-                          flex
-                          h-7
-                          w-7
-                          items-center
-                          justify-center
-                          rounded-full
-                          text-[#123c28]/70
-                          transition
-                          hover:bg-[#f3f6ed]
-                          hover:text-[#123c28]
-                          disabled:cursor-not-allowed
-                          disabled:opacity-30
-                          sm:h-8
-                          sm:w-8
-                        "
-                      >
-                        <ZoomOut className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={handleFullscreen}
-                        title={
-                          isFullscreen ? "Keluar Layar Penuh" : "Full Screen"
-                        }
-                        aria-label={
-                          isFullscreen ? "Keluar Layar Penuh" : "Full Screen"
-                        }
-                        className="
-                          flex
-                          h-7
-                          w-7
-                          items-center
-                          justify-center
-                          rounded-full
-                          text-[#123c28]/70
-                          transition
-                          hover:bg-[#f3f6ed]
-                          hover:text-[#123c28]
-                          sm:h-8
-                          sm:w-8
-                        "
-                      >
-                        {isFullscreen ? (
-                          <Minimize2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                        ) : (
-                          <Maximize2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                        )}
-                      </button>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -1000,11 +914,10 @@ export default function MapsPage() {
 
               <div
                 ref={mapContainerRef}
-                className={`relative w-full bg-[#f1f3ed] ${
-                  isFullscreen
-                    ? "h-screen w-screen"
-                    : "h-[420px] sm:h-[560px] lg:h-[620px]"
-                }`}
+                className={`relative w-full bg-[#f1f3ed] ${isFullscreen
+                  ? "h-screen w-screen"
+                  : "h-[420px] sm:h-[560px] lg:h-[620px]"
+                  }`}
               >
                 <Map
                   ref={mapRef}
@@ -1020,6 +933,7 @@ export default function MapsPage() {
                   isFullscreen={isFullscreen}
                   onToggleFullscreen={handleFullscreen}
                 />
+
 
                 {/* =================================================
                     FLOATING TOGGLE BUTTON
@@ -1250,39 +1164,19 @@ export default function MapsPage() {
                                 }
                               }
                             }}
-                            className={`
-                                group
-                                relative
-                                overflow-hidden
-                                rounded-lg
-                                border
-                                p-2.5
-                                transition-all
-                                duration-200
-                                select-none
-                                sm:rounded-xl
-                                sm:p-3
-                                ${
-                                  active
-                                    ? "border-emerald-500/30 bg-gradient-to-br from-[#1b4d35] via-[#123c28] to-[#0c271a] text-white shadow-[0_10px_22px_-7px_rgba(18,60,40,0.42),0_3px_10px_-2px_rgba(18,60,40,0.28),inset_0_1px_1px_rgba(255,255,255,0.22)] ring-1 ring-white/10 -translate-y-0.5"
-                                    : "border-gray-200/90 bg-white shadow-[0_2px_4px_rgba(0,0,0,0.04)] hover:-translate-y-0.5 hover:border-gray-300 hover:bg-gray-50/80 hover:shadow-md"
-                                }
-                                ${
-                                  layer.locked
-                                    ? "cursor-not-allowed opacity-70"
-                                    : "cursor-pointer"
-                                }
-                              `}
-                          >
-                            {/* Ambient */}
-
-                            {active && (
-                              <>
-                                <div className="pointer-events-none absolute -right-8 -top-8 h-20 w-20 rounded-full bg-emerald-400/15 blur-xl sm:-right-10 sm:-top-10 sm:h-28 sm:w-28" />
-
-                                <div className="pointer-events-none absolute -bottom-8 -left-8 h-20 w-20 rounded-full bg-black/25 blur-lg sm:-bottom-10 sm:-left-10 sm:h-24 sm:w-24" />
-                              </>
+                            aria-pressed={active}
+                            className={cn(
+                              "group relative overflow-hidden select-none p-3 text-brand-950",
+                              "rounded-2xl border border-white/60 bg-white/70 shadow-glass backdrop-blur-xl",
+                              "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-700/10",
+                              {
+                                "border-brand-900 bg-brand-800 text-white shadow-[inset_0_2px_5px_rgba(0,0,0,0.28),inset_0_1px_2px_rgba(0,0,0,0.18)]": active,
+                                "cursor-not-allowed": layer.locked,
+                                "cursor-pointer": !layer.locked,
+                                "hover:bg-white/90": !layer.locked && !active,
+                              }
                             )}
+                          >
 
                             {/* Card Header */}
 
@@ -1290,24 +1184,16 @@ export default function MapsPage() {
                               <div className="min-w-0 flex-1">
                                 <div className="flex flex-wrap items-center gap-1">
                                   <h3
-                                    className={`break-words whitespace-normal text-[9px] font-bold leading-snug sm:text-[10px] md:text-xs ${
-                                      active
-                                        ? "text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
-                                        : "text-gray-900"
-                                    }`}
+                                    className={cn("whitespace-normal break-words text-sm font-bold leading-snug", active ? "text-white" : "text-brand-950")}
                                   >
                                     {layer.name}
                                   </h3>
 
                                   {layer.locked && (
                                     <span
-                                      className={`inline-flex shrink-0 items-center gap-0.5 rounded-full px-1 py-0.5 text-[6px] font-bold sm:px-1.5 sm:text-[8px] ${
-                                        active
-                                          ? "border border-white/20 bg-white/15 text-amber-300"
-                                          : "border border-amber-200/60 bg-amber-50 text-amber-700"
-                                      }`}
+                                      className={cn("inline-flex shrink-0 items-center gap-1 rounded-full border border-status-warning-icon/20 bg-status-warning-bg px-2 py-0.5 text-xs font-medium text-status-warning-text")}
                                     >
-                                      <Lock className="h-2 w-2 sm:h-2.5 sm:w-2.5" />
+                                      <Lock className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden="true" />
                                       Pro
                                     </span>
                                   )}
@@ -1317,20 +1203,16 @@ export default function MapsPage() {
                               {/* Actions */}
 
                               {(isAdmin || !layer.locked) && (
-                                <div className="flex shrink-0 items-center gap-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
+                                <div className="flex shrink-0 items-center gap-0.5 opacity-100 transition-opacity duration-200 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
                                   <button
                                     type="button"
                                     onClick={(event) =>
                                       openEditModal(raw, event)
                                     }
-                                    className={`flex h-5 w-5 items-center justify-center rounded-md transition sm:h-6 sm:w-6 ${
-                                      active
-                                        ? "text-white/70 hover:bg-white/15 hover:text-white"
-                                        : "text-gray-400 hover:bg-white hover:text-gray-800 hover:shadow-xs"
-                                    }`}
+                                    className={cn("flex h-8 w-8 items-center justify-center rounded-xl focus-visible:outline-none focus-visible:ring-4", active ? "text-white/80 hover:bg-white/15 hover:text-white focus-visible:ring-white/50" : "text-brand-800/60 hover:bg-brand-50 hover:text-brand-800 focus-visible:ring-brand-700/10")}
                                     title="Edit peta"
                                   >
-                                    <Pencil className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                                    <Pencil className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
                                   </button>
 
                                   <button
@@ -1338,14 +1220,10 @@ export default function MapsPage() {
                                     onClick={(event) =>
                                       openDeleteConfirm(raw, event)
                                     }
-                                    className={`flex h-5 w-5 items-center justify-center rounded-md transition sm:h-6 sm:w-6 ${
-                                      active
-                                        ? "text-white/70 hover:bg-red-500/30 hover:text-red-200"
-                                        : "text-gray-400 hover:bg-red-50 hover:text-red-600"
-                                    }`}
+                                    className={cn("flex h-8 w-8 items-center justify-center rounded-xl hover:bg-status-error-bg hover:text-status-error-text focus-visible:outline-none focus-visible:ring-4", active ? "text-white/80 focus-visible:ring-white/50" : "text-brand-800/60 focus-visible:ring-status-error-icon/10")}
                                     title="Hapus peta"
                                   >
-                                    <Trash2 className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                                    <Trash2 className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
                                   </button>
                                 </div>
                               )}
@@ -1353,60 +1231,25 @@ export default function MapsPage() {
 
                             {/* META */}
 
-                            <div className="relative z-10 mt-1.5 flex flex-col gap-0.5 text-[8px] sm:mt-2 sm:gap-1 sm:text-[9px] md:text-[10px]">
+                            <div
+                              aria-hidden="true"
+                              className={cn(
+                                "relative my-3 h-px",
+                                active
+                                  ? "bg-gradient-to-r from-white/5 via-black/25 to-white/5 shadow-[0_1px_0_rgba(255,255,255,0.14)]"
+                                  : "bg-gradient-to-r from-transparent via-brand-800/15 to-transparent shadow-[0_1px_0_rgba(255,255,255,0.9)]"
+                              )}
+                            />
+
+                            <div className={cn("relative flex flex-col gap-1.5 text-xs font-medium", active ? "text-white/80" : "text-brand-800/70")}>
                               {/* DATE */}
 
                               <div
-                                className={`flex items-center gap-1 font-medium ${
-                                  active ? "text-white/85" : "text-gray-500"
-                                }`}
+                                className={cn("flex items-center gap-2")}
                               >
-                                <svg
-                                  className={`h-2.5 w-2.5 shrink-0 sm:h-3 sm:w-3 ${
-                                    active
-                                      ? "text-white"
-                                      : "text-emerald-700/80"
-                                  }`}
-                                  viewBox="0 0 16 16"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="1.6"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                >
-                                  <rect
-                                    x="2"
-                                    y="3"
-                                    width="12"
-                                    height="11"
-                                    rx="2.5"
-                                  />
+                                <Calendar className={cn("h-3.5 w-3.5 shrink-0", active ? "text-white/70" : "text-brand-800/60")} strokeWidth={1.5} aria-hidden="true" />
 
-                                  <path d="M5 1.5v2.5M11 1.5v2.5M2 6.5h12" />
-
-                                  <circle
-                                    cx="5.5"
-                                    cy="9.5"
-                                    r="0.75"
-                                    fill="currentColor"
-                                  />
-
-                                  <circle
-                                    cx="8"
-                                    cy="9.5"
-                                    r="0.75"
-                                    fill="currentColor"
-                                  />
-
-                                  <circle
-                                    cx="10.5"
-                                    cy="9.5"
-                                    r="0.75"
-                                    fill="currentColor"
-                                  />
-                                </svg>
-
-                                <span className="whitespace-normal break-words">
+                                <span className="whitespace-normal break-words font-mono tabular-nums">
                                   {layer.date}
                                 </span>
                               </div>
@@ -1414,27 +1257,9 @@ export default function MapsPage() {
                               {/* LOCATION */}
 
                               <div
-                                className={`flex items-start gap-1 font-medium ${
-                                  active ? "text-white/95" : "text-gray-600"
-                                }`}
+                                className={cn("flex items-start gap-2")}
                               >
-                                <svg
-                                  className={`mt-0.5 h-2.5 w-2.5 shrink-0 sm:h-3 sm:w-3 ${
-                                    active
-                                      ? "text-white"
-                                      : "text-emerald-700/80"
-                                  }`}
-                                  viewBox="0 0 16 16"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="1.6"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                >
-                                  <path d="M8 14.5s-4.5-4-4.5-7.5a4.5 4.5 0 1 1 9 0c0 3.5-4.5 7.5-4.5 7.5z" />
-
-                                  <circle cx="8" cy="7" r="1.75" />
-                                </svg>
+                                <MapPin className={cn("mt-0.5 h-3.5 w-3.5 shrink-0", active ? "text-white/70" : "text-brand-800/60")} strokeWidth={1.5} aria-hidden="true" />
 
                                 <span className="whitespace-normal break-words leading-tight">
                                   {layer.location}
@@ -1543,10 +1368,9 @@ export default function MapsPage() {
             sm:px-4
             sm:py-3.5
             sm:text-xs
-            ${
-              notice.type === "success"
-                ? "bg-[#123c28] text-white"
-                : "bg-[#a3483c] text-white"
+            ${notice.type === "success"
+              ? "bg-[#123c28] text-white"
+              : "bg-[#a3483c] text-white"
             }
           `}
         >
@@ -1710,8 +1534,8 @@ export default function MapsPage() {
                               (metadataMap.geo_metadata.bands === 3
                                 ? "Ortho True-Color (3 Saluran RGB)"
                                 : metadataMap.geo_metadata.bands === 1
-                                ? "Single-Band (Analisis Indeks / Unsur Hara)"
-                                : `${metadataMap.geo_metadata.bands} Saluran Multispektral`)}
+                                  ? "Single-Band (Analisis Indeks / Unsur Hara)"
+                                  : `${metadataMap.geo_metadata.bands} Saluran Multispektral`)}
                           </p>
                         </div>
 
@@ -1728,41 +1552,41 @@ export default function MapsPage() {
                       {(() => {
                         const bandsList =
                           metadataMap.geo_metadata.band_details &&
-                          metadataMap.geo_metadata.band_details.length > 0
+                            metadataMap.geo_metadata.band_details.length > 0
                             ? metadataMap.geo_metadata.band_details
                             : Array.from(
-                                {
-                                  length: metadataMap.geo_metadata.bands || 1,
-                                },
-                                (_, idx) => {
-                                  const b = idx + 1;
+                              {
+                                length: metadataMap.geo_metadata.bands || 1,
+                              },
+                              (_, idx) => {
+                                const b = idx + 1;
 
-                                  const dtype =
-                                    metadataMap.geo_metadata.dtypes?.[idx] ||
-                                    "uint8";
+                                const dtype =
+                                  metadataMap.geo_metadata.dtypes?.[idx] ||
+                                  "uint8";
 
-                                  let label = `Saluran ${b}`;
+                                let label = `Saluran ${b}`;
 
-                                  if (metadataMap.geo_metadata.bands === 3) {
-                                    label =
-                                      b === 1
-                                        ? "Red (Merah)"
-                                        : b === 2
+                                if (metadataMap.geo_metadata.bands === 3) {
+                                  label =
+                                    b === 1
+                                      ? "Red (Merah)"
+                                      : b === 2
                                         ? "Green (Hijau)"
                                         : "Blue (Biru)";
-                                  } else if (
-                                    metadataMap.geo_metadata.bands === 1
-                                  ) {
-                                    label = "Nilai Analisis / Indeks";
-                                  }
-
-                                  return {
-                                    band: b,
-                                    label,
-                                    dtype,
-                                  };
+                                } else if (
+                                  metadataMap.geo_metadata.bands === 1
+                                ) {
+                                  label = "Nilai Analisis / Indeks";
                                 }
-                              );
+
+                                return {
+                                  band: b,
+                                  label,
+                                  dtype,
+                                };
+                              }
+                            );
 
                         return (
                           <div className="mt-1.5 space-y-1 border-t border-[#123c28]/10 pt-1.5 sm:mt-2 sm:pt-2">
@@ -1791,12 +1615,12 @@ export default function MapsPage() {
                                 const dotColor = isRed
                                   ? "bg-rose-500"
                                   : isGreen
-                                  ? "bg-emerald-500"
-                                  : isBlue
-                                  ? "bg-sky-500"
-                                  : isAlpha
-                                  ? "bg-slate-400"
-                                  : "bg-amber-500";
+                                    ? "bg-emerald-500"
+                                    : isBlue
+                                      ? "bg-sky-500"
+                                      : isAlpha
+                                        ? "bg-slate-400"
+                                        : "bg-amber-500";
 
                                 return (
                                   <div
@@ -2046,10 +1870,9 @@ export default function MapsPage() {
                     sm:rounded-2xl
                     sm:px-4
                     sm:text-sm
-                    ${
-                      editErrors.title
-                        ? "border-red-400 focus:border-red-500"
-                        : "border-[#123c28]/15 focus:border-[#123c28]/40"
+                    ${editErrors.title
+                      ? "border-red-400 focus:border-red-500"
+                      : "border-[#123c28]/15 focus:border-[#123c28]/40"
                     }
                   `}
                   placeholder="Contoh: Peta Orthomosaic Lahan Padi - Jul 2026"
@@ -2101,10 +1924,9 @@ export default function MapsPage() {
                       sm:pl-10
                       sm:pr-4
                       sm:text-sm
-                      ${
-                        editErrors.location
-                          ? "border-red-400 focus:border-red-500"
-                          : "border-[#123c28]/15 focus:border-[#123c28]/40"
+                      ${editErrors.location
+                        ? "border-red-400 focus:border-red-500"
+                        : "border-[#123c28]/15 focus:border-[#123c28]/40"
                       }
                     `}
                     placeholder="Contoh: Desa Sriharjo, Kec. Imogiri, Bantul"
@@ -2156,10 +1978,9 @@ export default function MapsPage() {
                       sm:pl-10
                       sm:pr-4
                       sm:text-sm
-                      ${
-                        editErrors.survey_date
-                          ? "border-red-400 focus:border-red-500"
-                          : "border-[#123c28]/15 focus:border-[#123c28]/40"
+                      ${editErrors.survey_date
+                        ? "border-red-400 focus:border-red-500"
+                        : "border-[#123c28]/15 focus:border-[#123c28]/40"
                       }
                     `}
                   />

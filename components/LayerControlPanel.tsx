@@ -18,8 +18,6 @@ import {
   Layers,
   Loader2,
   Map as MapIcon,
-  Maximize2,
-  Minimize2,
   Mountain,
   Plus,
   RefreshCw,
@@ -504,25 +502,6 @@ export default function LayerControlPanel({
       ==================================================== */}
 
       <div className="flex items-center gap-1.5 rounded-2xl border border-gray-200 bg-white p-1.5 shadow-lg">
-        {/* =================================================
-            FULLSCREEN
-        ================================================== */}
-
-        {onToggleFullscreen && (
-          <button
-            type="button"
-            onClick={onToggleFullscreen}
-            title={isFullscreen ? "Keluar layar penuh" : "Layar penuh"}
-            aria-label={isFullscreen ? "Keluar layar penuh" : "Layar penuh"}
-            className={getIconButtonClass()}
-          >
-            {isFullscreen ? (
-              <Minimize2 className="h-4 w-4" />
-            ) : (
-              <Maximize2 className="h-4 w-4" />
-            )}
-          </button>
-        )}
 
         {/* =================================================
             BASEMAP

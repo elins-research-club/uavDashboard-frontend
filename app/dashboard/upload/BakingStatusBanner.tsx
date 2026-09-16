@@ -2,256 +2,180 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
 import {
-  CheckCircle2,
-  RefreshCw,
-  AlertCircle,
   X,
-  Layers,
   ArrowRight,
-  Sparkles,
-  AlertTriangle,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useBakingStatusStore } from "@/lib/stores/bakingStatusStore";
 import { useMapBakingPoll } from "@/hooks/useMapBakingPoll";
 
-export function BakingStatusBanner() {
-  useMapBakingPoll();
+interface BakingStatusBannerProps {
+  suppressed?: boolean;
+  uploadedDataset?: { mapId: string; title: string; totalLayers: number } | null;
+  onNewUpload?: () => void;
+}
 
+/** One result card owns persisted conversion status and post-upload actions. */
+export function BakingStatusBanner({
+  suppressed = false,
+  uploadedDataset,
+  onNewUpload,
+}: BakingStatusBannerProps) {
+  // Keep tracking mounted even when the current upload owns the visible progress.
+  useMapBakingPoll();
   const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  useEffect(() => setMounted(true), []);
 
   const active = useBakingStatusStore((s) => s.active);
   const dismiss = useBakingStatusStore((s) => s.dismiss);
-  const clear = useBakingStatusStore((s) => s.clear);
+  const tracked = active && (!uploadedDataset || active.mapId === uploadedDataset.mapId)
+    ? active
+    : null;
 
-  if (!mounted || !active || active.dismissed) return null;
+  if (!mounted || suppressed) return null;
+  if (!uploadedDataset && (!tracked || tracked.dismissed)) return null;
 
-  const total = active.layers.length;
-  const completed = active.layers.filter(
-    (l) => l.conversion_status === "completed"
-  ).length;
-  const failed = active.layers.filter((l) => l.conversion_status === "failed");
-  const stillWorking = active.layers.some(
-    (l) =>
-      l.conversion_status === "pending" || l.conversion_status === "processing"
-  );
-  const allDone = !stillWorking && failed.length === 0 && total > 0;
-  const partialFailed = !stillWorking && failed.length > 0;
-  const stillDetecting = total === 0;
-
-  const progressPct =
-    total > 0 ? Math.round((completed / total) * 100) : stillDetecting ? 15 : 0;
+  const mapId = uploadedDataset?.mapId ?? tracked!.mapId;
+  const title = uploadedDataset?.title ?? tracked!.mapTitle;
+  const layers = tracked?.layers ?? [];
+  const total = layers.length;
+  const completed = layers.filter((layer) => layer.conversion_status === "completed").length;
+  const failed = layers.filter((layer) => layer.conversion_status === "failed").length;
+  const allDone = total > 0 && completed === total;
+  const allFailed = total > 0 && failed === total;
+  const partialFailed = failed > 0 && !allFailed;
+  const working = total > completed + failed;
+  const checking = total === 0 && !!tracked;
+  const unavailable = !tracked;
+  const processing = working || checking;
+  const label = unavailable
+    ? "Status belum tersedia"
+    : allDone
+      ? "PMTiles siap"
+      : allFailed
+        ? "Konversi gagal"
+        : partialFailed
+          ? working ? "Diproses · sebagian gagal" : "Sebagian layer gagal"
+          : "Kompilasi PMTiles";
+  const detail = unavailable
+    ? "Dataset tersimpan · periksa status di peta"
+    : allDone
+      ? `${total} layer siap ditampilkan`
+      : allFailed
+        ? `${failed}/${total} layer gagal · dataset tersimpan`
+        : partialFailed
+          ? `${completed}/${total} layer siap · ${failed} gagal${working ? " · lainnya diproses" : ""}`
+          : checking
+            ? "Memeriksa status konversi"
+            : `${completed}/${total} layer siap · berjalan di background`;
 
   return (
-    <AnimatePresence>
-      <motion.section
-        key={active.mapId}
-        initial={{ opacity: 0, y: -10, scale: 0.99 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: -10, scale: 0.99 }}
-        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-        role="status"
-        aria-live="polite"
-        aria-atomic="true"
-        className={`relative mb-6 overflow-hidden rounded-3xl border p-5 shadow-glass backdrop-blur-xl transition-all duration-300 ${allDone
-          ? "border-emerald-500/25 bg-gradient-to-r from-emerald-50/90 via-white/85 to-emerald-50/50"
-          : partialFailed
-            ? "border-amber-500/30 bg-gradient-to-r from-amber-50/90 via-white/85 to-amber-50/50"
-            : failed.length > 0 && failed.length === total
-              ? "border-red-500/25 bg-gradient-to-r from-red-50/90 via-white/85 to-red-50/50"
-              : "border-brand-800/15 bg-gradient-to-r from-brand-50/90 via-white/85 to-brand-50/50"
-          }`}
-      >
-        {/* Subtle Ambient Glow Orbs */}
-        <div
-          aria-hidden
-          className={`pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full blur-2xl transition-all ${allDone
-            ? "bg-emerald-400/20"
-            : partialFailed
-              ? "bg-amber-400/20"
-              : failed.length > 0
-                ? "bg-red-400/20"
-                : "bg-brand-500/15"
-            }`}
-        />
-
-        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start">
-          {/* Status Icon */}
-          <div
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl shadow-sm transition-all duration-300 ${allDone
-              ? "bg-emerald-600 text-white ring-4 ring-emerald-500/15"
-              : partialFailed
-                ? "bg-amber-600 text-white ring-4 ring-amber-500/15"
-                : failed.length > 0 && failed.length === total
-                  ? "bg-red-600 text-white ring-4 ring-red-500/15"
-                  : "bg-brand-900 text-brand-300 ring-4 ring-brand-800/10"
-              }`}
-          >
+    <section
+      aria-label="Hasil upload dataset"
+      className="relative mb-4 rounded-2xl border border-black/[0.08] bg-white p-4 shadow-[0_12px_32px_-4px_rgba(0,0,0,0.08),0_4px_12px_-2px_rgba(0,0,0,0.03),inset_0_1px_0_rgba(255,255,255,1)] transition-all duration-300"
+    >
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-5">
+        <div className={cn("min-w-0 flex-1", !onNewUpload && "pr-9 md:pr-0")}>
+          <p className="text-xs font-medium text-brand-800/60">AMX GeoStream Engine</p>
+          <h2 className="mt-0.5 break-words text-sm font-bold leading-snug text-brand-950">{title}</h2>
+          <div role="status" aria-live="polite" aria-atomic="true" className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs leading-relaxed">
             {allDone ? (
-              <CheckCircle2 className="h-5 w-5" />
-            ) : partialFailed ? (
-              <AlertTriangle className="h-5 w-5" />
-            ) : failed.length > 0 && failed.length === total ? (
-              <AlertCircle className="h-5 w-5" />
-            ) : (
-              <RefreshCw className="h-5 w-5 animate-spin" />
-            )}
-          </div>
-
-          {/* Content Area */}
-          <div className="min-w-0 flex-1">
-            {/* Header / Micro-label & Status Pill */}
-            <div className="flex flex-wrap items-center gap-2">
-
-              {allDone ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/60 bg-emerald-100/90 px-2.5 py-0.5 text-3xs font-bold text-emerald-800 shadow-2xs">
-                  PMTiles Siap
-                </span>
-              ) : partialFailed ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/60 bg-amber-100/90 px-2.5 py-0.5 text-3xs font-bold text-amber-800 shadow-2xs">
-                  <AlertTriangle className="h-2.5 w-2.5" />
-                  Sebagian Gagal ({failed.length}/{total})
-                </span>
-              ) : failed.length > 0 && failed.length === total ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-red-300/60 bg-red-100/90 px-2.5 py-0.5 text-3xs font-bold text-red-800 shadow-2xs">
-                  <AlertCircle className="h-2.5 w-2.5" />
-                  Konversi Gagal
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 rounded-full border border-brand-800/15 bg-brand-100/80 px-2.5 py-0.5 text-3xs font-bold text-brand-900 shadow-2xs">
-                  <RefreshCw className="h-2.5 w-2.5 animate-spin text-brand-700" />
-                  {stillDetecting ? "Menyiapkan" : `Baking (${progressPct}%)`}
-                </span>
-              )}
-            </div>
-
-            {/* Title */}
-            <h2 className="mt-1 text-sm font-bold text-brand-900 sm:text-base">
-              {allDone
-                ? `"${active.mapTitle}" berhasil dikonversi ke PMTiles`
-                : partialFailed
-                  ? `"${active.mapTitle}" — sebagian layer gagal diproses`
-                  : failed.length > 0 && failed.length === total
-                    ? `"${active.mapTitle}" — konversi PMTiles gagal`
-                    : stillDetecting
-                      ? `Menyiapkan proses kompilasi "${active.mapTitle}"...`
-                      : `"${active.mapTitle}" sedang di-baking ke PMTiles`}
-            </h2>
-
-            {/* Description */}
-            <p className="mt-1 text-xs font-medium text-brand-800/65">
-              Proses berjalan di background, halaman ini tetap bisa dipakai
-            </p>
-
-            {/* Progress Bar (Visible while active/processing) */}
-            {!allDone && total > 0 && (
-              <div className="mt-3 space-y-1.5 max-w-md">
-                <div className="flex items-center justify-between text-2xs font-semibold">
-                  <span className="text-brand-800/60">Progres Konversi</span>
-                  <span className="font-mono text-brand-900">
-                    {completed} / {total} layer ({progressPct}%)
+              <span className="inline-flex items-center gap-1.5">
+                <span
+                  title="Format Cloud-Native PMTiles v3 (Protomaps Tile Archive)"
+                  className="inline-flex items-center overflow-hidden rounded-full border border-[#2525C5]/30 bg-white shadow-xs transition hover:border-[#2525C5]/60 hover:shadow-sm"
+                >
+                  <span className="flex items-center justify-center bg-[#2525C5] pl-2 pr-1.5 py-0.5">
+                    <img
+                      src="/pmtiles-logo.png"
+                      alt="PMTiles Logo"
+                      className="h-3.5 w-3.5 rounded-full"
+                    />
                   </span>
-                </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-brand-800/10">
-                  <motion.div
-                    className={`h-full rounded-full transition-all duration-500 ${failed.length > 0
-                      ? "bg-amber-500"
-                      : "bg-gradient-to-r from-brand-600 to-brand-400"
-                      }`}
-                    style={{
-                      width: `${Math.max(6, progressPct)}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            )}
+                  <span className="bg-[#2525C5]/5 pl-1.5 pr-2 py-0.5 font-mono text-[9.5px] font-bold tracking-tight text-[#2222D4]">
+                    PMTiles
+                  </span>
+                </span>
 
-            {/* Layer Chips */}
-            {total > 0 && (
-              <div className="mt-3.5 flex flex-wrap items-center gap-1.5">
-                {active.layers.map((layer) => {
-                  const isDone = layer.conversion_status === "completed";
-                  const isFail = layer.conversion_status === "failed";
-                  const isProcessing = layer.conversion_status === "processing";
-
-                  return (
-                    <span
-                      key={layer.id}
-                      title={
-                        layer.conversion_error
-                          ? `Gagal: ${layer.conversion_error}`
-                          : `Status: ${layer.conversion_status}`
-                      }
-                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-2xs font-semibold transition-all ${isDone
-                        ? "border-emerald-300/60 bg-emerald-50/90 text-emerald-800 hover:bg-emerald-100/90"
-                        : isFail
-                          ? "border-red-300/60 bg-red-50/90 text-red-800 hover:bg-red-100/90"
-                          : isProcessing
-                            ? "border-brand-400/60 bg-brand-100/80 text-brand-900 ring-2 ring-brand-500/10"
-                            : "border-brand-800/10 bg-white/80 text-brand-800/60"
-                        }`}
-                    >
-                      {isDone ? (
-                        <CheckCircle2 className="h-3 w-3 shrink-0 text-emerald-600" />
-                      ) : isFail ? (
-                        <AlertCircle className="h-3 w-3 shrink-0 text-red-600" />
-                      ) : isProcessing ? (
-                        <RefreshCw className="h-3 w-3 shrink-0 animate-spin text-brand-700" />
-                      ) : (
-                        <Layers className="h-3 w-3 shrink-0 text-brand-800/40" />
-                      )}
-                      <span className="max-w-[160px] truncate">{layer.name}</span>
-                    </span>
-                  );
-                })}
-              </div>
+                <span className="sr-only">PMTiles siap</span>
+              </span>
+            ) : (
+              <span className={cn(
+                "font-semibold",
+                unavailable || partialFailed ? "text-status-warning-text" : allFailed ? "text-status-error-text" : "text-brand-700"
+              )}>
+                {label}
+              </span>
             )}
-
-            {/* Action Buttons */}
-            {(allDone || partialFailed) && (
-              <div className="mt-4 flex flex-wrap items-center gap-2.5">
-                <Link
-                  href={`/dashboard/maps?id=${active.mapId}`}
-                  className="btn-brand"
-                >
-                  Buka di Map Viewer
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-                <button
-                  type="button"
-                  onClick={clear}
-                  className="btn-ghost"
-                >
-                  Tutup Notifikasi
-                </button>
-              </div>
-            )}
+            <span className="tabular-nums text-brand-800/70">{detail}</span>
           </div>
 
-          {/* Dismiss Button (for ongoing / non-cleared states) */}
-          <button
-            type="button"
-            onClick={allDone || partialFailed ? clear : dismiss}
-            aria-label={
-              allDone || partialFailed
-                ? "Tutup notifikasi"
-                : "Sembunyikan notifikasi sementara"
-            }
-            title={
-              allDone || partialFailed
-                ? "Tutup notifikasi"
-                : "Sembunyikan notifikasi sementara"
-            }
-            className="shrink-0 rounded-xl p-1.5 text-brand-800/40 transition hover:bg-brand-800/10 hover:text-brand-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          {processing && (
+            <div
+              role="progressbar"
+              aria-label="Layer PMTiles selesai dikonversi"
+              aria-valuemin={0}
+              aria-valuemax={total || undefined}
+              aria-valuenow={total > 0 ? completed : undefined}
+              className="mt-2 h-1 overflow-hidden rounded-full bg-brand-100"
+            >
+              <div
+                className={cn("h-full rounded-full bg-brand-500", checking ? "animate-pulse motion-reduce:animate-none" : "transition-[width] motion-reduce:transition-none")}
+                style={{ width: checking ? "100%" : `${(completed / total) * 100}%` }}
+              />
+            </div>
+          )}
         </div>
-      </motion.section>
-    </AnimatePresence>
+
+        <div className={cn("flex shrink-0 flex-wrap items-center gap-2", !onNewUpload && "md:pr-8")}>
+          <Link
+            href={`/dashboard/maps?id=${encodeURIComponent(mapId)}`}
+            className="inline-flex min-h-9 items-center justify-center gap-2 rounded-xl bg-brand-800 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
+          >
+            Buka di Map Viewer
+            <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden="true" />
+          </Link>
+          {onNewUpload && (
+            <button
+              type="button"
+              onClick={() => { dismiss(); onNewUpload(); }}
+              className="inline-flex min-h-9 items-center justify-center rounded-xl px-3 py-2 text-xs font-semibold text-brand-800 hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+            >
+              Upload dataset lain
+            </button>
+          )}
+        </div>
+      </div>
+
+      {!onNewUpload && (
+        <button
+          type="button"
+          onClick={dismiss}
+          aria-label="Tutup notifikasi konversi"
+          className="absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-xl text-brand-800/60 hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 md:top-1/2 md:-translate-y-1/2"
+        >
+          <X className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
+        </button>
+      )}
+
+      {failed > 0 && (
+        <details className="mt-3 rounded-xl border border-status-warning-border bg-status-warning-bg px-3 py-2 text-xs">
+          <summary className="cursor-pointer rounded font-semibold text-status-warning-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600">
+            Detail {failed} layer gagal
+          </summary>
+          <ul className="mt-2 space-y-2" aria-label="Layer gagal">
+            {layers.filter((layer) => layer.conversion_status === "failed").map((layer) => (
+              <li key={layer.id} className="break-words text-status-error-text">
+                <span className="font-semibold">{layer.name}</span>
+                <p className="mt-0.5 leading-relaxed">
+                  {layer.conversion_error || "Periksa detail konversi di Map Viewer."}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </section>
   );
 }

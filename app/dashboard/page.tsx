@@ -38,6 +38,7 @@ type MapRecord = {
 };
 
 const formatSize = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+const formatStorageGB = (bytes: number) => `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
 
 /* ============================================================
    STAT CARD — 3D orb versi refined:
@@ -185,7 +186,7 @@ export default function DashboardHomePage() {
     },
     {
       label: "Penyimpanan",
-      value: formatSize(totalStorage),
+      value: formatStorageGB(totalStorage),
       hint: "total file peta",
       icon: HardDrive,
       orbTint: "#8cc7a5",
