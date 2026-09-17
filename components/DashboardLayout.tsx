@@ -34,7 +34,9 @@ export default function DashboardLayout({
     let isMounted = true;
     const timeoutTimer = setTimeout(() => {
       if (isMounted && isLoading) {
-        setLoadError("Koneksi ke server backend memakan waktu terlalu lama. Pastikan server backend aktif di port 8001.");
+        setLoadError(
+          "Waktu tunggu respon server melebihi batas waktu (12 detik). Layanan backend mungkin sedang memproses antrean tinggi atau belum berjalan."
+        );
         setIsLoading(false);
       }
     }, 12000);
@@ -55,11 +57,17 @@ export default function DashboardLayout({
         if (err.response?.status === 401) {
           localStorage.removeItem("token");
           window.location.href = "/login";
+        } else if (err.code === "ECONNABORTED" || err.message?.includes("timeout")) {
+          setLoadError(
+            "Permintaan koneksi ke server mengalami timeout. Silakan periksa kestabilan jaringan internet Anda."
+          );
+        } else if (typeof navigator !== "undefined" && !navigator.onLine) {
+          setLoadError(
+            "Koneksi internet Anda terputus. Mohon periksa kembali sambungan Wi-Fi atau paket data seluler Anda."
+          );
         } else {
           setLoadError(
-            err.code === "ECONNABORTED" || err.message?.includes("timeout")
-              ? "Koneksi ke backend timeout (port 8001 tidak merespon)."
-              : "Gagal terhubung ke backend UAV DaaS. Silakan periksa koneksi server."
+            "Server backend tidak dapat dihubungi saat ini. Pastikan service backend aktif atau coba beberapa saat lagi."
           );
         }
       })
@@ -127,21 +135,42 @@ export default function DashboardLayout({
           </div>
 
           {/* Status Chip */}
-          <div className="mx-auto mb-2.5 inline-flex items-center gap-1.5 rounded-full border border-gray-200/70 bg-gray-50/90 px-2.5 py-0.5 text-[10.5px] font-semibold text-gray-500">
+          <div className="mx-auto mb-3 inline-flex items-center gap-1.5 rounded-full border border-rose-200/60 bg-rose-50/60 px-3 py-0.5 text-[10.5px] font-semibold text-rose-700">
             <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse" />
-            Koneksi Terputus
+            Sinkronisasi Terkendala
           </div>
 
           {/* Title & Description */}
-          <h2 className="text-lg font-bold tracking-tight text-[#123C28] sm:text-xl">
-            Gagal Memuat Platform
+          <h2 className="text-lg font-bold tracking-tight text-gray-900 sm:text-xl">
+            Tidak Dapat Menghubungkan ke Layanan
           </h2>
-          <p className="mt-2 text-xs sm:text-[13px] leading-relaxed text-gray-500 max-w-xs mx-auto">
-            {loadError}
+          <p className="mt-2 text-xs sm:text-[13px] leading-relaxed text-gray-500 max-w-sm mx-auto">
+            Sistem belum dapat memverifikasi sesi dan menyinkronkan data analitik pertanian Anda dari server UAV.
+          </p>
+
+          {/* Informative Diagnostic Box */}
+          <div className="mt-4 rounded-2xl border border-gray-200/60 bg-gray-50/80 p-3.5 text-left">
+            <div className="flex items-start gap-2.5">
+              <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-rose-100 text-[10px] font-bold text-rose-700">
+                i
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                  Penyebab Terdeteksi
+                </p>
+                <p className="mt-0.5 text-[11.5px] leading-relaxed text-gray-600">
+                  {loadError}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <p className="mt-3.5 text-[11px] text-gray-400">
+            Silakan muat ulang untuk mencoba menyambung kembali atau masuk ulang ke akun Anda.
           </p>
 
           {/* Action Buttons */}
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
             <button
               type="button"
               onClick={() => {
@@ -152,7 +181,7 @@ export default function DashboardLayout({
               className="group inline-flex items-center justify-center gap-2 rounded-xl bg-[#123C28] px-5 py-2.5 text-xs sm:text-sm font-bold text-white shadow-[0_4px_14px_rgba(18,60,40,0.25)] transition-all duration-200 hover:bg-[#1a5134] hover:shadow-[0_6px_20px_rgba(18,60,40,0.35)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] cursor-pointer"
             >
               <RotateCw className="h-3.5 w-3.5 transition-transform duration-300 group-hover:rotate-90" />
-              <span>Coba Lagi</span>
+              <span>Muat Ulang Halaman</span>
             </button>
             <button
               type="button"
@@ -163,7 +192,7 @@ export default function DashboardLayout({
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200/90 bg-white px-5 py-2.5 text-xs sm:text-sm font-semibold text-gray-700 shadow-xs transition-all duration-200 hover:border-gray-300 hover:bg-gray-50/80 hover:text-gray-900 active:scale-[0.98] cursor-pointer"
             >
               <LogOut className="h-3.5 w-3.5 text-gray-400" />
-              <span>Login Ulang</span>
+              <span>Kembali ke Login</span>
             </button>
           </div>
         </div>
