@@ -34,9 +34,7 @@ export default function DashboardLayout({
     let isMounted = true;
     const timeoutTimer = setTimeout(() => {
       if (isMounted && isLoading) {
-        setLoadError(
-          "Waktu tunggu respon server melebihi batas waktu (12 detik). Layanan backend mungkin sedang memproses antrean tinggi atau belum berjalan."
-        );
+        setLoadError("Waktu tunggu koneksi server habis. Silakan periksa jaringan Anda.");
         setIsLoading(false);
       }
     }, 12000);
@@ -58,17 +56,11 @@ export default function DashboardLayout({
           localStorage.removeItem("token");
           window.location.href = "/login";
         } else if (err.code === "ECONNABORTED" || err.message?.includes("timeout")) {
-          setLoadError(
-            "Permintaan koneksi ke server mengalami timeout. Silakan periksa kestabilan jaringan internet Anda."
-          );
+          setLoadError("Koneksi ke server timeout. Silakan coba kembali.");
         } else if (typeof navigator !== "undefined" && !navigator.onLine) {
-          setLoadError(
-            "Koneksi internet Anda terputus. Mohon periksa kembali sambungan Wi-Fi atau paket data seluler Anda."
-          );
+          setLoadError("Perangkat Anda offline. Periksa sambungan internet.");
         } else {
-          setLoadError(
-            "Server backend tidak dapat dihubungi saat ini. Pastikan service backend aktif atau coba beberapa saat lagi."
-          );
+          setLoadError("Tidak dapat terhubung ke server UAV. Silakan coba lagi.");
         }
       })
       .finally(() => {
@@ -120,57 +112,26 @@ export default function DashboardLayout({
         <div className="pointer-events-none absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-[#123C28]/[0.04] blur-3xl" />
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(#123c28_1px,transparent_1px)] [background-size:24px_24px] opacity-[0.025]" />
 
-        {/* Floating Card with depth & glassmorphism */}
-        <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-gray-200/80 bg-white/95 p-7 text-center shadow-[0_20px_50px_-12px_rgba(18,60,40,0.09),0_4px_16px_-2px_rgba(0,0,0,0.03)] backdrop-blur-xl transition-all sm:p-9">
+        {/* Floating Minimal Card with depth */}
+        <div className="relative w-full max-w-sm overflow-hidden rounded-3xl border border-gray-200/80 bg-white/95 p-8 text-center shadow-[0_20px_50px_-12px_rgba(18,60,40,0.08),0_4px_16px_-2px_rgba(0,0,0,0.02)] backdrop-blur-xl transition-all sm:p-9">
           {/* Top highlight shimmer */}
           <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#123C28]/15 to-transparent" />
-          <div className="pointer-events-none absolute -top-16 left-1/2 -translate-x-1/2 h-32 w-48 rounded-full bg-rose-500/[0.04] blur-2xl" />
 
-          {/* Layered Status Icon */}
-          <div className="relative mx-auto mb-4 flex h-16 w-16 items-center justify-center">
-            <div className="absolute inset-0 rounded-2xl bg-rose-500/[0.08] blur-md" />
-            <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl border border-rose-200/70 bg-gradient-to-b from-white via-rose-50/50 to-rose-100/30 text-rose-500 shadow-[0_4px_12px_rgba(244,63,94,0.12)]">
-              <AlertCircle className="h-6 w-6 stroke-[2.2]" />
-            </div>
+          {/* Ikon besar transparan tanpa bg */}
+          <div className="mx-auto mb-5 flex items-center justify-center">
+            <AlertCircle className="h-16 w-16 text-rose-500 stroke-[1.4] sm:h-20 sm:w-20" />
           </div>
 
-          {/* Status Chip */}
-          <div className="mx-auto mb-3 inline-flex items-center gap-1.5 rounded-full border border-rose-200/60 bg-rose-50/60 px-3 py-0.5 text-[10.5px] font-semibold text-rose-700">
-            <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse" />
-            Sinkronisasi Terkendala
-          </div>
-
-          {/* Title & Description */}
-          <h2 className="text-lg font-bold tracking-tight text-gray-900 sm:text-xl">
-            Tidak Dapat Menghubungkan ke Layanan
+          {/* Teks Minim */}
+          <h2 className="text-xl font-bold tracking-tight text-gray-900 sm:text-2xl">
+            Koneksi Terputus
           </h2>
-          <p className="mt-2 text-xs sm:text-[13px] leading-relaxed text-gray-500 max-w-sm mx-auto">
-            Sistem belum dapat memverifikasi sesi dan menyinkronkan data analitik pertanian Anda dari server UAV.
+          <p className="mt-2 text-xs leading-relaxed text-gray-500 sm:text-sm">
+            {loadError || "Tidak dapat terhubung ke server UAV. Silakan coba lagi."}
           </p>
 
-          {/* Informative Diagnostic Box */}
-          <div className="mt-4 rounded-2xl border border-gray-200/60 bg-gray-50/80 p-3.5 text-left">
-            <div className="flex items-start gap-2.5">
-              <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-rose-100 text-[10px] font-bold text-rose-700">
-                i
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                  Penyebab Terdeteksi
-                </p>
-                <p className="mt-0.5 text-[11.5px] leading-relaxed text-gray-600">
-                  {loadError}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <p className="mt-3.5 text-[11px] text-gray-400">
-            Silakan muat ulang untuk mencoba menyambung kembali atau masuk ulang ke akun Anda.
-          </p>
-
-          {/* Action Buttons */}
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+          {/* Tombol besar transparan tanpa bg */}
+          <div className="mt-8 flex flex-col gap-2.5 w-full">
             <button
               type="button"
               onClick={() => {
@@ -178,10 +139,10 @@ export default function DashboardLayout({
                 setIsLoading(true);
                 window.location.reload();
               }}
-              className="group inline-flex items-center justify-center gap-2 rounded-xl bg-[#123C28] px-5 py-2.5 text-xs sm:text-sm font-bold text-white shadow-[0_4px_14px_rgba(18,60,40,0.25)] transition-all duration-200 hover:bg-[#1a5134] hover:shadow-[0_6px_20px_rgba(18,60,40,0.35)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] cursor-pointer"
+              className="flex h-12 w-full items-center justify-center gap-2.5 rounded-2xl border-2 border-[#123C28] bg-transparent text-sm font-bold text-[#123C28] transition-all duration-150 hover:bg-[#123C28]/5 active:scale-[0.98] cursor-pointer"
             >
-              <RotateCw className="h-3.5 w-3.5 transition-transform duration-300 group-hover:rotate-90" />
-              <span>Muat Ulang Halaman</span>
+              <RotateCw className="h-4 w-4" />
+              <span>Coba Lagi</span>
             </button>
             <button
               type="button"
@@ -189,10 +150,10 @@ export default function DashboardLayout({
                 localStorage.removeItem("token");
                 window.location.href = "/login";
               }}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200/90 bg-white px-5 py-2.5 text-xs sm:text-sm font-semibold text-gray-700 shadow-xs transition-all duration-200 hover:border-gray-300 hover:bg-gray-50/80 hover:text-gray-900 active:scale-[0.98] cursor-pointer"
+              className="flex h-12 w-full items-center justify-center gap-2.5 rounded-2xl border border-gray-300/80 bg-transparent text-sm font-semibold text-gray-600 transition-all duration-150 hover:border-gray-400 hover:text-gray-900 active:scale-[0.98] cursor-pointer"
             >
-              <LogOut className="h-3.5 w-3.5 text-gray-400" />
-              <span>Kembali ke Login</span>
+              <LogOut className="h-4 w-4 text-gray-400" />
+              <span>Login Ulang</span>
             </button>
           </div>
         </div>
