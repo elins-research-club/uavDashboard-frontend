@@ -34,7 +34,7 @@ export default function DashboardLayout({
     let isMounted = true;
     const timeoutTimer = setTimeout(() => {
       if (isMounted && isLoading) {
-        setLoadError("Waktu tunggu koneksi server habis. Silakan periksa jaringan Anda.");
+        setLoadError("Silakan periksa koneksi server");
         setIsLoading(false);
       }
     }, 12000);
@@ -55,12 +55,8 @@ export default function DashboardLayout({
         if (err.response?.status === 401) {
           localStorage.removeItem("token");
           window.location.href = "/login";
-        } else if (err.code === "ECONNABORTED" || err.message?.includes("timeout")) {
-          setLoadError("Koneksi ke server timeout. Silakan coba kembali.");
-        } else if (typeof navigator !== "undefined" && !navigator.onLine) {
-          setLoadError("Perangkat Anda offline. Periksa sambungan internet.");
         } else {
-          setLoadError("Tidak dapat terhubung ke server UAV. Silakan coba lagi.");
+          setLoadError("Silakan periksa koneksi server");
         }
       })
       .finally(() => {
@@ -127,7 +123,7 @@ export default function DashboardLayout({
             Koneksi Terputus
           </h2>
           <p className="mt-2 text-xs leading-relaxed text-gray-500 sm:text-sm">
-            {loadError || "Tidak dapat terhubung ke server UAV. Silakan coba lagi."}
+            {loadError || "Silakan periksa koneksi server"}
           </p>
 
           {/* Tombol besar transparan tanpa bg */}
