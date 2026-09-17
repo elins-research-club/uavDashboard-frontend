@@ -194,13 +194,13 @@ export default function Sidebar({
      PERMISSIONS
   ========================================================== */
 
-  const canManageUsers = hasPermission("manage_users");
+  const canManageUsers = isGod || hasPermission("manage_users");
 
-  const canManageRoles = hasPermission("manage_roles");
+  const canManageRoles = isGod || hasPermission("manage_roles");
 
-  const canManagePricing = hasPermission("manage_pricing");
+  const canManagePricing = isGod || hasPermission("manage_pricing");
 
-  const canUploadMaps = hasPermission("upload_map");
+  const canUploadMaps = isGod || hasPermission("upload_map");
 
   /* ==========================================================
      MAIN MENU

@@ -8,6 +8,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -35,6 +36,7 @@ import {
 } from "lucide-react";
 
 import LayerControlPanel from "@/components/LayerControlPanel";
+import MapLegend from "@/components/MapLegend";
 import type { MapLayerItem } from "@/types/map";
 import { generatePetakGrid, type PetakProperties } from "@/lib/gridGenerator";
 
@@ -217,6 +219,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     const [currentMeta, setCurrentMeta] = useState<BoundsResponse | null>(null);
 
     const [mapLayers, setMapLayers] = useState<MapLayerItem[]>([]);
+    const [legendHost, setLegendHost] = useState<HTMLDivElement | null>(null);
 
     const [bearing, setBearing] = useState(0);
 
@@ -293,6 +296,8 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       x: number;
       y: number;
     } | null>(null);
+
+    const [popupHeight, setPopupHeight] = useState<number>(440);
 
     const gridDataRef = useRef<GeoJSON.FeatureCollection<
       GeoJSON.Polygon,
@@ -1133,6 +1138,29 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         }),
         "top-left"
       );
+
+      /* =====================================================
+         MAPLIBRE GL JS LEGEND CONTROL (NATIVE ICONTROL)
+      ====================================================== */
+      const legendIControl: maplibregl.IControl = {
+        onAdd: () => {
+          const div = document.createElement("div");
+          div.className = "maplibregl-ctrl maplibregl-ctrl-legend mb-2 mr-1.5 sm:mb-3 sm:mr-3";
+          div.addEventListener("mousedown", (e) => e.stopPropagation());
+          div.addEventListener("dblclick", (e) => e.stopPropagation());
+          div.addEventListener("wheel", (e) => e.stopPropagation());
+          div.addEventListener("touchstart", (e) => e.stopPropagation(), { passive: true });
+          div.addEventListener("pointerdown", (e) => e.stopPropagation());
+          setLegendHost(div);
+          return div;
+        },
+        onRemove: () => {
+          setLegendHost(null);
+        },
+        getDefaultPosition: () => "bottom-right",
+      };
+
+      map.addControl(legendIControl, "bottom-right");
 
       map.once("load", () => {
         setupInitialBasemaps();
@@ -3388,63 +3416,107 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             const cEl = containerRef.current;
 
             const containerW = cEl?.clientWidth || 800;
+            const containerH = cEl?.clientHeight || 600;
 
             const isSmall = containerW < 640;
+            const cardWidth = isSmall ? 260 : 300;
 
-            const cardWidth = isSmall ? 255 : 295;
+            // Safe margins from viewport edges:
+            // SAFE_TOP = 64px keeps clear of top toolbar (toolbar is at top-2/top-3)
+            const SAFE_TOP = 64;
+            const SAFE_BOTTOM = 16;
+            const SAFE_LEFT = 12;
+            const SAFE_RIGHT = 12;
 
-            const halfW = cardWidth / 2;
+            // Max allowed height inside viewport to never overflow vertically
+            const maxAllowedH = Math.max(220, containerH - SAFE_TOP - SAFE_BOTTOM);
+            const currentCardH = Math.min(popupHeight, maxAllowedH);
 
-            const clampX = Math.max(
-              halfW + 12,
-              Math.min(containerW - halfW - 12, petakScreenPos.x)
+            // Decide placement:
+            const spaceAbove = petakScreenPos.y - 14 - SAFE_TOP;
+            const spaceBelow = containerH - SAFE_BOTTOM - (petakScreenPos.y + 14);
+
+            let isAbove = false;
+            if (spaceAbove >= currentCardH) {
+              isAbove = true;
+            } else if (spaceBelow >= currentCardH) {
+              isAbove = false;
+            } else {
+              // Choose whichever side has more room
+              isAbove = spaceAbove >= spaceBelow;
+            }
+
+            // Ideal top position before clamping
+            const rawTop = isAbove
+              ? petakScreenPos.y - 14 - currentCardH
+              : petakScreenPos.y + 14;
+
+            // Strict boundary clamping (Bound to Layout)
+            const clampedTop = Math.max(
+              SAFE_TOP,
+              Math.min(containerH - SAFE_BOTTOM - currentCardH, rawTop)
             );
 
-            const isAbove = petakScreenPos.y >= (isSmall ? 240 : 320);
-
-            const arrowOffsetPercent = Math.max(
-              14,
-              Math.min(86, 50 + ((petakScreenPos.x - clampX) / cardWidth) * 100)
+            // Strict horizontal clamping
+            const rawLeft = petakScreenPos.x - cardWidth / 2;
+            const clampedLeft = Math.max(
+              SAFE_LEFT,
+              Math.min(containerW - SAFE_RIGHT - cardWidth, rawLeft)
             );
+
+            // Arrow position pointing at petak center (in pixels relative to card)
+            const arrowX = Math.max(
+              20,
+              Math.min(cardWidth - 20, petakScreenPos.x - clampedLeft)
+            );
+
+            // Arrow direction: if petak center is below the card midpoint, arrow sits at bottom
+            const arrowAtBottom = petakScreenPos.y >= (clampedTop + currentCardH / 2);
 
             return (
               <div
+                ref={(node) => {
+                  if (node) {
+                    const h = node.offsetHeight;
+                    if (h > 50 && Math.abs(h - popupHeight) > 10) {
+                      setPopupHeight(h);
+                    }
+                  }
+                }}
                 className={`
                   absolute
                   z-30
-                  ${isSmall ? "w-[255px]" : "w-[295px]"}
+                  ${isSmall ? "w-[260px]" : "w-[300px]"}
                   pointer-events-auto
-                  transition-transform
+                  transition-all
                   duration-75
                   ease-out
+                  flex
+                  flex-col
                 `}
                 style={{
-                  left: `${clampX}px`,
-                  top: `${
-                    isAbove ? petakScreenPos.y - 14 : petakScreenPos.y + 14
-                  }px`,
-                  transform: isAbove
-                    ? "translate(-50%, -100%)"
-                    : "translate(-50%, 0)",
+                  left: `${clampedLeft}px`,
+                  top: `${clampedTop}px`,
+                  maxHeight: `${maxAllowedH}px`,
                 }}
               >
-                {isAbove ? (
+                {arrowAtBottom ? (
                   <div
                     className="absolute -bottom-1.5 h-3 w-3 -translate-x-1/2 rotate-45 border-r border-b border-gray-200/80 bg-white shadow-xs"
                     style={{
-                      left: `${arrowOffsetPercent}%`,
+                      left: `${arrowX}px`,
                     }}
                   />
                 ) : (
                   <div
                     className="absolute -top-1.5 h-3 w-3 -translate-x-1/2 rotate-45 border-l border-t border-gray-200/80 bg-white shadow-xs"
                     style={{
-                      left: `${arrowOffsetPercent}%`,
+                      left: `${arrowX}px`,
                     }}
                   />
                 )}
 
-                <div className="relative rounded-xl border border-gray-200/90 bg-white/95 p-2.5 shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150 sm:rounded-2xl sm:p-3.5">
+                <div className="relative flex flex-col rounded-xl border border-gray-200/90 bg-white/95 p-2.5 shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150 sm:rounded-2xl sm:p-3.5 max-h-[inherit] overflow-y-auto">
                   <div className="flex items-start justify-between border-b border-gray-100 pb-1.5 sm:pb-2">
                     <div>
                       <div className="flex items-center gap-1">
@@ -3525,8 +3597,6 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                         ? "mdpl"
                         : isNutrient
                         ? "mg/kg"
-                        : isNDVI
-                        ? "Skala (-0.2 s/d 1.0)"
                         : "";
 
                       return (
@@ -3601,29 +3671,105 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                           ).toLowerCase();
 
                           const val = selectedPetak.value_mean;
+                          const status = selectedPetak.status;
 
                           if (lt.includes("ndvi") || lt.includes("vari")) {
                             if (val !== undefined) {
-                              if (val >= 0.42) {
-                                return "Tanaman Sehat (NDVI 0.42–0.92). Aktivitas fotosintesis dan klorofil kanopi sangat optimal. (Ref: Rahaldi et al., 2013)";
+                              const currentStatus =
+                                status ||
+                                (val >= 0.42
+                                  ? "Tinggi"
+                                  : val >= 0.22
+                                  ? "Sedang"
+                                  : val >= 0.11
+                                  ? "Rendah"
+                                  : "Non Vegetasi");
+
+                              if (
+                                val >= 0.42 ||
+                                currentStatus.toLowerCase().includes("tinggi")
+                              ) {
+                                return `${currentStatus} (NDVI ≥ 0.42). Kerapatan tajuk dan aktivitas fotosintesis vegetasi sangat optimal. (Ref: Rahaldi et al., 2013)`;
                               }
 
-                              if (val >= 0.22) {
-                                return "Tanaman Normal (NDVI 0.22–0.42). Kondisi tanaman wajar dengan kerapatan tajuk sedang/berjarak. (Ref: Rahaldi et al., 2013)";
+                              if (
+                                val >= 0.22 ||
+                                currentStatus.toLowerCase().includes("sedang")
+                              ) {
+                                return `${currentStatus} (NDVI 0.22–0.42). Kondisi tanaman wajar dengan kerapatan tajuk sedang/berjarak. (Ref: Rahaldi et al., 2013)`;
                               }
 
-                              if (val >= 0.11) {
-                                return "Tanaman Tidak Sehat (NDVI 0.11–0.22). Vegetasi terindikasi mengalami stres, kekurangan hara, atau kerusakan tajuk. (Ref: Rahaldi et al., 2013)";
+                              if (
+                                val >= 0.11 ||
+                                currentStatus.toLowerCase().includes("rendah")
+                              ) {
+                                return `${currentStatus} (NDVI 0.11–0.22). Vegetasi terindikasi mengalami stres, kekurangan hara, atau kerusakan tajuk. (Ref: Rahaldi et al., 2013)`;
                               }
 
-                              return "Non Vegetasi (NDVI < 0.11). Area lahan terbuka, tanah gundul, bebatuan, atau jalan kebun. (Ref: Rahaldi et al., 2013)";
+                              return `${currentStatus} (NDVI < 0.11). Area lahan terbuka, tanah gundul, bebatuan, atau jalan kebun. (Ref: Rahaldi et al., 2013)`;
+                            }
+                          } else if (lt.includes("nitrogen")) {
+                            if (val !== undefined) {
+                              const s =
+                                status ||
+                                (val >= 70
+                                  ? "Tinggi / Berlebih"
+                                  : val >= 35
+                                  ? "Optimal / Cukup"
+                                  : "Defisit Rendah");
+                              return `${s} (${val} mg/kg). ${
+                                val < 35
+                                  ? "Ketersediaan unsur hara nitrogen rendah, disarankan pemupukan N."
+                                  : val <= 70
+                                  ? "Ketersediaan unsur hara N dalam rentang optimal."
+                                  : "Kandungan hara N tinggi pada tajuk tanaman."
+                              }`;
+                            }
+                          } else if (
+                            lt.includes("phosphorus") ||
+                            lt.includes("fosfor")
+                          ) {
+                            if (val !== undefined) {
+                              const s =
+                                status ||
+                                (val >= 30
+                                  ? "Tinggi"
+                                  : val >= 15
+                                  ? "Optimal / Cukup"
+                                  : "Defisit Rendah");
+                              return `${s} (${val} mg/kg). ${
+                                val < 15
+                                  ? "Ketersediaan unsur hara fosfor rendah, disarankan suplementasi P."
+                                  : val <= 30
+                                  ? "Ketersediaan unsur hara fosfor dalam rentang optimal."
+                                  : "Kandungan hara fosfor tinggi pada lahan."
+                              }`;
+                            }
+                          } else if (lt.includes("kalium")) {
+                            if (val !== undefined) {
+                              const s =
+                                status ||
+                                (val >= 150
+                                  ? "Tinggi"
+                                  : val >= 80
+                                  ? "Optimal / Cukup"
+                                  : "Defisit Rendah");
+                              return `${s} (${val} mg/kg). ${
+                                val < 80
+                                  ? "Ketersediaan unsur hara kalium rendah, disarankan pemupukan K."
+                                  : val <= 150
+                                  ? "Ketersediaan unsur hara K optimal untuk ketahanan tanaman."
+                                  : "Kandungan hara kalium tinggi pada lahan."
+                              }`;
                             }
                           } else if (lt.includes("dsm")) {
                             return `Elevasi permukaan tanah berada pada ketinggian rata-rata ${
                               val ?? "-"
                             } mdpl.`;
-                          } else if (selectedPetak.status) {
-                            return `Kondisi petak terindikasi ${selectedPetak.status.toLowerCase()} berdasarkan pembacaan raster sensor drone.`;
+                          } else if (status) {
+                            return `Kondisi petak berstatus ${status} dengan nilai rata-rata ${
+                              val ?? "-"
+                            } berdasarkan pembacaan raster sensor drone.`;
                           }
 
                           return "Data saintifik diekstraksi langsung dari berkas GeoTIFF drone resolusi tinggi.";
@@ -3721,6 +3867,16 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               </div>
             );
           })()}
+
+        {/* =================================================
+            MAP LEGEND / COLOR SCALE BAR (NATIVE MAPLIBRE ICONTROL)
+        ================================================== */}
+
+        {legendHost &&
+          createPortal(
+            <MapLegend layers={mapLayers} gridEnabled={gridEnabled} />,
+            legendHost
+          )}
 
         {/* =================================================
             BOTTOM-LEFT CONTROLS

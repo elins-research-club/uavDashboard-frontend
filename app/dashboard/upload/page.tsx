@@ -519,7 +519,7 @@ function DetectionStatus({ item }: { item: BatchFileItem }) {
 
 export default function UploadPage() {
   const router = useRouter();
-  const { user } = useUserRole();
+  const { user, hasPermission } = useUserRole();
 
   /* ------------------------------------------------------------
      DRAFT STATE (persisten lintas navigasi & reload — kecuali File
@@ -605,10 +605,10 @@ export default function UploadPage() {
   ============================================================ */
 
   useEffect(() => {
-    if (user && user.role !== "admin") {
+    if (user && !hasPermission("upload_map")) {
       router.push("/dashboard");
     }
-  }, [user, router]);
+  }, [user, router, hasPermission]);
 
   /* ============================================================
      MANUAL READINESS

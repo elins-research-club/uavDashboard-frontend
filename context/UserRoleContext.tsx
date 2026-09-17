@@ -126,19 +126,39 @@ function readStoredUser(): AuthUser | null {
   }
 }
 
+export const DEFAULT_PERMISSIONS_BY_ROLE: Record<string, string[]> = {
+  god: ["all"],
+  admin: [
+    "all",
+    "manage_users",
+    "manage_roles",
+    "manage_pricing",
+    "upload_map",
+    "manage_maps",
+    "view_map",
+    "download_map",
+  ],
+  member: ["view_map"],
+};
+
 function normalizeUser(user: AuthUser): AuthUser {
   const subscriptionTier = user.subscription?.tier ?? user.tier ?? null;
+  const role = user.role || "member";
+  const isGod = role === "god" || Boolean(user.is_protected);
+  const defaultPerms = DEFAULT_PERMISSIONS_BY_ROLE[role] ?? [];
 
-  const permissions = Array.isArray(user.permissions) ? user.permissions : [];
+  const permissions = Array.isArray(user.permissions)
+    ? user.permissions
+    : defaultPerms;
 
   return {
     ...user,
 
-    role: user.role || "member",
+    role,
 
-    is_protected: Boolean(user.is_protected),
+    is_protected: isGod,
 
-    permissions: [...new Set(permissions)],
+    permissions: isGod ? ["all"] : [...new Set(permissions)],
 
     tier: subscriptionTier,
 
@@ -251,14 +271,12 @@ export function UserRoleProvider({ children }: { children: React.ReactNode }) {
         return false;
       }
 
-      if (user.role === "god") {
+      // Tier 1: God has absolute access (mutlak)
+      if (user.role === "god" || user.is_protected) {
         return true;
       }
 
-      if (user.is_protected) {
-        return true;
-      }
-
+      // Tier 2 & 3: Admin & Member permissions are configured dynamically by God
       const permissions = user.permissions ?? [];
 
       return permissions.includes("all") || permissions.includes(permission);
