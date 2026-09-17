@@ -8,6 +8,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
+
 import api from "@/lib/api";
 
 /* ============================================================
@@ -19,6 +20,12 @@ export type SystemRole = "god" | "admin" | "member" | string;
 export type SubscriptionInfo = {
   tier?: string | null;
   status?: string | null;
+
+  scope_type?: string | null;
+
+  village_id?: string | null;
+  district_id?: string | null;
+
   end_date?: string | null;
   billing_cycle?: string | null;
   start_date?: string | null;
@@ -26,7 +33,9 @@ export type SubscriptionInfo = {
 
 export type AuthUser = {
   id?: string;
+
   username?: string;
+
   email?: string;
 
   role: SystemRole;
@@ -42,16 +51,21 @@ export type AuthUser = {
   avatar_url?: string | null;
 
   created_at?: string;
+
   updated_at?: string;
 };
 
 type UserRoleContextValue = {
   user: AuthUser | null;
+
   userRole: SystemRole | "guest";
+
   userName: string;
+
   memberTier: string | null;
 
   isAuthenticated: boolean;
+
   isLoading: boolean;
 
   permissions: string[];
@@ -59,8 +73,11 @@ type UserRoleContextValue = {
   hasPermission: (permission: string) => boolean;
 
   isGod: boolean;
+
   isProtected: boolean;
+
   isAdmin: boolean;
+
   isMember: boolean;
 
   loginAs: (
@@ -86,7 +103,7 @@ const UserRoleContext = createContext<UserRoleContextValue | null>(null);
 const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 
 /* ============================================================
-   STORAGE HELPERS
+   STORAGE
 ============================================================ */
 
 function readStoredUser(): AuthUser | null {
@@ -126,43 +143,40 @@ function readStoredUser(): AuthUser | null {
   }
 }
 
-export const DEFAULT_PERMISSIONS_BY_ROLE: Record<string, string[]> = {
-  god: ["all"],
-  admin: [
-    "all",
-    "manage_users",
-    "manage_roles",
-    "manage_pricing",
-    "upload_map",
-    "manage_maps",
-    "view_map",
-    "download_map",
-  ],
-  member: ["view_map"],
-};
+/* ============================================================
+   USER NORMALIZATION
+============================================================ */
 
 function normalizeUser(user: AuthUser): AuthUser {
-  const subscriptionTier = user.subscription?.tier ?? user.tier ?? null;
-  const role = user.role || "member";
-  const isGod = role === "god" || Boolean(user.is_protected);
-  const defaultPerms = DEFAULT_PERMISSIONS_BY_ROLE[role] ?? [];
+  const subscription = user.subscription ?? null;
 
-  const permissions = Array.isArray(user.permissions)
-    ? user.permissions
-    : defaultPerms;
+  /*
+   * Subscription hanya dianggap aktif jika
+   * backend menyatakan status-nya active.
+   *
+   * Jika expired/cancelled/dll,
+   * effective tier kembali ke Free.
+   */
+  const subscriptionIsActive = subscription?.status === "active";
+
+  const effectiveTier = subscriptionIsActive
+    ? subscription?.tier ?? user.tier ?? "free"
+    : "free";
+
+  const permissions = Array.isArray(user.permissions) ? user.permissions : [];
 
   return {
     ...user,
 
-    role,
+    role: user.role || "member",
 
-    is_protected: isGod,
+    is_protected: Boolean(user.is_protected),
 
-    permissions: isGod ? ["all"] : [...new Set(permissions)],
+    permissions: [...new Set(permissions)],
 
-    tier: subscriptionTier,
+    tier: effectiveTier,
 
-    subscription: user.subscription ?? null,
+    subscription,
   };
 }
 
@@ -172,6 +186,7 @@ function normalizeUser(user: AuthUser): AuthUser {
 
 export function UserRoleProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
+
   const [isLoading, setIsLoading] = useState(true);
 
   /* ----------------------------------------------------------
@@ -203,7 +218,7 @@ export function UserRoleProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   /* ----------------------------------------------------------
-     Refresh current user from backend
+     Refresh current user
   ---------------------------------------------------------- */
 
   const refreshCurrentUser = useCallback(async () => {
@@ -219,9 +234,21 @@ export function UserRoleProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      const { data } = await api.get<AuthUser>("/users/me");
+      const [profileResponse, subscriptionResponse] = await Promise.all([
+        api.get<AuthUser>("/users/me"),
+        api.get<SubscriptionInfo>("/subscriptions/current"),
+      ]);
 
-      const normalized = normalizeUser(data);
+      const normalized = normalizeUser({
+        ...profileResponse.data,
+
+        tier:
+          subscriptionResponse.data?.tier ??
+          profileResponse.data?.tier ??
+          "free",
+
+        subscription: subscriptionResponse.data ?? null,
+      });
 
       setUser(normalized);
 
@@ -230,10 +257,11 @@ export function UserRoleProvider({ children }: { children: React.ReactNode }) {
       return normalized;
     } catch (error: any) {
       /*
-       * A 401 is already handled by api.ts.
+       * 401 ditangani oleh api.ts.
        *
-       * For other errors, retain the current local user so
-       * the application does not unnecessarily log the user out.
+       * Untuk error lain, pertahankan user
+       * yang tersimpan agar UI tidak tiba-tiba
+       * logout hanya karena backend sedang bermasalah.
        */
       if (error?.response?.status === 401) {
         setUser(null);
@@ -271,12 +299,14 @@ export function UserRoleProvider({ children }: { children: React.ReactNode }) {
         return false;
       }
 
-      // Tier 1: God has absolute access (mutlak)
-      if (user.role === "god" || user.is_protected) {
+      if (user.role === "god") {
         return true;
       }
 
-      // Tier 2 & 3: Admin & Member permissions are configured dynamically by God
+      if (user.is_protected) {
+        return true;
+      }
+
       const permissions = user.permissions ?? [];
 
       return permissions.includes("all") || permissions.includes(permission);
@@ -295,10 +325,13 @@ export function UserRoleProvider({ children }: { children: React.ReactNode }) {
       tier: string | null = null,
       extra: Partial<AuthUser> = {}
     ) => {
-      const nextUser: AuthUser = normalizeUser({
+      const nextUser = normalizeUser({
         role,
+
         username: name,
+
         tier,
+
         ...extra,
       });
 
@@ -330,9 +363,13 @@ export function UserRoleProvider({ children }: { children: React.ReactNode }) {
     }
 
     localStorage.removeItem("token");
+
     localStorage.removeItem("user");
+
     localStorage.removeItem("userRole");
+
     localStorage.removeItem("userName");
+
     localStorage.removeItem("memberTier");
   }, []);
 
@@ -349,9 +386,13 @@ export function UserRoleProvider({ children }: { children: React.ReactNode }) {
 
     const logoutForIdle = () => {
       localStorage.removeItem("token");
+
       localStorage.removeItem("user");
+
       localStorage.removeItem("userRole");
+
       localStorage.removeItem("userName");
+
       localStorage.removeItem("memberTier");
 
       setUser(null);
@@ -368,7 +409,9 @@ export function UserRoleProvider({ children }: { children: React.ReactNode }) {
     const events = ["click", "keydown", "mousemove", "scroll", "touchstart"];
 
     events.forEach((event) =>
-      window.addEventListener(event, resetIdleTimer, { passive: true })
+      window.addEventListener(event, resetIdleTimer, {
+        passive: true,
+      })
     );
 
     resetIdleTimer();
@@ -396,7 +439,10 @@ export function UserRoleProvider({ children }: { children: React.ReactNode }) {
 
       userName: user?.username || user?.email || "GUEST",
 
-      memberTier: user?.subscription?.tier ?? user?.tier ?? null,
+      memberTier:
+        user?.subscription?.status === "active"
+          ? user?.subscription?.tier ?? user?.tier ?? "free"
+          : "free",
 
       isAuthenticated: Boolean(user),
 
