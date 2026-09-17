@@ -116,9 +116,8 @@ function AdminOrb({ tint, dark = false }: { tint: string; dark?: boolean }) {
       className="pointer-events-none absolute -right-8 -top-8 h-28 w-28"
     >
       <div
-        className={`absolute -inset-5 rounded-full blur-xl ${
-          dark ? "opacity-20" : "opacity-25"
-        }`}
+        className={`absolute -inset-5 rounded-full blur-xl ${dark ? "opacity-20" : "opacity-25"
+          }`}
         style={{
           background: `${tint}35`,
         }}
@@ -371,11 +370,10 @@ function RolePermissionEditor({
                 </div>
 
                 <label
-                  className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-1.5 text-2xs font-bold ${
-                    canManageRoles && !selectedRoleProtected
+                  className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-1.5 text-2xs font-bold ${canManageRoles && !selectedRoleProtected
                       ? "cursor-pointer bg-brand-50 text-brand-800 transition hover:bg-brand-100"
                       : "cursor-not-allowed bg-brand-50/50 text-brand-800/35"
-                  }`}
+                    }`}
                 >
                   <input
                     type="checkbox"
@@ -406,15 +404,13 @@ function RolePermissionEditor({
                   return (
                     <label
                       key={permission.key}
-                      className={`flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-xs font-semibold transition-all ${
-                        disabled
+                      className={`flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-xs font-semibold transition-all ${disabled
                           ? "cursor-not-allowed opacity-55"
                           : "cursor-pointer"
-                      } ${
-                        checked
+                        } ${checked
                           ? "border-brand-800/10 bg-brand-50/80 text-brand-900"
                           : "border-brand-800/8 bg-white/50 text-brand-800/65 hover:border-brand-800/15 hover:bg-white"
-                      }`}
+                        }`}
                     >
                       <input
                         type="checkbox"
@@ -475,11 +471,10 @@ function RolePermissionEditor({
 
       {saveMessage?.id === selectedRole.id && (
         <div
-          className={`border-t px-6 py-3.5 text-xs font-bold sm:px-7 ${
-            saveMessage.type === "success"
+          className={`border-t px-6 py-3.5 text-xs font-bold sm:px-7 ${saveMessage.type === "success"
               ? "border-[#91b928]/15 bg-[#f3f8e2] text-[#4a5f0e]"
               : "border-red-200 bg-red-50 text-red-600"
-          }`}
+            }`}
         >
           {saveMessage.text}
         </div>
@@ -842,10 +837,7 @@ export default function AdminPage() {
                 Admin <span className="text-brand-600">Panel</span>
               </h1>
 
-              <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-brand-800/60">
-                Kelola otorisasi pengguna dan konfigurasi paket subscription UAV
-                DaaS dari satu tempat.
-              </p>
+
             </div>
 
             <span className="liquid-badge px-4 py-2 text-xs font-bold text-brand-800">
@@ -882,11 +874,10 @@ export default function AdminPage() {
                 <button
                   type="button"
                   onClick={() => setActiveTab("roles")}
-                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-bold transition-all ${
-                    activeTab === "roles"
+                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-bold transition-all ${activeTab === "roles"
                       ? "bg-brand-800 text-white shadow-sm"
                       : "text-brand-800/60 hover:text-brand-900"
-                  }`}
+                    }`}
                 >
                   <ShieldCheck className="h-3.5 w-3.5" strokeWidth={1.75} />
                   Manajemen Role
@@ -897,11 +888,10 @@ export default function AdminPage() {
                 <button
                   type="button"
                   onClick={() => setActiveTab("pricing")}
-                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-bold transition-all ${
-                    activeTab === "pricing"
+                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-bold transition-all ${activeTab === "pricing"
                       ? "bg-brand-800 text-white shadow-sm"
                       : "text-brand-800/60 hover:text-brand-900"
-                  }`}
+                    }`}
                 >
                   <CreditCard className="h-3.5 w-3.5" strokeWidth={1.75} />
                   Harga Subscription
@@ -957,11 +947,10 @@ export default function AdminPage() {
                   opacity: 1,
                   y: 0,
                 }}
-                className={`mb-5 flex items-start gap-3 rounded-2xl border px-5 py-4 text-xs font-bold ${
-                  planSaveMsg.type === "success"
+                className={`mb-5 flex items-start gap-3 rounded-2xl border px-5 py-4 text-xs font-bold ${planSaveMsg.type === "success"
                     ? "border-[#91b928]/25 bg-[#f3f8e2] text-[#4a5f0e]"
                     : "border-red-200 bg-red-50 text-red-700"
-                }`}
+                  }`}
               >
                 {planSaveMsg.type === "success" ? (
                   <Check
@@ -1060,21 +1049,19 @@ export default function AdminPage() {
                       whileHover={{
                         y: isEditing ? 0 : -3,
                       }}
-                      className={`group relative flex min-h-[440px] flex-col overflow-hidden rounded-3xl p-6 transition-shadow duration-300 ${
-                        isPopular
+                      className={`group relative flex min-h-[440px] flex-col overflow-hidden rounded-3xl p-6 transition-shadow duration-300 ${isPopular
                           ? "bg-brand-800 text-white shadow-card-hover"
                           : "glass text-brand-900 hover:shadow-card-hover"
-                      }`}
+                        }`}
                     >
                       <AdminOrb tint={style.orbTint} dark={isPopular} />
 
                       <div className="relative mb-7 flex items-center justify-between gap-3">
                         <span
-                          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-2xs font-bold ${
-                            isPopular
+                          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-2xs font-bold ${isPopular
                               ? "bg-[#91b928] text-brand-900"
                               : `${style.bg} ${style.text}`
-                          }`}
+                            }`}
                         >
                           {style.icon}
 
@@ -1090,9 +1077,8 @@ export default function AdminPage() {
 
                       <div className="relative mb-6">
                         <p
-                          className={`micro-label ${
-                            isPopular ? "text-white/50" : ""
-                          }`}
+                          className={`micro-label ${isPopular ? "text-white/50" : ""
+                            }`}
                         >
                           Harga / Bulan
                         </p>
@@ -1100,11 +1086,10 @@ export default function AdminPage() {
                         {isEditing ? (
                           <div className="mt-2 flex items-center gap-2">
                             <span
-                              className={`text-sm font-bold ${
-                                isPopular
+                              className={`text-sm font-bold ${isPopular
                                   ? "text-white/65"
                                   : "text-brand-800/55"
-                              }`}
+                                }`}
                             >
                               Rp
                             </span>
@@ -1116,18 +1101,16 @@ export default function AdminPage() {
                               onChange={(event) =>
                                 setEditedPrice(event.target.value)
                               }
-                              className={`min-w-0 flex-1 rounded-xl border px-3 py-2 text-lg font-bold outline-none ${
-                                isPopular
+                              className={`min-w-0 flex-1 rounded-xl border px-3 py-2 text-lg font-bold outline-none ${isPopular
                                   ? "border-white/15 bg-white/10 text-white placeholder:text-white/30 focus:border-white/30"
                                   : "border-brand-800/10 bg-white text-brand-900 focus:border-brand-800/25"
-                              }`}
+                                }`}
                             />
                           </div>
                         ) : (
                           <p
-                            className={`mt-1 text-3xl font-bold tracking-[-0.04em] ${
-                              isPopular ? "text-white" : "text-brand-900"
-                            }`}
+                            className={`mt-1 text-3xl font-bold tracking-[-0.04em] ${isPopular ? "text-white" : "text-brand-900"
+                              }`}
                           >
                             {plan.price === 0
                               ? "Gratis"
@@ -1137,16 +1120,14 @@ export default function AdminPage() {
                       </div>
 
                       <div
-                        className={`border-t ${
-                          isPopular ? "border-white/12" : "border-brand-800/8"
-                        }`}
+                        className={`border-t ${isPopular ? "border-white/12" : "border-brand-800/8"
+                          }`}
                       />
 
                       <div className="relative flex-1 py-6">
                         <p
-                          className={`micro-label ${
-                            isPopular ? "text-white/50" : ""
-                          }`}
+                          className={`micro-label ${isPopular ? "text-white/50" : ""
+                            }`}
                         >
                           Fitur Termasuk
                         </p>
@@ -1159,11 +1140,10 @@ export default function AdminPage() {
                             }
                             rows={7}
                             placeholder="Satu fitur per baris..."
-                            className={`mt-4 w-full resize-none rounded-2xl border px-3.5 py-3 text-xs font-medium leading-5 outline-none ${
-                              isPopular
+                            className={`mt-4 w-full resize-none rounded-2xl border px-3.5 py-3 text-xs font-medium leading-5 outline-none ${isPopular
                                 ? "border-white/15 bg-white/10 text-white placeholder:text-white/35 focus:border-white/30"
                                 : "border-brand-800/10 bg-white text-brand-900 focus:border-brand-800/25"
-                            }`}
+                              }`}
                           />
                         ) : plan.features?.length ? (
                           <ul className="mt-4 space-y-3">
@@ -1173,11 +1153,10 @@ export default function AdminPage() {
                                 className="flex items-start gap-3"
                               >
                                 <span
-                                  className={`mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full ${
-                                    isPopular
+                                  className={`mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full ${isPopular
                                       ? "bg-white/10 text-[#91b928]"
                                       : "bg-brand-50 text-brand-700"
-                                  }`}
+                                    }`}
                                 >
                                   <Check
                                     className="h-3.5 w-3.5"
@@ -1186,11 +1165,10 @@ export default function AdminPage() {
                                 </span>
 
                                 <span
-                                  className={`text-xs font-medium leading-5 ${
-                                    isPopular
+                                  className={`text-xs font-medium leading-5 ${isPopular
                                       ? "text-white/80"
                                       : "text-brand-900"
-                                  }`}
+                                    }`}
                                 >
                                   {feature}
                                 </span>
@@ -1199,11 +1177,10 @@ export default function AdminPage() {
                           </ul>
                         ) : (
                           <p
-                            className={`mt-4 rounded-2xl border border-dashed px-4 py-5 text-center text-xs font-medium ${
-                              isPopular
+                            className={`mt-4 rounded-2xl border border-dashed px-4 py-5 text-center text-xs font-medium ${isPopular
                                 ? "border-white/15 text-white/45"
                                 : "border-brand-800/10 text-brand-800/45"
-                            }`}
+                              }`}
                           >
                             Belum ada fitur.
                           </p>
@@ -1215,11 +1192,10 @@ export default function AdminPage() {
                           <button
                             type="button"
                             onClick={() => savePlan(plan.id)}
-                            className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-xs font-bold transition-all hover:-translate-y-0.5 ${
-                              isPopular
+                            className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-xs font-bold transition-all hover:-translate-y-0.5 ${isPopular
                                 ? "bg-white text-brand-900 hover:bg-[#dfeeb1]"
                                 : "bg-brand-800 text-white hover:bg-brand-700"
-                            }`}
+                              }`}
                           >
                             <Save className="h-3.5 w-3.5" strokeWidth={2} />
                             Simpan
@@ -1228,11 +1204,10 @@ export default function AdminPage() {
                           <button
                             type="button"
                             onClick={() => setEditingPlan(null)}
-                            className={`inline-flex h-10 w-10 items-center justify-center rounded-full border transition ${
-                              isPopular
+                            className={`inline-flex h-10 w-10 items-center justify-center rounded-full border transition ${isPopular
                                 ? "border-white/15 bg-white/5 text-white/70 hover:bg-white/10"
                                 : "border-brand-800/10 bg-white text-brand-800/60 hover:bg-brand-50 hover:text-brand-900"
-                            }`}
+                              }`}
                             aria-label="Batal edit"
                           >
                             <X className="h-3.5 w-3.5" strokeWidth={2} />
@@ -1242,11 +1217,10 @@ export default function AdminPage() {
                         <button
                           type="button"
                           onClick={() => startEditPlan(plan)}
-                          className={`relative inline-flex w-full items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-xs font-bold transition-all hover:-translate-y-0.5 ${
-                            isPopular
+                          className={`relative inline-flex w-full items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-xs font-bold transition-all hover:-translate-y-0.5 ${isPopular
                               ? "bg-white text-brand-900 hover:bg-[#dfeeb1]"
                               : "border border-brand-800/10 bg-white text-brand-900 hover:bg-brand-50"
-                          }`}
+                            }`}
                         >
                           <Edit3 className="h-3.5 w-3.5" strokeWidth={1.9} />
                           Edit Harga & Fitur
