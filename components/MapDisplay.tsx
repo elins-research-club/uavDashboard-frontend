@@ -3517,27 +3517,10 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                 )}
 
                 <div className="relative flex flex-col rounded-xl border border-gray-200/90 bg-white/95 p-2.5 shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150 sm:rounded-2xl sm:p-3.5 max-h-[inherit] overflow-y-auto">
-                  <div className="flex items-start justify-between border-b border-gray-100 pb-1.5 sm:pb-2">
-                    <div>
-                      <div className="flex items-center gap-1">
-                        <span className="flex h-4 w-4 items-center justify-center rounded-md bg-emerald-100 text-[8px] font-black text-emerald-800 sm:h-5 sm:w-5 sm:text-[10px]">
-                          🔲
-                        </span>
-
-                        <h4 className="text-[10px] font-bold text-gray-900 sm:text-xs">
-                          Petak {selectedPetak.block_id}
-                        </h4>
-
-                        <span className="rounded-full border border-emerald-200/60 bg-emerald-50 px-1 py-0.5 text-[7px] font-bold text-emerald-700 sm:px-1.5 sm:text-[9px]">
-                          {Math.round(Math.sqrt(selectedPetak.area_m2))}×
-                          {Math.round(Math.sqrt(selectedPetak.area_m2))}m
-                        </span>
-                      </div>
-
-                      <div className="mt-0.5 text-[8px] font-medium text-gray-400 sm:text-[10px]">
-                        {mapTitle || "Lahan Drone"} · {selectedPetak.area_m2} m²
-                      </div>
-                    </div>
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-1.5 sm:pb-2">
+                    <h4 className="text-[11px] font-bold text-gray-900 sm:text-xs">
+                      Petak {selectedPetak.block_id}
+                    </h4>
 
                     <button
                       type="button"
