@@ -2976,10 +2976,10 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             {/* METRICS */}
 
             {measuredMetrics && (
-              <div className="my-2 rounded-lg border border-emerald-100/90 bg-gradient-to-br from-emerald-50/60 via-white to-emerald-50/40 p-2.5 shadow-xs sm:my-2.5 sm:rounded-xl sm:p-3">
+              <div className="my-2 rounded-lg border border-gray-200 bg-gray-50/80 p-2.5 shadow-xs sm:my-2.5 sm:rounded-xl sm:p-3">
                 {toolMode === "area" ? (
                   <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                    <div className="border-r border-emerald-100/70 pr-2">
+                    <div className="border-r border-gray-200 pr-2">
                       <span className="block text-[8px] font-bold uppercase tracking-wider text-gray-400 sm:text-[9px]">
                         Total Luas Lahan
                       </span>
@@ -3020,7 +3020,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                       </div>
 
                       {measuredMetrics.areaHa ? (
-                        <div className="mt-1 flex items-center gap-1 rounded-md border border-emerald-200/60 bg-emerald-100/70 px-1 py-0.5 text-[8px] font-bold text-emerald-900 sm:px-1.5 sm:text-[9px]">
+                        <div className="mt-1 flex items-center gap-1 rounded-md border border-[#123c28]/20 bg-[#123c28]/10 px-1 py-0.5 text-[8px] font-bold text-[#123c28] sm:px-1.5 sm:text-[9px]">
                           <span>🌱 Est. Urea:</span>
 
                           <span>
@@ -3159,7 +3159,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                   setCompareLayerB(prevA);
                 }}
                 title="Tukar Posisi Layer A & B"
-                className="mt-4 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-[#123c28] active:scale-95 shadow-2xs sm:h-8 sm:w-8 sm:rounded-xl"
+                className="mt-4 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-[#123c28]/30 hover:bg-[#123c28]/10 hover:text-[#123c28] active:scale-95 shadow-2xs sm:h-8 sm:w-8 sm:rounded-xl"
               >
                 <ArrowLeftRight className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
               </button>
@@ -3272,21 +3272,21 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             </div>
 
             {/* Spatial Reference / Info Banner */}
-            <div className="my-2.5 flex items-start sm:items-center gap-2.5 rounded-xl border border-emerald-200/90 bg-gradient-to-r from-emerald-50/95 via-white to-teal-50/80 p-2.5 shadow-[0_2px_8px_-2px_rgba(18,60,40,0.1),0_1px_3px_rgba(18,60,40,0.06)] ring-1 ring-emerald-900/5">
-              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-emerald-100/90 text-emerald-800 shadow-2xs border border-emerald-200/80">
+            <div className="my-2.5 flex items-start sm:items-center gap-2.5 rounded-xl border border-[#123c28]/20 bg-[#123c28]/5 p-2.5 shadow-xs">
+              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-[#123c28] text-white shadow-2xs">
                 <Info className="h-3.5 w-3.5 stroke-[2.3]" />
               </div>
-              <span className="text-[10.5px] font-medium text-emerald-950 leading-snug">
+              <span className="text-[10.5px] font-medium text-gray-800 leading-snug">
                 Luas lahan terverifikasi dihitung pada ellipsoid{" "}
-                <strong className="font-bold text-emerald-900">WGS-84 (EPSG:4326)</strong>{" "}
+                <strong className="font-bold text-[#123c28]">WGS-84 (EPSG:4326)</strong>{" "}
                 menggunakan fungsi geodetik PostGIS backend.
               </span>
             </div>
 
             {/* METRICS */}
 
-            <div className="my-2 rounded-lg border border-emerald-100/90 bg-gradient-to-br from-emerald-50/50 via-white to-emerald-50/30 p-2.5 shadow-xs sm:my-2.5 sm:rounded-xl sm:p-3">
-              <div className="grid grid-cols-2 gap-2 border-b border-emerald-100/60 pb-2 sm:gap-3 sm:pb-2.5">
+            <div className="my-2 rounded-lg border border-gray-200 bg-gray-50/80 p-2.5 shadow-xs sm:my-2.5 sm:rounded-xl sm:p-3">
+              <div className="grid grid-cols-2 gap-2 border-b border-gray-200 pb-2 sm:gap-3 sm:pb-2.5">
                 <div>
                   <span className="text-[8px] font-medium uppercase tracking-wider text-gray-500 sm:text-[10px]">
                     Luas Lahan (ha)
@@ -3583,9 +3583,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                         : "";
 
                       return (
-                        <div className="rounded-lg border border-emerald-900/10 bg-emerald-50/60 p-2 sm:rounded-xl sm:p-3">
+                        <div className="rounded-lg bg-[#123C28] p-2 sm:rounded-xl sm:p-3 text-white shadow-sm">
                           <div className="flex items-center justify-between">
-                            <span className="text-[8px] font-bold uppercase tracking-wider text-emerald-900/70 sm:text-[10px]">
+                            <span className="text-[8px] font-bold uppercase tracking-wider text-white/70 sm:text-[10px]">
                               {layerTitle}
                             </span>
 
@@ -3603,14 +3603,14 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                           </div>
 
                           <div className="mt-1 flex items-baseline gap-1.5 sm:mt-1.5 sm:gap-2">
-                            <span className="text-xl font-black text-emerald-950 sm:text-2xl">
+                            <span className="text-xl font-black text-white sm:text-2xl">
                               {selectedPetak.value_mean !== undefined
                                 ? selectedPetak.value_mean
                                 : "-"}
                             </span>
 
                             {unit && (
-                              <span className="text-[9px] font-semibold text-emerald-800/70 sm:text-[11px]">
+                              <span className="text-[9px] font-semibold text-emerald-200/80 sm:text-[11px]">
                                 {unit}
                               </span>
                             )}
@@ -3618,21 +3618,21 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
                           {selectedPetak.value_min !== undefined &&
                             selectedPetak.value_max !== undefined && (
-                              <div className="mt-1 flex items-center justify-between border-t border-emerald-900/10 pt-1 text-[8px] text-emerald-900/80 sm:mt-2 sm:pt-1.5 sm:text-[10.5px]">
+                              <div className="mt-1 flex items-center justify-between border-t border-white/15 pt-1 text-[8px] text-white/80 sm:mt-2 sm:pt-1.5 sm:text-[10.5px]">
                                 <span>
-                                  Min: <b>{selectedPetak.value_min}</b>
+                                  Min: <b className="text-white">{selectedPetak.value_min}</b>
                                 </span>
 
-                                <span className="text-emerald-300">•</span>
+                                <span className="text-white/40">•</span>
 
                                 <span>
-                                  Rerata: <b>{selectedPetak.value_mean}</b>
+                                  Rerata: <b className="text-white">{selectedPetak.value_mean}</b>
                                 </span>
 
-                                <span className="text-emerald-300">•</span>
+                                <span className="text-white/40">•</span>
 
                                 <span>
-                                  Maks: <b>{selectedPetak.value_max}</b>
+                                  Maks: <b className="text-white">{selectedPetak.value_max}</b>
                                 </span>
                               </div>
                             )}
@@ -3808,7 +3808,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                             key={key}
                             className={`flex items-center justify-between rounded-md px-1.5 py-1 text-[9px] sm:rounded-lg sm:px-2 sm:text-[11px] ${
                               isCurrent
-                                ? "border border-emerald-200/60 bg-emerald-50/70 font-bold text-emerald-950"
+                                ? "border border-[#123C28]/20 bg-[#123C28]/10 font-bold text-[#123C28]"
                                 : "text-gray-600 hover:bg-gray-50"
                             }`}
                           >
@@ -3816,7 +3816,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                               <span
                                 className={`h-1.5 w-1.5 shrink-0 rounded-full ${
                                   isCurrent
-                                    ? "bg-emerald-600"
+                                    ? "bg-[#123C28]"
                                     : layerItem
                                     ? "bg-blue-500"
                                     : "bg-gray-300"
@@ -3827,7 +3827,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                             </span>
 
                             {isCurrent ? (
-                              <span className="ml-1 shrink-0 font-mono font-bold text-emerald-700">
+                              <span className="ml-1 shrink-0 font-mono font-bold text-[#123C28]">
                                 {selectedPetak.value_mean !== undefined
                                   ? selectedPetak.value_mean
                                   : "Aktif"}

@@ -94,11 +94,11 @@ const LAYER_TYPE_CONFIG: Record<string, LayerTypeMeta> = {
   ortho: {
     label: "Citra Ortho RGB",
     icon: Aperture,
-    bgSolid: "bg-emerald-700",
-    bgTint: "bg-emerald-50/80",
-    textColor: "text-emerald-900",
-    borderColor: "border-emerald-700/25",
-    gradient: "from-emerald-600 via-green-500 to-lime-500",
+    bgSolid: "bg-[#123c28]",
+    bgTint: "bg-[#123c28]/10",
+    textColor: "text-[#123c28]",
+    borderColor: "border-[#123c28]/25",
+    gradient: "from-[#123c28] via-emerald-700 to-[#123c28]",
   },
 
   ndvi: {
@@ -755,8 +755,8 @@ export default function LayerControlPanel({
 
               {/* Auto Detection Badge */}
               {detectedInfo && (
-                <div className="flex items-center gap-1.5 rounded-lg border border-emerald-200/80 bg-emerald-50/80 px-2.5 py-1.5 text-[8.5px] font-semibold text-emerald-800">
-                  <Sparkles className="h-3 w-3 text-emerald-600 shrink-0" />
+                <div className="flex items-center gap-1.5 rounded-lg border border-[#123c28]/20 bg-[#123c28]/10 px-2.5 py-1.5 text-[8.5px] font-semibold text-[#123c28]">
+                  <Sparkles className="h-3 w-3 text-[#123c28] shrink-0" />
                   <span className="truncate">{detectedInfo}</span>
                 </div>
               )}
@@ -812,7 +812,7 @@ export default function LayerControlPanel({
                           }}
                           className={`flex h-8 w-full items-center justify-between px-3 text-left text-[10.5px] transition ${
                             isSelected
-                              ? "bg-emerald-50/80 font-bold text-[#123c28]"
+                              ? "bg-[#123c28]/10 font-bold text-[#123c28]"
                               : "text-gray-700 hover:bg-gray-50 hover:text-gray-900 font-normal"
                           }`}
                         >
@@ -1005,9 +1005,9 @@ export default function LayerControlPanel({
                       }}
                       className={`group/card relative rounded-xl border p-2.5 transition-all duration-150 ${
                         draggedIndex === index
-                          ? "opacity-40 border-dashed border-emerald-500 bg-emerald-50/50 scale-[0.98]"
+                          ? "opacity-40 border-dashed border-[#123c28] bg-[#123c28]/10 scale-[0.98]"
                           : dragOverIndex === index
-                          ? "border-emerald-500 ring-2 ring-emerald-500/25 bg-emerald-50/30"
+                          ? "border-[#123c28] ring-2 ring-[#123c28]/25 bg-[#123c28]/10"
                           : isFailed
                           ? "border-red-300 bg-red-50/80 shadow-xs"
                           : isBaking
@@ -1110,7 +1110,7 @@ export default function LayerControlPanel({
                                     type="button"
                                     onClick={() => onSetBaseLayer(layer.id)}
                                     title="Klik untuk mengubah layer ini menjadi Base Layer"
-                                    className="shrink-0 rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[8px] font-bold tracking-wider text-gray-400 uppercase transition hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-700 active:scale-95"
+                                    className="shrink-0 rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[8px] font-bold tracking-wider text-gray-400 uppercase transition hover:border-[#123c28] hover:bg-[#123c28]/10 hover:text-[#123c28] active:scale-95"
                                   >
                                     Set Base
                                   </button>
