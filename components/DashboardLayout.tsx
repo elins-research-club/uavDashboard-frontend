@@ -139,7 +139,7 @@ export default function DashboardLayout({
                 setIsLoading(true);
                 window.location.reload();
               }}
-              className="flex h-12 w-full items-center justify-center gap-2.5 rounded-2xl border-2 border-[#123C28] bg-transparent text-sm font-bold text-[#123C28] transition-all duration-150 hover:bg-[#123C28]/5 active:scale-[0.98] cursor-pointer"
+              className="flex h-12 w-full items-center justify-center gap-2.5 rounded-2xl bg-[#123C28] text-sm font-bold text-white shadow-[0_4px_14px_rgba(18,60,40,0.25)] transition-all duration-150 hover:bg-[#1a5134] hover:shadow-[0_6px_20px_rgba(18,60,40,0.35)] active:scale-[0.98] cursor-pointer"
             >
               <RotateCw className="h-4 w-4" />
               <span>Coba Lagi</span>
