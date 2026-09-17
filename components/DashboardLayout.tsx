@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Sidebar from "./Sidebar";
-import { Menu, X, ArrowUpRight, Leaf } from "lucide-react";
+import { Menu, X, ArrowUpRight, Leaf, AlertCircle, RotateCw, LogOut } from "lucide-react";
 import api from "@/lib/api";
 import { useUserRole } from "@/context/UserRoleContext";
 
@@ -106,14 +106,42 @@ export default function DashboardLayout({
 
   if (loadError) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f7f8f4] p-4">
-        <div className="max-w-md rounded-2xl border border-red-200 bg-white p-6 text-center shadow-lg">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-600">
-            <span className="text-xl font-bold">!</span>
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#fafbfa] p-4 sm:p-6 select-none">
+        {/* Subtle atmospheric ambient glow */}
+        <div className="pointer-events-none absolute -top-40 -left-40 h-96 w-96 rounded-full bg-[#123C28]/[0.03] blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-[#123C28]/[0.04] blur-3xl" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(#123c28_1px,transparent_1px)] [background-size:24px_24px] opacity-[0.025]" />
+
+        {/* Floating Card with depth & glassmorphism */}
+        <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-gray-200/80 bg-white/95 p-7 text-center shadow-[0_20px_50px_-12px_rgba(18,60,40,0.09),0_4px_16px_-2px_rgba(0,0,0,0.03)] backdrop-blur-xl transition-all sm:p-9">
+          {/* Top highlight shimmer */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#123C28]/15 to-transparent" />
+          <div className="pointer-events-none absolute -top-16 left-1/2 -translate-x-1/2 h-32 w-48 rounded-full bg-rose-500/[0.04] blur-2xl" />
+
+          {/* Layered Status Icon */}
+          <div className="relative mx-auto mb-4 flex h-16 w-16 items-center justify-center">
+            <div className="absolute inset-0 rounded-2xl bg-rose-500/[0.08] blur-md" />
+            <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl border border-rose-200/70 bg-gradient-to-b from-white via-rose-50/50 to-rose-100/30 text-rose-500 shadow-[0_4px_12px_rgba(244,63,94,0.12)]">
+              <AlertCircle className="h-6 w-6 stroke-[2.2]" />
+            </div>
           </div>
-          <h2 className="text-base font-bold text-[#123c28]">Gagal Memuat Platform</h2>
-          <p className="mt-2 text-xs text-gray-600 leading-relaxed">{loadError}</p>
-          <div className="mt-5 flex items-center justify-center gap-3">
+
+          {/* Status Chip */}
+          <div className="mx-auto mb-2.5 inline-flex items-center gap-1.5 rounded-full border border-gray-200/70 bg-gray-50/90 px-2.5 py-0.5 text-[10.5px] font-semibold text-gray-500">
+            <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse" />
+            Koneksi Terputus
+          </div>
+
+          {/* Title & Description */}
+          <h2 className="text-lg font-bold tracking-tight text-[#123C28] sm:text-xl">
+            Gagal Memuat Platform
+          </h2>
+          <p className="mt-2 text-xs sm:text-[13px] leading-relaxed text-gray-500 max-w-xs mx-auto">
+            {loadError}
+          </p>
+
+          {/* Action Buttons */}
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
             <button
               type="button"
               onClick={() => {
@@ -121,9 +149,10 @@ export default function DashboardLayout({
                 setIsLoading(true);
                 window.location.reload();
               }}
-              className="rounded-full bg-[#123c28] px-4 py-2 text-xs font-bold text-white shadow hover:bg-[#1a5134]"
+              className="group inline-flex items-center justify-center gap-2 rounded-xl bg-[#123C28] px-5 py-2.5 text-xs sm:text-sm font-bold text-white shadow-[0_4px_14px_rgba(18,60,40,0.25)] transition-all duration-200 hover:bg-[#1a5134] hover:shadow-[0_6px_20px_rgba(18,60,40,0.35)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] cursor-pointer"
             >
-              Coba Lagi
+              <RotateCw className="h-3.5 w-3.5 transition-transform duration-300 group-hover:rotate-90" />
+              <span>Coba Lagi</span>
             </button>
             <button
               type="button"
@@ -131,9 +160,10 @@ export default function DashboardLayout({
                 localStorage.removeItem("token");
                 window.location.href = "/login";
               }}
-              className="rounded-full border border-[#123c28]/20 bg-white px-4 py-2 text-xs font-bold text-[#123c28] hover:bg-gray-50"
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200/90 bg-white px-5 py-2.5 text-xs sm:text-sm font-semibold text-gray-700 shadow-xs transition-all duration-200 hover:border-gray-300 hover:bg-gray-50/80 hover:text-gray-900 active:scale-[0.98] cursor-pointer"
             >
-              Login Ulang
+              <LogOut className="h-3.5 w-3.5 text-gray-400" />
+              <span>Login Ulang</span>
             </button>
           </div>
         </div>
