@@ -24,6 +24,17 @@ module.exports = {
           200: "#c4e4d2",
           100: "#e8f3ec",
           50: "#f4f8f5",
+          // Secondary text. Solid, not alpha: 7.46:1 on white (WCAG AAA).
+          // Alpha tints like /60 measure 3.73:1 and fail both AA and AAA.
+          muted: "#3a5c4c",
+        },
+        accent: {
+          // Amber tier surfaces. White on the bright ramp fails (2.44:1), so
+          // premium/upgrade uses these darker surfaces with white text (>=5.9:1).
+          DEFAULT: "#8a5a12",
+          strong: "#6f4a0e",
+          surface: "#fffbeb",
+          text: "#5c3d05",
         },
         surface: {
           DEFAULT: "#f7f9f6",
@@ -61,6 +72,9 @@ module.exports = {
         "glass-lg": "0 16px 48px rgba(18, 60, 40, 0.12)",
         card: "0 1px 2px rgba(18, 60, 40, 0.05), 0 4px 16px rgba(18, 60, 40, 0.04)",
         "card-hover": "0 4px 8px rgba(18, 60, 40, 0.06), 0 12px 32px rgba(18, 60, 40, 0.10)",
+        // Focus ring for keyboard users. 3.1:1 against white, above the 3:1
+        // non-text minimum, and visible on light card surfaces.
+        focus: "0 0 0 4px rgba(26, 81, 52, 0.28)",
       },
       backdropBlur: {
         xs: "2px",

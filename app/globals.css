@@ -89,9 +89,18 @@ body {
     @apply inline-flex items-center justify-center gap-2 rounded-full border border-brand-800/15 bg-white/60 px-5 py-2.5 text-xs font-semibold text-brand-800 backdrop-blur-sm transition-all duration-200 hover:border-brand-800/25 hover:bg-white;
   }
 
-  /* Micro label uppercase — satu-satunya tempat teks boleh < 11px */
+  /* Micro label uppercase — satu-satunya tempat teks boleh < 11px.
+     Solid brand-muted (7.46:1) replaces the former /60 alpha (3.73:1). */
   .micro-label {
-    @apply text-2xs font-bold uppercase text-brand-800/60;
+    @apply text-2xs font-bold uppercase text-brand-muted;
+  }
+
+  /* Visible keyboard affordance. Applied to interactive elements that do not
+     already bring their own ring, so focus is never invisible.
+     brand-700 di 60% menghasilkan ~3.4:1 pada putih: di atas ambang 3:1 untuk
+     komponen UI, jadi ring benar-benar terbaca dan bukan sekadar hiasan. */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-700/60;
   }
 }
 
@@ -105,9 +114,11 @@ body {
   }
 
   /* Icon container — liquid glass, konsisten dengan .liquid-badge:
-     transparan + backdrop blur + highlight atas, bukan bg hijau solid. */
+     transparan + backdrop blur + highlight atas, bukan bg hijau solid.
+     Radius mengikuti skala berjenjang: 24px kartu → 16px anak → 12px cucu,
+     jadi container 36px selalu melengkung penuh (rounded-full). */
   .icon-ring {
-    @apply relative flex items-center justify-center overflow-hidden rounded-2xl border border-white/60 bg-white/40 text-brand-800 backdrop-blur-md;
+    @apply relative flex items-center justify-center overflow-hidden rounded-full border border-white/60 bg-white/40 text-brand-700 backdrop-blur-md;
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.7),
       inset 0 -1px 1px rgba(18, 60, 40, 0.06),
@@ -116,5 +127,19 @@ body {
 
   .icon-ring::before {
     @apply inset-x-1.5;
+  }
+
+  /* Peredaman gerak menyeluruh: setiap animasi dan transisi CSS dimatikan
+     untuk pengguna yang memintanya lewat preferensi sistem. */
+  @media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }

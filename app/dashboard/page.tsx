@@ -49,7 +49,6 @@ type SubscriptionTierConfig = {
   heroDescription: string;
   heroCta: string;
   heroCtaHref: string;
-  orbTint: string;
 };
 
 /* ============================================================
@@ -79,7 +78,6 @@ const getTierConfig = (tier?: string | null): SubscriptionTierConfig => {
         "Gunakan akses layer dan analisis lahan untuk memantau kondisi area desa Anda secara lebih menyeluruh.",
       heroCta: "Kelola Langganan",
       heroCtaHref: "/dashboard/subscription",
-      orbTint: "#91b928",
     };
   }
 
@@ -94,7 +92,6 @@ const getTierConfig = (tier?: string | null): SubscriptionTierConfig => {
         "Manfaatkan akses data yang lebih luas untuk melihat kondisi lahan dan analisis agregat dalam satu wilayah kecamatan.",
       heroCta: "Kelola Langganan",
       heroCtaHref: "/dashboard/subscription",
-      orbTint: "#d99a2b",
     };
   }
 
@@ -108,7 +105,6 @@ const getTierConfig = (tier?: string | null): SubscriptionTierConfig => {
       "Dapatkan kapasitas lebih besar, analisis lengkap, dan akses layer data yang tersedia sesuai paket subscription Anda.",
     heroCta: "Lihat Paket",
     heroCtaHref: "/dashboard/subscription",
-    orbTint: "#8cc7a5",
   };
 };
 
@@ -121,7 +117,6 @@ function StatCard({
   value,
   hint,
   icon: Icon,
-  orbTint,
   delay = 0,
 }: {
   label: string;
@@ -131,61 +126,36 @@ function StatCard({
     className?: string;
     strokeWidth?: number;
   }>;
-  orbTint: string;
   delay?: number;
 }) {
   return (
-    <motion.div
+    <motion.article
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -2 }}
       transition={{
         duration: 0.45,
         delay,
         ease: [0.22, 1, 0.36, 1],
       }}
-      whileHover={{ y: -3 }}
-      className="group relative min-h-[124px] overflow-hidden rounded-3xl border border-brand-800/15 bg-white p-5 shadow-card transition-shadow duration-300 hover:border-brand-800/25 hover:shadow-card-hover"
+      className="group relative flex min-h-[124px] flex-col justify-between gap-4 rounded-3xl border border-brand-800/12 bg-white p-5 shadow-card transition-[box-shadow,border-color] duration-300 hover:border-brand-800/22 hover:shadow-card-hover"
     >
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -bottom-7 -right-7 h-24 w-24 transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-[1.4]"
-      >
-        <div
-          className="absolute -inset-4 rounded-full opacity-70 blur-lg transition-opacity duration-500 group-hover:opacity-100"
-          style={{
-            background: `${orbTint}26`,
-          }}
-        />
+      <div className="flex items-center justify-between gap-3">
+        <p className="micro-label">{label}</p>
 
-        <div
-          className="absolute inset-0 rounded-full"
-          style={{
-            background: `radial-gradient(circle at 32% 28%, #ffffffcc 0%, ${orbTint}40 42%, ${orbTint}5c 72%, ${orbTint}73 100%)`,
-            boxShadow: `inset -4px -6px 10px ${orbTint}33, inset 3px 4px 8px rgba(255,255,255,0.75), 0 6px 14px ${orbTint}2e`,
-          }}
-        />
-
-        <div className="absolute left-[18%] top-[14%] h-4 w-4 rounded-full bg-white/90 blur-[3px]" />
+        <span className="icon-ring h-9 w-9">
+          <Icon className="h-4 w-4" strokeWidth={1.75} />
+        </span>
       </div>
 
-      <div className="relative flex h-full flex-col justify-between gap-4">
-        <div className="flex items-center justify-between">
-          <p className="micro-label">{label}</p>
+      <div className="min-w-0">
+        <p className="truncate text-2xl font-bold tabular-nums tracking-[-0.03em] text-brand-900">
+          {value}
+        </p>
 
-          <span className="icon-ring h-9 w-9">
-            <Icon className="h-4 w-4" strokeWidth={1.75} />
-          </span>
-        </div>
-
-        <div className="min-w-0">
-          <p className="truncate text-2xl font-bold tracking-[-0.03em] text-brand-900">
-            {value}
-          </p>
-
-          <p className="mt-0.5 text-xs font-medium text-brand-800/60">{hint}</p>
-        </div>
+        <p className="mt-0.5 text-xs font-medium text-brand-muted">{hint}</p>
       </div>
-    </motion.div>
+    </motion.article>
   );
 }
 
@@ -292,28 +262,24 @@ export default function DashboardHomePage() {
       value: maps.length,
       hint: "peta tersedia untuk akun",
       icon: Layers,
-      orbTint: "#2e7d54",
     },
     {
       label: "Paket Anda",
       value: tierConfig.shortLabel,
       hint: isPaidTier ? "subscription aktif" : "lihat benefit paket",
       icon: Gem,
-      orbTint: tierConfig.orbTint,
     },
     {
-      label: "Aktivitas",
+      label: "Terbaru",
       value: latestMaps.length,
-      hint: "upload terbaru",
+      hint: "peta terakhir diunggah",
       icon: Activity,
-      orbTint: "#5aa37b",
     },
     {
       label: "Penyimpanan",
       value: formatStorageGB(totalStorage),
-      hint: "total file peta",
+      hint: "total ukuran file peta",
       icon: HardDrive,
-      orbTint: "#8cc7a5",
     },
   ];
 
@@ -331,10 +297,11 @@ export default function DashboardHomePage() {
         <header className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="mt-3 text-3xl font-bold tracking-[-0.035em] text-brand-900 sm:text-4xl">
-              Selamat datang, <span className="text-brand-600">{username}</span>
+              Selamat datang,{" "}
+              <span className="text-brand-700">{username}</span>
             </h1>
 
-            <p className="mt-1.5 max-w-xl text-sm font-medium text-brand-800/60">
+            <p className="mt-1.5 max-w-xl text-sm font-medium text-brand-muted">
               {isPaidTier
                 ? `Anda sedang menggunakan ${tierConfig.label}. Pantau kesehatan lahan Anda dari satu tempat.`
                 : "Pantau kesehatan lahan Anda dari satu tempat."}
@@ -342,12 +309,15 @@ export default function DashboardHomePage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <span className="liquid-badge px-4 py-2 text-xs font-bold text-brand-800">
+            <span className="liquid-badge focus-ring px-4 py-2 text-xs font-bold text-brand-800">
               <Gem className="h-3.5 w-3.5" strokeWidth={1.75} />
               Paket {tierConfig.shortLabel}
             </span>
 
-            <Link href="/dashboard/maps" className="btn-brand">
+            <Link
+              href="/dashboard/maps"
+              className="btn-brand focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-700/60"
+            >
               Kelola Peta
               <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={2} />
             </Link>
@@ -398,7 +368,9 @@ export default function DashboardHomePage() {
               className="object-cover"
             />
 
-            <div className="absolute inset-0 bg-gradient-to-r from-brand-900/85 via-brand-900/50 to-brand-900/10" />
+            {/* Scrim lebih pekat di sisi teks agar kontras putih tetap aman di
+                atas foto apa pun, lalu memudar ke kanan supaya gambar terlihat. */}
+            <div className="absolute inset-0 bg-gradient-to-r from-brand-950/92 via-brand-950/72 to-brand-950/35" />
 
             <div className="relative flex h-full flex-col justify-between gap-6 p-6 sm:p-8">
               {/* TIER BADGE */}
@@ -417,14 +389,14 @@ export default function DashboardHomePage() {
                     {tierConfig.heroTitle}
                   </h2>
 
-                  <p className="mt-2 text-sm font-medium leading-6 text-white/75">
+                  <p className="mt-2 text-sm font-medium leading-6 text-white/85">
                     {tierConfig.heroDescription}
                   </p>
                 </div>
 
                 <Link
                   href={tierConfig.heroCtaHref}
-                  className="inline-flex flex-shrink-0 items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-xs font-bold text-brand-900 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-glass-lg"
+                  className="inline-flex flex-shrink-0 items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-xs font-bold text-brand-900 transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-glass-lg focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/70"
                 >
                   {tierConfig.heroCta}
 
@@ -471,7 +443,7 @@ export default function DashboardHomePage() {
 
               <Link
                 href="/dashboard/maps"
-                className="text-2xs font-bold uppercase text-brand-700 transition hover:text-brand-900"
+                className="focus-ring text-2xs font-bold uppercase text-brand-700 transition-colors duration-200 hover:text-brand-800"
               >
                 Semua
               </Link>
@@ -483,9 +455,9 @@ export default function DashboardHomePage() {
                   <li key={map.id} className="relative">
                     <Link
                       href="/dashboard/maps"
-                      className="group flex items-center gap-3 rounded-2xl p-2 transition hover:bg-brand-50"
+                      className="group flex items-center gap-3 rounded-2xl p-2 transition-colors duration-200 hover:bg-brand-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-700/60"
                     >
-                      <span className="icon-ring relative z-10 h-9 w-9 flex-shrink-0 transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:-translate-y-0.5 group-hover:scale-105">
+                      <span className="icon-ring relative z-10 h-9 w-9 flex-shrink-0 transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:-translate-y-0.5 group-hover:scale-105 motion-reduce:transform-none">
                         <MapPinned className="h-4 w-4" strokeWidth={1.75} />
                       </span>
 
@@ -494,7 +466,7 @@ export default function DashboardHomePage() {
                           {map.title}
                         </span>
 
-                        <span className="mt-0.5 block text-xs font-medium text-brand-800/55">
+                        <span className="mt-0.5 block text-xs font-medium text-brand-muted">
                           {new Date(map.created_at).toLocaleDateString(
                             "id-ID",
                             {
@@ -507,7 +479,7 @@ export default function DashboardHomePage() {
                       </span>
 
                       <ArrowUpRight
-                        className="h-4 w-4 flex-shrink-0 text-brand-800/40 transition group-hover:translate-x-0.5 group-hover:text-brand-800"
+                        className="h-4 w-4 flex-shrink-0 text-brand-muted transition-colors duration-200 group-hover:translate-x-0.5 group-hover:text-brand-800 motion-reduce:transform-none"
                         strokeWidth={1.75}
                       />
                     </Link>
@@ -515,7 +487,7 @@ export default function DashboardHomePage() {
                 ))}
               </ol>
             ) : (
-              <p className="flex flex-1 items-center justify-center rounded-2xl border border-dashed border-brand-800/15 py-8 text-center text-xs font-medium text-brand-800/55">
+              <p className="flex flex-1 items-center justify-center rounded-2xl border border-dashed border-brand-800/15 py-8 text-center text-xs font-medium text-brand-muted">
                 Belum ada aktivitas.
               </p>
             )}
@@ -558,8 +530,9 @@ export default function DashboardHomePage() {
 
               <div className="relative w-full sm:w-[300px]">
                 <Search
-                  className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-brand-800/40"
+                  className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-brand-muted"
                   strokeWidth={1.75}
+                  aria-hidden="true"
                 />
 
                 <input
@@ -567,6 +540,8 @@ export default function DashboardHomePage() {
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
                   placeholder="Cari data peta..."
+                  aria-label="Cari data peta"
+                  aria-describedby="search-result-count"
                   className="glass-input"
                 />
 
@@ -575,23 +550,44 @@ export default function DashboardHomePage() {
                     type="button"
                     onClick={() => setSearchQuery("")}
                     aria-label="Hapus pencarian"
-                    className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-brand-800/40 transition hover:bg-brand-100 hover:text-brand-800"
+                    className="absolute right-1.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-brand-muted transition-colors duration-200 hover:bg-brand-100 hover:text-brand-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-700/60"
                   >
                     <X className="h-3 w-3" strokeWidth={2} />
                   </button>
                 )}
               </div>
+
+              {/* Pengumuman jumlah hasil tanpa memindahkan fokus keyboard. */}
+              <p
+                id="search-result-count"
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+                className="sr-only"
+              >
+                {searchQuery
+                  ? `${filteredMaps.length} data cocok dengan pencarian.`
+                  : ""}
+              </p>
             </div>
 
             <div className="px-2 py-2 sm:px-3">
               {/* LOADING */}
 
               {isLoading && (
-                <div className="space-y-2 p-3">
+                <div
+                  role="status"
+                  aria-live="polite"
+                  aria-busy="true"
+                  className="space-y-2 p-3"
+                >
+                  <span className="sr-only">Memuat data lahan…</span>
+
                   {[1, 2, 3].map((item) => (
                     <div
                       key={item}
-                      className="flex min-h-[76px] animate-pulse items-center gap-4 rounded-2xl bg-brand-50/60 p-4"
+                      aria-hidden="true"
+                      className="flex min-h-[76px] animate-pulse items-center gap-4 rounded-2xl bg-brand-50/60 p-4 motion-reduce:animate-none"
                     >
                       <div className="h-9 w-9 rounded-xl bg-brand-800/10" />
 
@@ -609,7 +605,10 @@ export default function DashboardHomePage() {
               {/* ERROR */}
 
               {error && !isLoading && (
-                <div className="m-3 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-medium text-red-600">
+                <div
+                  role="alert"
+                  className="m-3 rounded-2xl border border-status-error-border bg-status-error-bg px-5 py-4 text-sm font-medium text-status-error-text"
+                >
                   {error}
                 </div>
               )}
@@ -626,12 +625,15 @@ export default function DashboardHomePage() {
                     Belum ada peta tersimpan
                   </h4>
 
-                  <p className="mx-auto mt-1.5 max-w-sm text-xs font-medium leading-5 text-brand-800/60">
+                  <p className="mx-auto mt-1.5 max-w-sm text-xs font-medium leading-5 text-brand-muted">
                     Setelah data pemetaan tersedia, hasilnya akan muncul di
                     sini.
                   </p>
 
-                  <Link href="/dashboard/maps" className="btn-brand mt-5">
+                  <Link
+                    href="/dashboard/maps"
+                    className="btn-brand mt-5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-700/60"
+                  >
                     Kelola Peta
                     <ArrowRight className="h-3.5 w-3.5" strokeWidth={2} />
                   </Link>
@@ -653,7 +655,7 @@ export default function DashboardHomePage() {
                       Data tidak ditemukan
                     </h4>
 
-                    <p className="mx-auto mt-1.5 max-w-sm text-xs font-medium leading-5 text-brand-800/60">
+                    <p className="mx-auto mt-1.5 max-w-sm text-xs font-medium leading-5 text-brand-muted">
                       Tidak ada dataset yang cocok dengan{" "}
                       <span className="font-bold">
                         &ldquo;
@@ -666,7 +668,7 @@ export default function DashboardHomePage() {
                     <button
                       type="button"
                       onClick={() => setSearchQuery("")}
-                      className="btn-ghost mt-5"
+                      className="btn-ghost mt-5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-700/60"
                     >
                       Reset Pencarian
                       <X className="h-3.5 w-3.5" strokeWidth={2} />
@@ -696,9 +698,9 @@ export default function DashboardHomePage() {
                               ? "/dashboard/subscription"
                               : "/dashboard/maps"
                           }
-                          className="group flex items-center gap-4 rounded-2xl p-3 transition hover:bg-brand-50"
+                          className="group flex items-center gap-4 rounded-2xl p-3 transition-colors duration-200 hover:bg-brand-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-700/60"
                         >
-                          <span className="icon-ring h-10 w-10 flex-shrink-0 transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:-translate-y-0.5 group-hover:scale-105">
+                          <span className="icon-ring h-10 w-10 flex-shrink-0 transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:-translate-y-0.5 group-hover:scale-105 motion-reduce:transform-none">
                             {isLocked ? (
                               <Lock className="h-4 w-4" strokeWidth={1.75} />
                             ) : (
@@ -716,7 +718,7 @@ export default function DashboardHomePage() {
                               </span>
 
                               {isLocked && (
-                                <span className="liquid-badge flex-shrink-0 px-2 py-0.5 !text-2xs font-bold uppercase text-amber-700">
+                                <span className="liquid-badge flex-shrink-0 px-2 py-0.5 !text-2xs font-bold uppercase text-accent-text">
                                   Premium
                                 </span>
                               )}
@@ -728,7 +730,7 @@ export default function DashboardHomePage() {
                               )}
                             </span>
 
-                            <span className="mt-1 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium text-brand-800/55">
+                            <span className="mt-1 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium text-brand-muted">
                               <span className="inline-flex items-center gap-1">
                                 <CalendarDays
                                   className="h-3 w-3"
@@ -763,11 +765,10 @@ export default function DashboardHomePage() {
                           </span>
 
                           <span
-                            className={`inline-flex flex-shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-[11px] font-bold transition ${
-                              isLocked
-                                ? "bg-[#d99a2b] text-white group-hover:bg-[#c68920]"
-                                : "bg-brand-800 text-white group-hover:bg-brand-700"
-                            }`}
+                            className={`inline-flex flex-shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-[11px] font-bold transition-colors duration-200 ${isLocked
+                              ? "bg-accent text-white group-hover:bg-accent-strong"
+                              : "bg-brand-800 text-white group-hover:bg-brand-700"
+                              }`}
                           >
                             {isLocked ? (
                               <>
@@ -791,13 +792,13 @@ export default function DashboardHomePage() {
 
             {!isLoading && !error && filteredMaps.length > 0 && (
               <div className="flex items-center justify-between border-t border-brand-800/8 px-6 py-3.5">
-                <p className="text-xs font-medium text-brand-800/50">
+                <p className="text-xs font-medium text-brand-muted">
                   Menampilkan maksimal 4 data lahan.
                 </p>
 
                 <Link
                   href="/dashboard/maps"
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-800 transition hover:text-brand-600"
+                  className="focus-ring inline-flex items-center gap-1.5 text-xs font-bold text-brand-700 transition-colors duration-200 hover:text-brand-800"
                 >
                   Lihat semua
                   <ArrowRight className="h-3.5 w-3.5" strokeWidth={2} />
@@ -841,8 +842,8 @@ export default function DashboardHomePage() {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="flex items-start gap-3 rounded-2xl border border-brand-800/8 bg-white/60 p-4">
-                <span className="icon-ring mt-0.5 h-8 w-8 flex-shrink-0 rounded-full text-brand-700">
+              <div className="flex items-start gap-3 rounded-2xl border border-brand-800/12 bg-white p-4">
+                <span className="icon-ring mt-0.5 h-8 w-8 flex-shrink-0">
                   <CircleCheck className="h-4 w-4" strokeWidth={1.75} />
                 </span>
 
@@ -851,15 +852,15 @@ export default function DashboardHomePage() {
                     Gunakan data secara berkala
                   </p>
 
-                  <p className="mt-1 text-xs font-medium leading-5 text-brand-800/65">
+                  <p className="mt-1 text-xs font-medium leading-5 text-brand-muted">
                     Monitoring rutin membantu melihat perubahan kesehatan
                     tanaman dari waktu ke waktu.
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 rounded-2xl border border-brand-800/8 bg-white/60 p-4">
-                <span className="icon-ring mt-0.5 h-8 w-8 flex-shrink-0 rounded-full text-brand-700">
+              <div className="flex items-start gap-3 rounded-2xl border border-brand-800/12 bg-white p-4">
+                <span className="icon-ring mt-0.5 h-8 w-8 flex-shrink-0">
                   <Layers className="h-4 w-4" strokeWidth={1.75} />
                 </span>
 
@@ -868,7 +869,7 @@ export default function DashboardHomePage() {
                     Optimalkan analisis
                   </p>
 
-                  <p className="mt-1 text-xs font-medium leading-5 text-brand-800/65">
+                  <p className="mt-1 text-xs font-medium leading-5 text-brand-muted">
                     Kombinasikan layer NDVI, NPK, dan topografi untuk gambaran
                     lahan yang lebih lengkap.
                   </p>

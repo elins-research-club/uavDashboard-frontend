@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import {
   Map as MapIcon,
   Layers,
+  Search,
   Download,
   ZoomIn,
   ZoomOut,
@@ -105,6 +106,7 @@ export default function MapsPage() {
   const [selectedLayer, setSelectedLayer] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [isLayerPanelOpen, setIsLayerPanelOpen] = useState(true);
+  const [isMinSearchFocused, setIsMinSearchFocused] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -936,55 +938,217 @@ export default function MapsPage() {
 
 
                 {/* =================================================
-                    FLOATING TOGGLE BUTTON
+                    FLOATING TOGGLE & SEARCH (MINIMIZED MODE)
                 ================================================== */}
 
                 {!isLayerPanelOpen && (
-                  <button
-                    type="button"
-                    onClick={() => setIsLayerPanelOpen(true)}
-                    className="
-                      absolute
-                      left-2
-                      top-2
-                      z-30
-                      inline-flex
-                      items-center
-                      gap-1.5
-                      rounded-full
-                      border
-                      border-[#123c28]/15
-                      bg-white/95
-                      px-2.5
-                      py-1.5
-                      text-[9px]
-                      font-bold
-                      text-[#123c28]
-                      shadow-lg
-                      backdrop-blur-md
-                      transition
-                      hover:bg-[#f3f6ed]
-                      hover:shadow-xl
-                      sm:left-3
-                      sm:top-3
-                      sm:gap-2
-                      sm:px-3.5
-                      sm:py-2
-                      sm:text-xs
-                    "
-                  >
-                    <Layers className="h-3 w-3 text-[#123c28] sm:h-3.5 sm:w-3.5" />
+                  <div className="absolute left-2 top-2 z-30 flex items-center gap-1.5 sm:left-3 sm:top-3 sm:gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsLayerPanelOpen(true)}
+                      className="
+                        inline-flex
+                        shrink-0
+                        items-center
+                        gap-1.5
+                        rounded-full
+                        border
+                        border-[#123c28]/15
+                        bg-white/95
+                        px-2.5
+                        py-1.5
+                        text-[9px]
+                        font-bold
+                        text-[#123c28]
+                        shadow-lg
+                        backdrop-blur-md
+                        transition
+                        hover:bg-[#f3f6ed]
+                        hover:shadow-xl
+                        sm:gap-2
+                        sm:px-3.5
+                        sm:py-2
+                        sm:text-xs
+                      "
+                      title="Buka daftar peta (Maximize)"
+                    >
+                      <Layers className="h-3 w-3 text-[#123c28] sm:h-3.5 sm:w-3.5" />
 
-                    <span>Daftar Peta</span>
+                      <span>Daftar Peta</span>
 
-                    <span className="rounded-full bg-[#123c28]/10 px-1.5 py-0.5 text-[8px] font-extrabold text-[#123c28] sm:text-[9px]">
-                      {maps.length}
-                    </span>
-                  </button>
+                      <span className="rounded-full bg-[#123c28]/10 px-1.5 py-0.5 text-[8px] font-extrabold text-[#123c28] sm:text-[9px]">
+                        {maps.length}
+                      </span>
+                    </button>
+
+                    {/* SEARCH BAR (MINIMIZE MODE) */}
+                    <div className="relative flex items-center">
+                      <div className="
+                        relative
+                        flex
+                        items-center
+                        rounded-full
+                        border
+                        border-[#123c28]/15
+                        bg-white/95
+                        shadow-lg
+                        backdrop-blur-md
+                        transition-all
+                        focus-within:border-[#123c28]/35
+                        focus-within:bg-white
+                        focus-within:shadow-xl
+                      ">
+                        <Search className="pointer-events-none absolute left-2.5 h-3 w-3 text-[#123c28]/45 sm:left-3 sm:h-3.5 sm:w-3.5" />
+
+                        <input
+                          type="text"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          onFocus={() => setIsMinSearchFocused(true)}
+                          onBlur={() => {
+                            setTimeout(() => setIsMinSearchFocused(false), 200);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              setIsLayerPanelOpen(true);
+                            }
+                          }}
+                          placeholder="Cari peta..."
+                          className="
+                            h-[27px]
+                            w-24
+                            rounded-full
+                            bg-transparent
+                            pl-7
+                            pr-6
+                            text-[9px]
+                            font-medium
+                            text-[#123c28]
+                            outline-none
+                            placeholder:text-[#123c28]/40
+                            transition-[width]
+                            duration-200
+                            focus:w-36
+                            sm:h-[33px]
+                            sm:w-36
+                            sm:pl-8
+                            sm:pr-7
+                            sm:text-xs
+                            sm:focus:w-52
+                          "
+                        />
+
+                        {searchQuery && (
+                          <button
+                            type="button"
+                            onClick={() => setSearchQuery("")}
+                            className="
+                              absolute
+                              right-1.5
+                              flex
+                              h-4
+                              w-4
+                              items-center
+                              justify-center
+                              rounded-full
+                              text-[#123c28]/45
+                              transition
+                              hover:bg-[#123c28]/10
+                              hover:text-[#123c28]
+                              sm:right-2
+                              sm:h-5
+                              sm:w-5
+                            "
+                            title="Hapus pencarian"
+                          >
+                            <X className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* QUICK DROPDOWN HASIL PENCARIAN SAAT MINIMIZE */}
+                      {isMinSearchFocused && searchQuery.trim() && (
+                        <div className="
+                          absolute
+                          left-0
+                          top-full
+                          mt-1.5
+                          z-40
+                          w-56
+                          overflow-hidden
+                          rounded-xl
+                          border
+                          border-[#123c28]/15
+                          bg-white/95
+                          p-1.5
+                          shadow-xl
+                          backdrop-blur-md
+                          animate-in
+                          fade-in
+                          slide-in-from-top-1
+                          duration-150
+                          sm:w-64
+                        ">
+                          <div className="max-h-48 space-y-1 overflow-y-auto">
+                            {filteredMapLayers.length === 0 ? (
+                              <div className="px-3 py-3 text-center text-[10px] text-[#123c28]/60">
+                                Peta tidak ditemukan
+                              </div>
+                            ) : (
+                              filteredMapLayers.slice(0, 5).map((layer) => {
+                                const active = selectedLayer === layer.id;
+                                return (
+                                  <button
+                                    key={layer.id}
+                                    type="button"
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      if (layer.locked) {
+                                        triggerToast("Peta ini terkunci untuk Member Free. Silakan Upgrade Tier Anda.");
+                                      } else {
+                                        setSelectedLayer(layer.id);
+                                      }
+                                    }}
+                                    className={cn(
+                                      "w-full rounded-lg px-2.5 py-1.5 text-left text-[10px] transition flex items-center justify-between gap-2",
+                                      active
+                                        ? "bg-[#123c28] text-white font-bold"
+                                        : "text-[#123c28] hover:bg-[#123c28]/10"
+                                    )}
+                                  >
+                                    <span className="truncate">{layer.name}</span>
+                                    <span className="shrink-0 text-[8px] opacity-70">
+                                      {layer.format?.toUpperCase() || "MAP"}
+                                    </span>
+                                  </button>
+                                );
+                              })
+                            )}
+                          </div>
+
+                          <div className="mt-1 flex items-center justify-between border-t border-[#123c28]/10 px-1 pt-1">
+                            <span className="text-[8px] font-semibold text-[#123c28]/50">
+                              {filteredMapLayers.length} dari {maps.length} peta
+                            </span>
+                            <button
+                              type="button"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                setIsLayerPanelOpen(true);
+                              }}
+                              className="text-[8px] font-bold text-[#123c28] hover:underline"
+                            >
+                              Buka Panel Penuh
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 )}
 
                 {/* =================================================
-                    FLOATING MAP LAYERS PANEL
+                    FLOATING MAP LAYERS PANEL (MAXIMIZED MODE)
                 ================================================== */}
 
                 {isLayerPanelOpen && (
@@ -1055,11 +1219,68 @@ export default function MapsPage() {
                               sm:w-7
                               sm:rounded-lg
                             "
-                            title="Sembunyikan daftar peta"
+                            title="Sembunyikan daftar peta (Minimize)"
                           >
                             <X className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                           </button>
                         </div>
+                      </div>
+
+                      {/* SEARCH INPUT (MAXIMIZE MODE) */}
+                      <div className="relative mt-2 flex items-center">
+                        <Search className="pointer-events-none absolute left-2.5 h-3 w-3 text-[#123c28]/45 sm:h-3.5 sm:w-3.5" />
+                        <input
+                          type="text"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          placeholder="Cari peta..."
+                          className="
+                            h-7
+                            w-full
+                            rounded-lg
+                            border
+                            border-[#123c28]/15
+                            bg-[#fafbf8]
+                            pl-7
+                            pr-7
+                            text-[10px]
+                            font-medium
+                            text-[#123c28]
+                            outline-none
+                            transition
+                            placeholder:text-[#123c28]/40
+                            focus:border-[#123c28]/35
+                            focus:bg-white
+                            sm:h-8
+                            sm:pl-8
+                            sm:text-[11px]
+                          "
+                        />
+                        {searchQuery && (
+                          <button
+                            type="button"
+                            onClick={() => setSearchQuery("")}
+                            className="
+                              absolute
+                              right-1.5
+                              flex
+                              h-4
+                              w-4
+                              items-center
+                              justify-center
+                              rounded-full
+                              text-[#123c28]/45
+                              transition
+                              hover:bg-[#123c28]/10
+                              hover:text-[#123c28]
+                              sm:h-5
+                              sm:w-5
+                            "
+                            title="Hapus pencarian"
+                          >
+                            <X className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                          </button>
+                        )}
                       </div>
                     </div>
 
