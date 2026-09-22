@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 
 import {
   Activity,
@@ -32,6 +33,13 @@ import {
 
 import type { MapLayerItem } from "@/types/map";
 import { detectLayer } from "@/app/dashboard/upload/upload-config";
+import { cn } from "@/lib/utils";
+import {
+  EASE,
+  ICON_STROKE,
+  eyebrowClass,
+  inputClass,
+} from "@/app/dashboard/upload/upload-ui";
 
 /* =========================================================
    TYPES
@@ -78,6 +86,9 @@ interface LayerControlPanelProps {
 
 /* =========================================================
    LAYER TYPE CONFIG
+   Warna per tipe layer adalah penanda data (identitas jenis
+   analisis), jadi tetap dipertahankan. Hanya ortho yang
+   disesuaikan ke warna netral tema.
 ========================================================= */
 
 interface LayerTypeMeta {
@@ -94,11 +105,11 @@ const LAYER_TYPE_CONFIG: Record<string, LayerTypeMeta> = {
   ortho: {
     label: "Citra Ortho RGB",
     icon: Aperture,
-    bgSolid: "bg-[#123c28]",
-    bgTint: "bg-[#123c28]/10",
-    textColor: "text-[#123c28]",
-    borderColor: "border-[#123c28]/25",
-    gradient: "from-[#123c28] via-emerald-700 to-[#123c28]",
+    bgSolid: "bg-[#171717]",
+    bgTint: "bg-[#171717]/5",
+    textColor: "text-[#171717]",
+    borderColor: "border-[#171717]/25",
+    gradient: "from-[#171717] via-[#858780] to-[#DCDDD8]",
   },
 
   ndvi: {
@@ -173,6 +184,76 @@ const LAYER_TYPE_CONFIG: Record<string, LayerTypeMeta> = {
 };
 
 /* =========================================================
+   SHARED UI BITS
+========================================================= */
+
+const popMotion = {
+  initial: { opacity: 0, y: -6 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -6 },
+  transition: { duration: 0.2, ease: EASE },
+} as const;
+
+const popupClass =
+  "absolute right-0 top-12 overflow-hidden border border-[#DCDDD8] bg-white shadow-md";
+
+function PanelHeader({
+  eyebrow,
+  title,
+  description,
+}: {
+  eyebrow: string;
+  title: string;
+  description?: string;
+}) {
+  return (
+    <div className="border-b border-[#DCDDD8] px-4 py-3">
+      <p className={eyebrowClass}>{eyebrow}</p>
+
+      <p className="mt-1 text-xs font-bold text-[#171717]">{title}</p>
+
+      {description && (
+        <p className="mt-0.5 text-[10px] font-medium text-[#858780]">
+          {description}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function OptionRow({
+  active,
+  onClick,
+  icon: Icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        "flex w-full items-center gap-2 border px-3 py-2.5 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#171717]/20",
+        active
+          ? "border-[#171717] bg-[#171717] text-white"
+          : "border-[#DCDDD8] bg-white text-[#33332F] hover:bg-[#FAFAF8]"
+      )}
+    >
+      <Icon className="h-3.5 w-3.5" />
+
+      <span className="text-[10px] font-bold">{label}</span>
+
+      {active && <span className="ml-auto text-[10px] font-bold">Aktif</span>}
+    </button>
+  );
+}
+
+/* =========================================================
    COMPONENT
 ========================================================= */
 
@@ -216,7 +297,9 @@ export default function LayerControlPanel({
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [dragHandleIndex, setDragHandleIndex] = useState<number | null>(null);
-  const [bakingProgress, setBakingProgress] = useState<Record<string, number>>({});
+  const [bakingProgress, setBakingProgress] = useState<Record<string, number>>(
+    {}
+  );
 
   /* Handle file selection with automatic layer detection from /upload engine */
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -233,9 +316,13 @@ export default function LayerControlPanel({
       const detected = await detectLayer(file);
       setAddType(detected.layer_type);
       setAddName(detected.name);
-      setDetectedInfo(detected.detection_reason || `Terdeteksi: ${detected.name}`);
+      setDetectedInfo(
+        detected.detection_reason || `Terdeteksi: ${detected.name}`
+      );
     } catch {
-      const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ");
+      const cleanName = file.name
+        .replace(/\.[^/.]+$/, "")
+        .replace(/[_-]/g, " ");
       setAddName(cleanName);
       setDetectedInfo(null);
     } finally {
@@ -246,7 +333,9 @@ export default function LayerControlPanel({
   /* Baking progress simulation for pending/processing layers */
   useEffect(() => {
     const bakingLayers = layers.filter(
-      (l) => l.conversion_status === "pending" || l.conversion_status === "processing"
+      (l) =>
+        l.conversion_status === "pending" ||
+        l.conversion_status === "processing"
     );
     if (bakingLayers.length === 0) return;
 
@@ -254,7 +343,9 @@ export default function LayerControlPanel({
       setBakingProgress((prev) => {
         const next = { ...prev };
         bakingLayers.forEach((layer) => {
-          const current = next[layer.id] ?? (layer.conversion_status === "processing" ? 30 : 15);
+          const current =
+            next[layer.id] ??
+            (layer.conversion_status === "processing" ? 30 : 15);
           if (current < 92) {
             const increment = Math.max(1, Math.floor((95 - current) / 6));
             next[layer.id] = Math.min(92, current + increment);
@@ -284,7 +375,8 @@ export default function LayerControlPanel({
     setUploading(true);
     setUploadError(null);
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
+      const baseUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
       const fd = new FormData();
       fd.append("name", addName.trim());
       fd.append("layer_type", addType);
@@ -325,7 +417,9 @@ export default function LayerControlPanel({
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error((err as { detail?: string }).detail || `Upload gagal (${res.status})`);
+        throw new Error(
+          (err as { detail?: string }).detail || `Upload gagal (${res.status})`
+        );
       }
       setShowAddForm(false);
       setAddName("");
@@ -344,10 +438,8 @@ export default function LayerControlPanel({
 
   const activeCount = layers.filter((layer) => layer.is_visible).length;
 
-  const isAllVisible =
-    layers.length > 0 && layers.every((l) => l.is_visible);
-  const isAllHidden =
-    layers.length > 0 && layers.every((l) => !l.is_visible);
+  const isAllVisible = layers.length > 0 && layers.every((l) => l.is_visible);
+  const isAllHidden = layers.length > 0 && layers.every((l) => !l.is_visible);
 
   /* Baca jenis layer apa saja yang tersedia pada peta saat ini secara dinamis */
   const availableTypes = useMemo(() => {
@@ -377,7 +469,8 @@ export default function LayerControlPanel({
             ? "DSM"
             : typeKey === "spectral"
             ? "Spektral"
-            : cfg?.label?.replace(/\s*\([^)]*\)/, "").trim() || typeKey.toUpperCase();
+            : cfg?.label?.replace(/\s*\([^)]*\)/, "").trim() ||
+              typeKey.toUpperCase();
         result.push({ key: typeKey, label: shortLabel });
       }
     });
@@ -398,7 +491,9 @@ export default function LayerControlPanel({
     for (const { key } of availableTypes) {
       if (key === "__base__") continue;
       const isTypeActive =
-        layers.some((l) => l.layer_type.toLowerCase() === key && l.is_visible) &&
+        layers.some(
+          (l) => l.layer_type.toLowerCase() === key && l.is_visible
+        ) &&
         layers.every((l) =>
           l.layer_type.toLowerCase() === key ? l.is_visible : !l.is_visible
         );
@@ -470,25 +565,21 @@ export default function LayerControlPanel({
      ICON BUTTON STYLE
   ======================================================= */
 
-  const getIconButtonClass = (active = false) => {
-    return [
-      "relative",
-      "flex",
-      "h-9",
-      "w-9",
-      "items-center",
-      "justify-center",
-      "rounded-xl",
-      "border",
-      "transition-all",
-      "duration-150",
-
+  const getIconButtonClass = (active = false) =>
+    cn(
+      "relative flex h-9 w-9 items-center justify-center border outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#171717]/20",
       active
-        ? "border-[#123c28] bg-[#123c28] text-white shadow-sm"
-        : "border-gray-200 bg-white text-gray-700 shadow-sm hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900",
+        ? "border-[#171717] bg-[#171717] text-white"
+        : "border-transparent text-[#33332F] hover:bg-[#F4F5F2] hover:text-[#171717]"
+    );
 
-      "active:scale-95",
-    ].join(" ");
+  const closeAddForm = () => {
+    setShowAddForm(false);
+    setUploadError(null);
+    setAddFile(null);
+    setAddName("");
+    setDetectedInfo(null);
+    setTypeDropdownOpen(false);
   };
 
   /* =======================================================
@@ -501,807 +592,924 @@ export default function LayerControlPanel({
           TOOLBAR
       ==================================================== */}
 
-      <div className="flex items-center gap-1.5 rounded-2xl border border-gray-200 bg-white p-1.5 shadow-lg">
-
-        {/* =================================================
-            BASEMAP
-        ================================================== */}
-
-        <button
+      <div className="flex items-center gap-0.5 border border-[#DCDDD8] bg-white/95 p-1 backdrop-blur-md">
+        <motion.button
           type="button"
+          whileTap={{ scale: 0.95 }}
           onClick={() => handlePanelToggle("basemap")}
           title="Basemap"
           aria-label="Basemap"
+          aria-expanded={activePanel === "basemap"}
           className={getIconButtonClass(activePanel === "basemap")}
         >
-          <Globe className="h-4 w-4" />
-        </button>
+          <Globe className="h-4 w-4" strokeWidth={ICON_STROKE} />
+        </motion.button>
 
-        {/* =================================================
-            TERRAIN
-        ================================================== */}
-
-        <button
+        <motion.button
           type="button"
+          whileTap={{ scale: 0.95 }}
           onClick={() => handlePanelToggle("terrain")}
           title="Mode 3D"
           aria-label="Mode 3D"
+          aria-expanded={activePanel === "terrain"}
           className={getIconButtonClass(activePanel === "terrain")}
         >
-          <Mountain className="h-4 w-4" />
+          <Mountain className="h-4 w-4" strokeWidth={ICON_STROKE} />
 
           {terrainEnabled && (
-            <span className="absolute right-[-1px] top-[-1px] h-2 w-2 rounded-full border border-white bg-emerald-500" />
+            <span className="absolute right-0.5 top-0.5 h-1.5 w-1.5 bg-[#76B900]" />
           )}
-        </button>
+        </motion.button>
 
-        {/* =================================================
-            LAYERS
-        ================================================== */}
-
-        <button
+        <motion.button
           type="button"
+          whileTap={{ scale: 0.95 }}
           onClick={() => handlePanelToggle("layers")}
           title="Layer Analisis"
           aria-label="Layer Analisis"
+          aria-expanded={activePanel === "layers"}
           className={getIconButtonClass(activePanel === "layers")}
         >
-          <Layers className="h-4 w-4" />
+          <Layers className="h-4 w-4" strokeWidth={ICON_STROKE} />
 
           {hasLayers && (
-            <span className="absolute right-[-2px] top-[-2px] flex h-4 min-w-4 items-center justify-center rounded-full bg-emerald-600 px-1 text-[7px] font-black text-white">
+            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center bg-[#76B900] px-1 text-[9px] font-bold tabular-nums text-[#171717]">
               {activeCount}
             </span>
           )}
-        </button>
+        </motion.button>
       </div>
 
-      {/* ===================================================
-          BASEMAP POPUP
-      ==================================================== */}
+      <AnimatePresence>
+        {/* ===================================================
+            BASEMAP POPUP
+        ==================================================== */}
 
-      {activePanel === "basemap" && (
-        <div className="absolute right-0 top-12 w-52 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl">
-          {/* HEADER */}
+        {activePanel === "basemap" && (
+          <motion.div
+            key="basemap"
+            {...popMotion}
+            className={cn(popupClass, "w-56")}
+          >
+            <PanelHeader
+              eyebrow="Basemap"
+              title="Tampilan dasar peta"
+              description="Pilih tampilan dasar peta"
+            />
 
-          <div className="border-b border-gray-100 px-3.5 py-3">
-            <p className="text-[11px] font-bold text-gray-900">Basemap</p>
-
-            <p className="mt-0.5 text-[9px] text-gray-500">
-              Pilih tampilan dasar peta
-            </p>
-          </div>
-
-          {/* OPTIONS */}
-
-          <div className="space-y-1 p-3">
-            <button
-              type="button"
-              onClick={() => onChangeBasemap("satellite")}
-              className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left transition ${basemap === "satellite"
-                  ? "bg-[#123c28] text-white"
-                  : "bg-gray-50 text-gray-700 hover:bg-gray-100"
-                }`}
-            >
-              <Globe className="h-3.5 w-3.5" />
-
-              <span className="text-[10px] font-semibold">Satelit</span>
-
-              {basemap === "satellite" && (
-                <span className="ml-auto text-[8px] font-bold">Aktif</span>
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onChangeBasemap("street")}
-              className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left transition ${basemap === "street"
-                  ? "bg-[#123c28] text-white"
-                  : "bg-gray-50 text-gray-700 hover:bg-gray-100"
-                }`}
-            >
-              <MapIcon className="h-3.5 w-3.5" />
-
-              <span className="text-[10px] font-semibold">Jalan</span>
-
-              {basemap === "street" && (
-                <span className="ml-auto text-[8px] font-bold">Aktif</span>
-              )}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ===================================================
-          TERRAIN POPUP
-      ==================================================== */}
-
-      {activePanel === "terrain" && (
-        <div className="absolute right-0 top-12 w-52 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl">
-          {/* HEADER */}
-
-          <div className="border-b border-gray-100 px-3.5 py-3">
-            <p className="text-[11px] font-bold text-gray-900">Mode 3D</p>
-
-            <p className="mt-0.5 text-[9px] text-gray-500">
-              Tampilkan elevasi medan
-            </p>
-          </div>
-
-          {/* TOGGLE */}
-
-          <div className="p-3">
-            <button
-              type="button"
-              onClick={onToggleTerrain}
-              className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 transition ${terrainEnabled
-                  ? "bg-[#123c28] text-white"
-                  : "bg-gray-50 text-gray-700 hover:bg-gray-100"
-                }`}
-            >
-              <div className="flex items-center gap-2">
-                <Mountain className="h-3.5 w-3.5" />
-
-                <span className="text-[10px] font-semibold">3D Terrain</span>
-              </div>
-
-              <span
-                className={`relative h-5 w-9 rounded-full transition ${terrainEnabled ? "bg-emerald-400" : "bg-gray-300"
-                  }`}
-              >
-                <span
-                  className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition ${terrainEnabled ? "left-[18px]" : "left-0.5"
-                    }`}
-                />
-              </span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ===================================================
-          LAYER POPUP
-      ==================================================== */}
-
-      {activePanel === "layers" && (
-        <div className="absolute right-0 top-12 w-[min(430px,calc(100vw-24px))] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl">
-          {/* HEADER */}
-
-          <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <Layers className="h-3.5 w-3.5 text-emerald-600" />
-
-                <h4 className="text-xs font-bold text-gray-900">
-                  Layer Analisis Lahan
-                </h4>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-[9.5px] font-semibold text-gray-600 border border-gray-200/50">
-                {activeCount}/{layers.length}
-              </span>
-
-              {mapId && (
-                <button
-                  type="button"
-                  onClick={() => { setShowAddForm((v) => !v); setUploadError(null); }}
-                  title="Tambah layer ke peta ini"
-                  aria-label="Tambah layer"
-                  className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[9.5px] font-bold transition-all active:scale-95 shadow-xs ${
-                    showAddForm
-                      ? "border border-emerald-300 bg-emerald-100 text-emerald-900 hover:bg-emerald-200"
-                      : "border border-emerald-950/30 bg-[#123c28] text-white hover:bg-[#0c271a] hover:shadow-sm"
-                  }`}
-                >
-                  <Plus className="h-3 w-3 stroke-[2.5]" />
-                  Tambah
-                </button>
-              )}
-
-              <button
-                type="button"
-                onClick={() => setActivePanel(null)}
-                className="rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
-                title="Tutup"
-                aria-label="Tutup layer"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          </div>
-
-          {/* =================================================
-              ADD LAYER FORM
-          ================================================== */}
-
-          {showAddForm && mapId && (
-            <div className="border-b border-gray-200/80 bg-gray-50/75 p-3.5 space-y-3">
-              {/* hidden file input */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".tif,.tiff"
-                className="hidden"
-                onChange={handleFileChange}
+            <div className="space-y-1.5 p-3">
+              <OptionRow
+                active={basemap === "satellite"}
+                onClick={() => onChangeBasemap("satellite")}
+                icon={Globe}
+                label="Satelit"
               />
 
-              {/* File picker */}
-              <div>
-                <label className="block text-[9px] font-bold tracking-wider text-gray-500 uppercase mb-1">
-                  PILIH FILE GeoTIFF
-                </label>
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex w-full items-center justify-between rounded-lg border border-dashed border-gray-300 bg-white px-3 py-2 text-[10px] text-gray-600 shadow-2xs transition hover:border-gray-400 hover:bg-gray-50/80 active:scale-[0.99]"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Upload className="h-3.5 w-3.5 shrink-0 text-gray-400" />
-                    {addFile ? (
-                      <span className="truncate font-semibold text-[#123c28]">{addFile.name}</span>
-                    ) : (
-                      <span className="text-gray-400">Pilih file .tif / .tiff…</span>
-                    )}
-                  </div>
-                  {detecting && (
-                    <span className="flex items-center gap-1 text-[8.5px] font-semibold text-emerald-700">
-                      <Loader2 className="h-3 w-3 animate-spin" /> Deteksi...
-                    </span>
-                  )}
-                </button>
-              </div>
+              <OptionRow
+                active={basemap === "street"}
+                onClick={() => onChangeBasemap("street")}
+                icon={MapIcon}
+                label="Jalan"
+              />
+            </div>
+          </motion.div>
+        )}
 
-              {/* Auto Detection Badge */}
-              {detectedInfo && (
-                <div className="flex items-center gap-1.5 rounded-lg border border-[#123c28]/20 bg-[#123c28]/10 px-2.5 py-1.5 text-[8.5px] font-semibold text-[#123c28]">
-                  <Sparkles className="h-3 w-3 text-[#123c28] shrink-0" />
-                  <span className="truncate">{detectedInfo}</span>
-                </div>
-              )}
+        {/* ===================================================
+            TERRAIN POPUP
+        ==================================================== */}
 
-              {/* Name */}
-              <div>
-                <label className="block text-[9px] font-bold tracking-wider text-gray-500 uppercase mb-1">
-                  NAMA LAYER
-                </label>
-                <input
-                  type="text"
-                  value={addName}
-                  onChange={(e) => setAddName(e.target.value)}
-                  placeholder="mis. Indeks Vegetasi (NDVI)"
-                  className="w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-[10.5px] text-gray-800 placeholder-gray-400 shadow-2xs outline-none transition focus:border-[#123c28] focus:ring-1 focus:ring-[#123c28]/20"
-                />
-              </div>
+        {activePanel === "terrain" && (
+          <motion.div
+            key="terrain"
+            {...popMotion}
+            className={cn(popupClass, "w-56")}
+          >
+            <PanelHeader
+              eyebrow="Terrain"
+              title="Mode 3D"
+              description="Tampilkan elevasi medan"
+            />
 
-              {/* Type - Custom 5-row Scrolling Dropdown */}
-              <div className="relative" ref={dropdownRef}>
-                <label className="block text-[9px] font-bold tracking-wider text-gray-500 uppercase mb-1">
-                  TIPE LAYER
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setTypeDropdownOpen((prev) => !prev)}
-                  className="flex w-full items-center justify-between rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-[10.5px] text-gray-800 shadow-2xs transition hover:border-gray-300 focus:border-[#123c28] focus:ring-1 focus:ring-[#123c28]/20"
-                >
-                  <span className="truncate font-medium">
-                    {LAYER_TYPES.find((t) => t.value === addType)?.label || addType}
-                  </span>
-                  <ChevronDown
-                    className={`h-3.5 w-3.5 text-gray-400 transition-transform duration-200 shrink-0 ${
-                      typeDropdownOpen ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
-
-                {typeDropdownOpen && (
-                  <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-[160px] overflow-y-auto rounded-xl border border-gray-200 bg-white py-1 shadow-lg divide-y divide-gray-50">
-                    {LAYER_TYPES.map((t) => {
-                      const isSelected = t.value === addType;
-                      return (
-                        <button
-                          key={t.value}
-                          type="button"
-                          onClick={() => {
-                            setAddType(t.value);
-                            setTypeDropdownOpen(false);
-                            if (!addName.trim() || LAYER_TYPES.some((x) => x.label === addName)) {
-                              setAddName(t.label);
-                            }
-                          }}
-                          className={`flex h-8 w-full items-center justify-between px-3 text-left text-[10.5px] transition ${
-                            isSelected
-                              ? "bg-[#123c28]/10 font-bold text-[#123c28]"
-                              : "text-gray-700 hover:bg-gray-50 hover:text-gray-900 font-normal"
-                          }`}
-                        >
-                          <span className="truncate">{t.label}</span>
-                          {isSelected && <Check className="h-3 w-3 shrink-0 text-[#123c28]" />}
-                        </button>
-                      );
-                    })}
-                  </div>
+            <div className="p-3">
+              <button
+                type="button"
+                onClick={onToggleTerrain}
+                role="switch"
+                aria-checked={terrainEnabled}
+                className={cn(
+                  "flex w-full items-center justify-between border px-3 py-2.5 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#171717]/20",
+                  terrainEnabled
+                    ? "border-[#171717] bg-[#171717] text-white"
+                    : "border-[#DCDDD8] bg-white text-[#33332F] hover:bg-[#FAFAF8]"
                 )}
-              </div>
+              >
+                <span className="flex items-center gap-2">
+                  <Mountain className="h-3.5 w-3.5" />
 
-              {/* Error */}
-              {uploadError && (
-                <p className="text-[9px] font-semibold text-red-600">{uploadError}</p>
-              )}
+                  <span className="text-[10px] font-bold">3D Terrain</span>
+                </span>
 
-              {/* Actions */}
-              <div className="flex gap-2 pt-0.5">
-                <button
-                  type="button"
-                  onClick={handleUploadLayer}
-                  disabled={uploading || detecting || !addFile || !addName.trim()}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#123c28] px-3 py-1.5 text-[10px] font-bold text-white shadow-xs transition hover:bg-[#0c271a] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {uploading ? (
-                    <><Loader2 className="h-3 w-3 animate-spin" /> Mengunggah…</>
-                  ) : (
-                    <><Upload className="h-3 w-3" /> Upload & Baking Layer</>
+                <span
+                  className={cn(
+                    "relative h-5 w-9 border transition-colors",
+                    terrainEnabled
+                      ? "border-[#76B900] bg-[#76B900]"
+                      : "border-[#DCDDD8] bg-[#DCDDD8]"
                   )}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setShowAddForm(false); setUploadError(null); setAddFile(null); setAddName(""); setDetectedInfo(null); setTypeDropdownOpen(false); }}
-                  className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-[10px] font-semibold text-gray-600 shadow-2xs transition hover:bg-gray-50 active:scale-95"
                 >
-                  Batal
-                </button>
-              </div>
+                  <span
+                    className={cn(
+                      "absolute top-0.5 h-3.5 w-3.5 bg-white transition-all",
+                      terrainEnabled ? "left-[19px]" : "left-0.5"
+                    )}
+                  />
+                </span>
+              </button>
             </div>
-          )}
+          </motion.div>
+        )}
 
-          {/* =================================================
-              NO LAYERS
-          ================================================== */}
+        {/* ===================================================
+            LAYER POPUP
+        ==================================================== */}
 
-          {!hasLayers ? (
-            <div className="flex min-h-[120px] items-center justify-center p-5">
-              <div className="text-center">
-                <Layers className="mx-auto mb-2 h-5 w-5 text-gray-300" />
+        {activePanel === "layers" && (
+          <motion.div
+            key="layers"
+            {...popMotion}
+            className={cn(popupClass, "w-[min(430px,calc(100vw-24px))]")}
+          >
+            {/* HEADER */}
 
-                <p className="text-[10px] font-semibold text-gray-600">
-                  Belum ada layer analisis
-                </p>
+            <div className="flex items-center justify-between gap-3 border-b border-[#DCDDD8] px-4 py-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center border border-[#DCDDD8] bg-[#F4F5F2]">
+                  <Layers
+                    className="h-3.5 w-3.5 text-[#33332F]"
+                    strokeWidth={ICON_STROKE}
+                  />
+                </span>
 
-                <p className="mt-1 text-[9px] text-gray-400">
-                  Dataset akan muncul di sini.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <>
-              {/* =============================================
-                  QUICK ACTIONS
-              ============================================== */}
+                <div className="min-w-0">
+                  <p className={eyebrowClass}>Layers</p>
 
-              <div className="border-b border-gray-100 px-4 py-2.5">
-                <div className="flex flex-wrap items-center gap-1 rounded-xl bg-gray-100 p-1 border border-gray-200/50">
-                  <button
-                    type="button"
-                    onClick={() => handleToggleAll(true)}
-                    className={`flex-1 min-w-[50px] rounded-lg py-1.5 px-2 text-[9.5px] font-bold transition-all duration-150 outline-none text-center ${
-                      activeTypeKey === "all"
-                        ? "bg-[#123c28] text-white shadow-sm"
-                        : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
-                    }`}
-                  >
-                    Semua
-                  </button>
-
-                  {availableTypes.map(({ key, label }) => (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => handleShowOnlyType(key)}
-                      className={`flex-1 min-w-[50px] rounded-lg py-1.5 px-2 text-[9.5px] font-bold transition-all duration-150 outline-none text-center ${
-                        activeTypeKey === key
-                          ? "bg-[#123c28] text-white shadow-sm"
-                          : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-
-                  <button
-                    type="button"
-                    onClick={() => handleToggleAll(false)}
-                    className={`flex-1 min-w-[65px] rounded-lg py-1.5 px-2 text-[9.5px] font-bold transition-all duration-150 outline-none text-center ${
-                      activeTypeKey === "none"
-                        ? "bg-[#123c28] text-white shadow-sm"
-                        : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
-                    }`}
-                  >
-                    Sembunyikan
-                  </button>
+                  <h4 className="mt-0.5 truncate text-xs font-bold text-[#171717]">
+                    Layer Analisis Lahan
+                  </h4>
                 </div>
               </div>
 
-              {/* =============================================
-                  LAYER LIST
-              ============================================== */}
+              <div className="flex items-center gap-1.5">
+                <span className="border border-[#DCDDD8] bg-[#F4F5F2] px-2 py-1 text-[10px] font-bold tabular-nums text-[#33332F]">
+                  {activeCount}/{layers.length}
+                </span>
 
-              <div className="max-h-[60vh] space-y-2 overflow-y-auto p-3">
-                {layers.map((layer, index) => {
-                  const cfg = LAYER_TYPE_CONFIG[
-                    layer.layer_type.toLowerCase()
-                  ] || {
-                    label: layer.name,
-                    icon: Layers,
-                    bgSolid: "bg-gray-600",
-                    bgTint: "bg-gray-50/80",
-                    textColor: "text-gray-800",
-                    borderColor: "border-gray-300/40",
-                    gradient: "from-gray-500 to-gray-300",
-                  };
+                {mapId && (
+                  <motion.button
+                    type="button"
+                    whileHover={{ y: -1 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => {
+                      setShowAddForm((v) => !v);
+                      setUploadError(null);
+                    }}
+                    title="Tambah layer ke peta ini"
+                    aria-label="Tambah layer"
+                    aria-expanded={showAddForm}
+                    className={cn(
+                      "flex items-center gap-1 border px-2.5 py-1 text-[10px] font-bold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#171717]/20",
+                      showAddForm
+                        ? "border-[#DCDDD8] bg-[#F4F5F2] text-[#171717]"
+                        : "border-[#171717] bg-[#171717] text-white hover:bg-[#33332F]"
+                    )}
+                  >
+                    <Plus className="h-3 w-3" strokeWidth={2.5} />
+                    Tambah
+                  </motion.button>
+                )}
 
-                  const isBaking =
-                    layer.conversion_status === "pending" ||
-                    layer.conversion_status === "processing";
-                  const isFailed = layer.conversion_status === "failed";
-                  const isPmtiles = Boolean(layer.pmtiles_url) && !isBaking;
-                  const progressPct =
-                    bakingProgress[layer.id] ??
-                    (layer.conversion_status === "processing" ? 35 : 15);
+                <button
+                  type="button"
+                  onClick={() => setActivePanel(null)}
+                  className="flex h-7 w-7 items-center justify-center border border-transparent text-[#858780] outline-none transition-colors hover:border-[#DCDDD8] hover:bg-[#F4F5F2] hover:text-[#171717] focus-visible:ring-2 focus-visible:ring-[#171717]/20"
+                  title="Tutup"
+                  aria-label="Tutup layer"
+                >
+                  <X className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} />
+                </button>
+              </div>
+            </div>
 
-                  const rotation =
-                    index % 3 === 0
-                      ? "rotate-[0.2deg]"
-                      : index % 3 === 1
-                        ? "rotate-[-0.25deg]"
-                        : "rotate-0";
+            {/* =================================================
+                ADD LAYER FORM
+            ================================================== */}
 
-                  return (
-                    <div
-                      key={layer.id}
-                      draggable={!isBaking && Boolean(onReorderLayers && layers.length > 1) && (dragHandleIndex === index || draggedIndex === index)}
-                      onDragStart={(e) => {
-                        const target = e.target as HTMLElement;
-                        if (target.closest('input, button, select, [data-no-drag]')) {
-                          e.preventDefault();
-                          return;
-                        }
-                        setDraggedIndex(index);
-                        e.dataTransfer.effectAllowed = "move";
-                        e.dataTransfer.setData("text/plain", `${index}`);
-                      }}
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = "move";
-                        if (dragOverIndex !== index) {
-                          setDragOverIndex(index);
-                        }
-                      }}
-                      onDragLeave={() => {
-                        if (dragOverIndex === index) {
-                          setDragOverIndex(null);
-                        }
-                      }}
-                      onDrop={async (e) => {
-                        e.preventDefault();
-                        setDragOverIndex(null);
-                        setDragHandleIndex(null);
-                        if (draggedIndex === null || draggedIndex === index) {
-                          setDraggedIndex(null);
-                          return;
-                        }
-                        const updated = [...layers];
-                        const [moved] = updated.splice(draggedIndex, 1);
-                        updated.splice(index, 0, moved);
-                        setDraggedIndex(null);
-                        if (onReorderLayers) {
-                          await onReorderLayers(updated);
-                        }
-                      }}
-                      onDragEnd={() => {
-                        setDraggedIndex(null);
-                        setDragOverIndex(null);
-                        setDragHandleIndex(null);
-                      }}
-                      className={`group/card relative rounded-xl border p-2.5 transition-all duration-150 ${
-                        draggedIndex === index
-                          ? "opacity-40 border-dashed border-[#123c28] bg-[#123c28]/10 scale-[0.98]"
-                          : dragOverIndex === index
-                          ? "border-[#123c28] ring-2 ring-[#123c28]/25 bg-[#123c28]/10"
-                          : isFailed
-                          ? "border-red-300 bg-red-50/80 shadow-xs"
-                          : isBaking
-                          ? "border-amber-200/90 bg-amber-50/40 shadow-xs"
-                          : layer.is_visible
-                          ? "border-gray-200 bg-white"
-                          : "border-dashed border-gray-200 bg-gray-50 opacity-60"
-                      } ${rotation} hover:rotate-0 hover:border-gray-300 hover:shadow-sm`}
+            <AnimatePresence initial={false}>
+              {showAddForm && mapId && (
+                <motion.div
+                  key="add-form"
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.22, ease: EASE }}
+                  className="space-y-3 border-b border-[#DCDDD8] bg-[#FAFAF8] p-4"
+                >
+                  {/* hidden file input */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".tif,.tiff"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+
+                  {/* File picker */}
+                  <div>
+                    <p className={cn(eyebrowClass, "mb-1.5")}>
+                      Pilih file GeoTIFF
+                    </p>
+
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex w-full items-center justify-between gap-2 border border-dashed border-[#DCDDD8] bg-white px-3 py-2.5 text-[10px] outline-none transition-colors hover:border-[#CFCFC8] hover:bg-[#FAFAF8] focus-visible:ring-2 focus-visible:ring-[#171717]/20"
                     >
-                      {/* =================================
-                            HEADER
-                        ================================== */}
+                      <span className="flex min-w-0 items-center gap-2">
+                        <Upload
+                          className="h-3.5 w-3.5 shrink-0 text-[#858780]"
+                          strokeWidth={ICON_STROKE}
+                        />
 
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
-                          {/* DRAG HANDLE */}
-                          {onReorderLayers && layers.length > 1 && !isBaking && (
-                            <div
-                              title="Tahan dan geser (drag) untuk mengubah urutan layer"
-                              onMouseEnter={() => setDragHandleIndex(index)}
-                              onMouseLeave={() => {
-                                if (draggedIndex === null) setDragHandleIndex(null);
-                              }}
-                              onMouseDown={() => setDragHandleIndex(index)}
-                              className="flex h-7 w-3.5 shrink-0 cursor-grab items-center justify-center text-gray-300 transition hover:text-gray-600 active:cursor-grabbing"
-                            >
-                              <GripVertical className="h-3.5 w-3.5" />
-                            </div>
-                          )}
+                        {addFile ? (
+                          <span className="truncate font-bold text-[#171717]">
+                            {addFile.name}
+                          </span>
+                        ) : (
+                          <span className="font-medium text-[#858780]">
+                            Pilih file .tif / .tiff…
+                          </span>
+                        )}
+                      </span>
 
-                          {/* VISIBILITY EYE BUTTON */}
-                          {isBaking ? (
-                            <div
-                              title="Layer sedang diproses (baking), belum tampil di peta"
-                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-amber-500/60 cursor-not-allowed"
-                            >
-                              <EyeOff className="h-4 w-4 stroke-[1.8]" />
-                            </div>
-                          ) : isFailed ? (
-                            <div
-                              title="Baking gagal, layer tidak dapat ditampilkan"
-                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-red-100/60 text-red-500 cursor-not-allowed"
-                            >
-                              <AlertCircle className="h-3.5 w-3.5" />
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                onToggleVisibility(layer.id, !layer.is_visible)
-                              }
-                              title={
-                                layer.is_visible
-                                  ? "Sembunyikan layer"
-                                  : "Tampilkan layer"
-                              }
-                              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-all duration-150 active:scale-90 ${
-                                layer.is_visible
-                                  ? "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                                  : "text-gray-300 hover:bg-gray-100 hover:text-gray-500"
-                              }`}
-                            >
-                              {layer.is_visible ? (
-                                <Eye className="h-4 w-4 stroke-[2.2]" />
-                              ) : (
-                                <EyeOff className="h-4 w-4 stroke-[1.8]" />
-                              )}
-                            </button>
-                          )}
-
-                          {/* INFO */}
-                          <div className="min-w-0">
-                            <p className="truncate text-xs font-bold text-gray-900 leading-tight">
-                              {layer.name}
-                            </p>
-
-                            <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                              <span
-                                className={`inline-flex items-center overflow-hidden rounded-full border ${cfg.borderColor} bg-white shadow-xs transition hover:shadow-sm`}
-                              >
-                                <span className={`flex items-center justify-center ${cfg.bgSolid} pl-2 pr-1.5 py-1 text-white`}>
-                                  <cfg.icon className="h-3 w-3 stroke-[2.2]" />
-                                </span>
-                                <span className={`${cfg.bgTint} pl-1.5 pr-2.5 py-1 text-[9px] font-bold tracking-tight ${cfg.textColor}`}>
-                                  <span className="max-w-[170px] truncate">{cfg.label}</span>
-                                </span>
-                              </span>
-
-                              {layer.is_base_layer ? (
-                                <span
-                                  title="Base Layer utama (lapisan dasar aktif)"
-                                  className="shrink-0 rounded-full bg-[#123c28] px-2 py-0.5 text-[8.5px] font-bold tracking-wider text-white uppercase border border-[#123c28]/60 shadow-2xs flex items-center gap-1"
-                                >
-                                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
-                                  BASE
-                                </span>
-                              ) : (
-                                onSetBaseLayer && !isBaking && !isFailed && (
-                                  <button
-                                    type="button"
-                                    onClick={() => onSetBaseLayer(layer.id)}
-                                    title="Klik untuk mengubah layer ini menjadi Base Layer"
-                                    className="shrink-0 rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[8px] font-bold tracking-wider text-gray-400 uppercase transition hover:border-[#123c28] hover:bg-[#123c28]/10 hover:text-[#123c28] active:scale-95"
-                                  >
-                                    Set Base
-                                  </button>
-                                )
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* STATUS & CONTROLS */}
-                        <div className="flex shrink-0 items-center gap-1.5">
-                          {isBaking ? (
-                            <span
-                              title="Sedang mengonversi GeoTIFF ke format PMTiles"
-                              className="inline-flex items-center gap-1.5 rounded-full border border-amber-200/80 bg-amber-50/90 px-2 py-0.5 text-[9px] font-bold text-amber-800 shadow-2xs"
-                            >
-                              <RefreshCw className="h-2.5 w-2.5 animate-spin text-amber-600" />
-                              Bake {progressPct}%
-                            </span>
-                          ) : isFailed ? (
-                            <span
-                              title={layer.conversion_error || "Konversi PMTiles gagal"}
-                              className="inline-flex items-center gap-1 rounded-full border border-red-300 bg-red-100 px-2 py-0.5 text-[9px] font-bold text-red-800 shadow-2xs"
-                            >
-                              <AlertCircle className="h-2.5 w-2.5 text-red-600" />
-                              Gagal
-                            </span>
-                          ) : isPmtiles ? (
-                            <span
-                              title="Format Cloud-Native PMTiles v3 (Protomaps Tile Archive)"
-                              className="inline-flex items-center overflow-hidden rounded-full border border-[#2525C5]/30 bg-white shadow-xs transition hover:border-[#2525C5]/60 hover:shadow-sm"
-                            >
-                              <span className="flex items-center justify-center bg-[#2525C5] pl-2 pr-1.5 py-1">
-                                <img
-                                  src="/pmtiles-logo.png"
-                                  alt="PMTiles Logo"
-                                  className="h-4 w-4 rounded-full"
-                                />
-                              </span>
-                              <span className="bg-[#2525C5]/5 pl-1.5 pr-2.5 py-1 font-mono text-[9.5px] font-bold tracking-tight text-[#2222D4]">
-                                PMTiles
-                              </span>
-                            </span>
-                          ) : (
-                            <span
-                              title="Standar Raster XYZ Tile"
-                              className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-2 py-0.5 text-[9px] font-medium text-gray-500 border border-gray-200/50"
-                            >
-                              <Grid className="h-2.5 w-2.5 text-gray-400" />
-                              <span className="font-mono">XYZ</span>
-                            </span>
-                          )}
-
-                          {onDeleteLayer && !layer.is_base_layer && (
-                            <button
-                              type="button"
-                              onClick={() => onDeleteLayer(layer.id)}
-                              title="Hapus layer"
-                              className="rounded-lg p-1 text-gray-400 transition hover:bg-red-50 hover:text-red-600 active:scale-95"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* =================================
-                            BAKING PROGRESS INDICATOR
-                        ================================== */}
-                      {isBaking && (
-                        <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-amber-100/70">
-                          <div
-                            className="h-full rounded-full bg-gradient-to-r from-amber-500 to-[#123c28] transition-all duration-300"
-                            style={{ width: `${progressPct}%` }}
-                          />
-                        </div>
+                      {detecting && (
+                        <span className="flex shrink-0 items-center gap-1 text-[10px] font-bold text-[#33332F]">
+                          <Loader2 className="h-3 w-3 animate-spin" />{" "}
+                          Deteksi...
+                        </span>
                       )}
+                    </button>
+                  </div>
 
-                      {/* =================================
-                            ERROR HANDLING BANNER
-                        ================================== */}
-                      {isFailed && (
-                        <div className="mt-2.5 rounded-lg border border-red-200/90 bg-white/90 p-2 text-red-900 shadow-2xs">
-                          <div className="flex items-start justify-between gap-1.5">
-                            <div className="min-w-0 flex-1">
-                              <p className="text-[9px] font-bold text-red-700 flex items-center gap-1">
-                                <AlertCircle className="h-3 w-3 shrink-0 text-red-600" /> Baking Bermasalah
-                              </p>
-                              <p
-                                className="mt-0.5 text-[8px] text-red-600 line-clamp-2"
-                                title={layer.conversion_error || undefined}
+                  {/* Auto detection info */}
+                  {detectedInfo && (
+                    <div className="flex items-center gap-1.5 border border-[#DCDDD8] bg-white px-2.5 py-2 text-[10px] font-bold text-[#33332F]">
+                      <Sparkles
+                        className="h-3 w-3 shrink-0 text-[#171717]"
+                        strokeWidth={ICON_STROKE}
+                      />
+
+                      <span className="truncate">{detectedInfo}</span>
+                    </div>
+                  )}
+
+                  {/* Name */}
+                  <div>
+                    <p className={cn(eyebrowClass, "mb-1.5")}>Nama layer</p>
+
+                    <input
+                      type="text"
+                      value={addName}
+                      onChange={(e) => setAddName(e.target.value)}
+                      placeholder="mis. Indeks Vegetasi (NDVI)"
+                      className={cn(inputClass, "h-9 py-0 text-[11px]")}
+                    />
+                  </div>
+
+                  {/* Type - custom dropdown */}
+                  <div className="relative" ref={dropdownRef}>
+                    <p className={cn(eyebrowClass, "mb-1.5")}>Tipe layer</p>
+
+                    <button
+                      type="button"
+                      onClick={() => setTypeDropdownOpen((prev) => !prev)}
+                      aria-haspopup="listbox"
+                      aria-expanded={typeDropdownOpen}
+                      className="flex h-9 w-full items-center justify-between gap-2 border border-[#DCDDD8] bg-white px-3 text-[11px] font-bold text-[#171717] outline-none transition-colors hover:border-[#CFCFC8] focus:border-[#171717] focus:ring-2 focus:ring-[#171717]/10"
+                    >
+                      <span className="truncate">
+                        {LAYER_TYPES.find((t) => t.value === addType)?.label ||
+                          addType}
+                      </span>
+
+                      <motion.span
+                        animate={{ rotate: typeDropdownOpen ? 180 : 0 }}
+                        transition={{ duration: 0.22, ease: EASE }}
+                        className="flex shrink-0"
+                      >
+                        <ChevronDown
+                          className="h-3.5 w-3.5 text-[#6B6B66]"
+                          strokeWidth={ICON_STROKE}
+                        />
+                      </motion.span>
+                    </button>
+
+                    <AnimatePresence>
+                      {typeDropdownOpen && (
+                        <motion.div
+                          {...popMotion}
+                          role="listbox"
+                          className="absolute left-0 right-0 top-full z-50 mt-1 max-h-[160px] overflow-y-auto border border-[#DCDDD8] bg-white p-1 shadow-md"
+                        >
+                          {LAYER_TYPES.map((t) => {
+                            const isSelected = t.value === addType;
+
+                            return (
+                              <button
+                                key={t.value}
+                                type="button"
+                                role="option"
+                                aria-selected={isSelected}
+                                onClick={() => {
+                                  setAddType(t.value);
+                                  setTypeDropdownOpen(false);
+                                  if (
+                                    !addName.trim() ||
+                                    LAYER_TYPES.some((x) => x.label === addName)
+                                  ) {
+                                    setAddName(t.label);
+                                  }
+                                }}
+                                className={cn(
+                                  "flex h-8 w-full items-center justify-between px-2.5 text-left text-[11px] transition-colors",
+                                  isSelected
+                                    ? "bg-[#F4F5F2] font-bold text-[#171717]"
+                                    : "font-medium text-[#6B6B66] hover:bg-[#FAFAF8] hover:text-[#171717]"
+                                )}
                               >
-                                {layer.conversion_error || "Gagal mengonversi file GeoTIFF ke PMTiles."}
-                              </p>
-                            </div>
-                            {onRetryConvert && (
+                                <span className="truncate">{t.label}</span>
+
+                                {isSelected && (
+                                  <Check
+                                    className="h-3 w-3 shrink-0 text-[#171717]"
+                                    strokeWidth={2.5}
+                                  />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  {/* Error */}
+                  {uploadError && (
+                    <p
+                      role="alert"
+                      className="flex items-center gap-1.5 text-[10px] font-bold text-red-600"
+                    >
+                      <AlertCircle className="h-3 w-3 shrink-0" />
+                      {uploadError}
+                    </p>
+                  )}
+
+                  {/* Actions */}
+                  <div className="flex gap-2 pt-0.5">
+                    <motion.button
+                      type="button"
+                      whileHover={
+                        uploading || detecting || !addFile || !addName.trim()
+                          ? undefined
+                          : { y: -1 }
+                      }
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleUploadLayer}
+                      disabled={
+                        uploading || detecting || !addFile || !addName.trim()
+                      }
+                      className="flex flex-1 items-center justify-center gap-1.5 bg-[#171717] px-3 py-2 text-[10px] font-bold text-white outline-none transition-colors hover:bg-[#33332F] focus-visible:ring-2 focus-visible:ring-[#171717]/20 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-[#171717]"
+                    >
+                      {uploading ? (
+                        <>
+                          <Loader2 className="h-3 w-3 animate-spin" />{" "}
+                          Mengunggah…
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-3 w-3" /> Upload & Baking Layer
+                        </>
+                      )}
+                    </motion.button>
+
+                    <button
+                      type="button"
+                      onClick={closeAddForm}
+                      className="border border-[#DCDDD8] bg-white px-3 py-2 text-[10px] font-bold text-[#33332F] outline-none transition-colors hover:bg-[#FAFAF8] focus-visible:ring-2 focus-visible:ring-[#171717]/20"
+                    >
+                      Batal
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* =================================================
+                NO LAYERS
+            ================================================== */}
+
+            {!hasLayers ? (
+              <div className="flex min-h-[140px] items-center justify-center p-5">
+                <div className="text-center">
+                  <span className="mx-auto flex h-10 w-10 items-center justify-center border border-[#DCDDD8] bg-[#F4F5F2]">
+                    <Layers
+                      className="h-4 w-4 text-[#33332F]"
+                      strokeWidth={ICON_STROKE}
+                    />
+                  </span>
+
+                  <p className="mt-3 text-xs font-bold text-[#171717]">
+                    Belum ada layer analisis
+                  </p>
+
+                  <p className="mt-1 text-[10px] font-medium text-[#858780]">
+                    Dataset akan muncul di sini.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* =============================================
+                    QUICK ACTIONS
+                ============================================== */}
+
+                <div className="border-b border-[#DCDDD8] px-4 py-3">
+                  <div className="flex flex-wrap items-center gap-1 border border-[#DCDDD8] bg-[#F4F5F2] p-1">
+                    {[
+                      {
+                        key: "all",
+                        label: "Semua",
+                        onClick: () => handleToggleAll(true),
+                      },
+                      ...availableTypes.map(({ key, label }) => ({
+                        key,
+                        label,
+                        onClick: () => handleShowOnlyType(key),
+                      })),
+                      {
+                        key: "none",
+                        label: "Sembunyikan",
+                        onClick: () => handleToggleAll(false),
+                      },
+                    ].map((tab) => (
+                      <button
+                        key={tab.key}
+                        type="button"
+                        onClick={tab.onClick}
+                        aria-pressed={activeTypeKey === tab.key}
+                        className={cn(
+                          "min-w-[50px] flex-1 px-2 py-1.5 text-center text-[10px] font-bold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#171717]/20",
+                          activeTypeKey === tab.key
+                            ? "bg-[#171717] text-white"
+                            : "text-[#6B6B66] hover:bg-white hover:text-[#171717]"
+                        )}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* =============================================
+                    LAYER LIST
+                ============================================== */}
+
+                <div className="max-h-[60vh] space-y-2 overflow-y-auto p-3">
+                  {layers.map((layer, index) => {
+                    const cfg = LAYER_TYPE_CONFIG[
+                      layer.layer_type.toLowerCase()
+                    ] || {
+                      label: layer.name,
+                      icon: Layers,
+                      bgSolid: "bg-[#6B6B66]",
+                      bgTint: "bg-[#F4F5F2]",
+                      textColor: "text-[#33332F]",
+                      borderColor: "border-[#DCDDD8]",
+                      gradient: "from-[#858780] to-[#DCDDD8]",
+                    };
+
+                    const isBaking =
+                      layer.conversion_status === "pending" ||
+                      layer.conversion_status === "processing";
+                    const isFailed = layer.conversion_status === "failed";
+                    const isPmtiles = Boolean(layer.pmtiles_url) && !isBaking;
+                    const progressPct =
+                      bakingProgress[layer.id] ??
+                      (layer.conversion_status === "processing" ? 35 : 15);
+
+                    return (
+                      <div
+                        key={layer.id}
+                        draggable={
+                          !isBaking &&
+                          Boolean(onReorderLayers && layers.length > 1) &&
+                          (dragHandleIndex === index || draggedIndex === index)
+                        }
+                        onDragStart={(e) => {
+                          const target = e.target as HTMLElement;
+                          if (
+                            target.closest(
+                              "input, button, select, [data-no-drag]"
+                            )
+                          ) {
+                            e.preventDefault();
+                            return;
+                          }
+                          setDraggedIndex(index);
+                          e.dataTransfer.effectAllowed = "move";
+                          e.dataTransfer.setData("text/plain", `${index}`);
+                        }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = "move";
+                          if (dragOverIndex !== index) {
+                            setDragOverIndex(index);
+                          }
+                        }}
+                        onDragLeave={() => {
+                          if (dragOverIndex === index) {
+                            setDragOverIndex(null);
+                          }
+                        }}
+                        onDrop={async (e) => {
+                          e.preventDefault();
+                          setDragOverIndex(null);
+                          setDragHandleIndex(null);
+                          if (draggedIndex === null || draggedIndex === index) {
+                            setDraggedIndex(null);
+                            return;
+                          }
+                          const updated = [...layers];
+                          const [moved] = updated.splice(draggedIndex, 1);
+                          updated.splice(index, 0, moved);
+                          setDraggedIndex(null);
+                          if (onReorderLayers) {
+                            await onReorderLayers(updated);
+                          }
+                        }}
+                        onDragEnd={() => {
+                          setDraggedIndex(null);
+                          setDragOverIndex(null);
+                          setDragHandleIndex(null);
+                        }}
+                        className={cn(
+                          "group/card relative border p-3 transition-colors duration-150",
+                          draggedIndex === index
+                            ? "border-dashed border-[#171717] bg-[#F4F5F2] opacity-40"
+                            : dragOverIndex === index
+                            ? "border-[#171717] bg-[#F4F5F2] ring-2 ring-[#171717]/15"
+                            : isFailed
+                            ? "border-red-300 bg-red-50/80"
+                            : isBaking
+                            ? "border-amber-200 bg-amber-50/50"
+                            : layer.is_visible
+                            ? "border-[#DCDDD8] bg-white hover:border-[#CFCFC8] hover:bg-[#FAFAF8]"
+                            : "border-dashed border-[#DCDDD8] bg-[#FAFAF8] opacity-60"
+                        )}
+                      >
+                        {/* =================================
+                              HEADER
+                          ================================== */}
+
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex min-w-0 items-center gap-1.5">
+                            {/* DRAG HANDLE */}
+                            {onReorderLayers &&
+                              layers.length > 1 &&
+                              !isBaking && (
+                                <div
+                                  title="Tahan dan geser (drag) untuk mengubah urutan layer"
+                                  onMouseEnter={() => setDragHandleIndex(index)}
+                                  onMouseLeave={() => {
+                                    if (draggedIndex === null)
+                                      setDragHandleIndex(null);
+                                  }}
+                                  onMouseDown={() => setDragHandleIndex(index)}
+                                  className="flex h-7 w-4 shrink-0 cursor-grab items-center justify-center text-[#B0B1AB] transition-colors hover:text-[#33332F] active:cursor-grabbing"
+                                >
+                                  <GripVertical className="h-3.5 w-3.5" />
+                                </div>
+                              )}
+
+                            {/* VISIBILITY */}
+                            {isBaking ? (
+                              <div
+                                title="Layer sedang diproses (baking), belum tampil di peta"
+                                className="flex h-7 w-7 shrink-0 cursor-not-allowed items-center justify-center text-amber-500/60"
+                              >
+                                <EyeOff
+                                  className="h-4 w-4"
+                                  strokeWidth={ICON_STROKE}
+                                />
+                              </div>
+                            ) : isFailed ? (
+                              <div
+                                title="Baking gagal, layer tidak dapat ditampilkan"
+                                className="flex h-7 w-7 shrink-0 cursor-not-allowed items-center justify-center border border-red-200 bg-red-100/60 text-red-500"
+                              >
+                                <AlertCircle className="h-3.5 w-3.5" />
+                              </div>
+                            ) : (
                               <button
                                 type="button"
-                                onClick={() => onRetryConvert(layer.id)}
-                                title="Kompilasi ulang layer"
-                                className="shrink-0 flex items-center gap-1 rounded-md bg-red-600 px-2 py-1 text-[8.5px] font-bold text-white hover:bg-red-700 active:scale-95 transition shadow-2xs"
+                                onClick={() =>
+                                  onToggleVisibility(
+                                    layer.id,
+                                    !layer.is_visible
+                                  )
+                                }
+                                title={
+                                  layer.is_visible
+                                    ? "Sembunyikan layer"
+                                    : "Tampilkan layer"
+                                }
+                                aria-label={
+                                  layer.is_visible
+                                    ? "Sembunyikan layer"
+                                    : "Tampilkan layer"
+                                }
+                                className={cn(
+                                  "flex h-7 w-7 shrink-0 items-center justify-center border border-transparent outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#171717]/20",
+                                  layer.is_visible
+                                    ? "text-[#33332F] hover:border-[#DCDDD8] hover:bg-[#F4F5F2] hover:text-[#171717]"
+                                    : "text-[#B0B1AB] hover:border-[#DCDDD8] hover:bg-[#F4F5F2] hover:text-[#6B6B66]"
+                                )}
                               >
-                                <RefreshCw className="h-2.5 w-2.5" /> Coba Lagi
+                                {layer.is_visible ? (
+                                  <Eye
+                                    className="h-4 w-4"
+                                    strokeWidth={ICON_STROKE}
+                                  />
+                                ) : (
+                                  <EyeOff
+                                    className="h-4 w-4"
+                                    strokeWidth={ICON_STROKE}
+                                  />
+                                )}
+                              </button>
+                            )}
+
+                            {/* INFO */}
+                            <div className="min-w-0">
+                              <p className="truncate text-xs font-bold leading-tight text-[#171717]">
+                                {layer.name}
+                              </p>
+
+                              <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                                <span
+                                  className={`inline-flex items-center overflow-hidden border ${cfg.borderColor} bg-white`}
+                                >
+                                  <span
+                                    className={`flex items-center justify-center ${cfg.bgSolid} px-1.5 py-1 text-white`}
+                                  >
+                                    <cfg.icon className="h-3 w-3" />
+                                  </span>
+
+                                  <span
+                                    className={`${cfg.bgTint} px-2 py-1 text-[10px] font-bold tracking-tight ${cfg.textColor}`}
+                                  >
+                                    <span className="block max-w-[170px] truncate">
+                                      {cfg.label}
+                                    </span>
+                                  </span>
+                                </span>
+
+                                {layer.is_base_layer ? (
+                                  <span
+                                    title="Base Layer utama (lapisan dasar aktif)"
+                                    className="flex shrink-0 items-center gap-1 border border-[#171717] bg-[#171717] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white"
+                                  >
+                                    <span className="h-1.5 w-1.5 bg-[#76B900]" />
+                                    Base
+                                  </span>
+                                ) : (
+                                  onSetBaseLayer &&
+                                  !isBaking &&
+                                  !isFailed && (
+                                    <button
+                                      type="button"
+                                      onClick={() => onSetBaseLayer(layer.id)}
+                                      title="Klik untuk mengubah layer ini menjadi Base Layer"
+                                      className="shrink-0 border border-[#DCDDD8] bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#858780] outline-none transition-colors hover:border-[#171717] hover:text-[#171717] focus-visible:ring-2 focus-visible:ring-[#171717]/20"
+                                    >
+                                      Set Base
+                                    </button>
+                                  )
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* STATUS & CONTROLS */}
+                          <div className="flex shrink-0 items-center gap-1.5">
+                            {isBaking ? (
+                              <span
+                                title="Sedang mengonversi GeoTIFF ke format PMTiles"
+                                className="inline-flex items-center gap-1.5 border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold tabular-nums text-amber-800"
+                              >
+                                <RefreshCw className="h-2.5 w-2.5 animate-spin text-amber-600 motion-reduce:animate-none" />
+                                Bake {progressPct}%
+                              </span>
+                            ) : isFailed ? (
+                              <span
+                                title={
+                                  layer.conversion_error ||
+                                  "Konversi PMTiles gagal"
+                                }
+                                className="inline-flex items-center gap-1 border border-red-300 bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-800"
+                              >
+                                <AlertCircle className="h-2.5 w-2.5 text-red-600" />
+                                Gagal
+                              </span>
+                            ) : isPmtiles ? (
+                              <span
+                                title="Format Cloud-Native PMTiles v3 (Protomaps Tile Archive)"
+                                className="inline-flex items-center overflow-hidden border border-[#2525C5]/30 bg-white transition-colors hover:border-[#2525C5]/60"
+                              >
+                                <span className="flex items-center justify-center bg-[#2525C5] py-1 pl-2 pr-1.5">
+                                  <img
+                                    src="/pmtiles-logo.png"
+                                    alt="PMTiles Logo"
+                                    className="h-4 w-4 rounded-full"
+                                  />
+                                </span>
+
+                                <span className="bg-[#2525C5]/5 py-1 pl-1.5 pr-2.5 text-[10px] font-bold tracking-tight text-[#2222D4]">
+                                  PMTiles
+                                </span>
+                              </span>
+                            ) : (
+                              <span
+                                title="Standar Raster XYZ Tile"
+                                className="inline-flex items-center gap-1 border border-[#DCDDD8] bg-[#F4F5F2] px-2 py-0.5 text-[10px] font-bold text-[#6B6B66]"
+                              >
+                                <Grid className="h-2.5 w-2.5 text-[#858780]" />
+                                XYZ
+                              </span>
+                            )}
+
+                            {onDeleteLayer && !layer.is_base_layer && (
+                              <button
+                                type="button"
+                                onClick={() => onDeleteLayer(layer.id)}
+                                title="Hapus layer"
+                                aria-label="Hapus layer"
+                                className="flex h-7 w-7 items-center justify-center border border-transparent text-[#B0B1AB] outline-none transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600 focus-visible:ring-2 focus-visible:ring-[#171717]/20"
+                              >
+                                <Trash2
+                                  className="h-3.5 w-3.5"
+                                  strokeWidth={ICON_STROKE}
+                                />
                               </button>
                             )}
                           </div>
                         </div>
-                      )}
 
-                      {/* =================================
-                            OPACITY (Only when active & not baking/failed)
-                        ================================== */}
-
-                      {!isBaking && !isFailed && layer.is_visible && (
-                        <div
-                          data-no-drag="true"
-                          draggable={false}
-                          onMouseDown={(e) => e.stopPropagation()}
-                          onPointerDown={(e) => e.stopPropagation()}
-                          className="mt-2.5 border-t border-gray-100 pt-2"
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="flex items-center gap-1 text-[8px] font-medium text-gray-500">
-                              <Sliders className="h-2.5 w-2.5" />
-                              Transparansi
-                            </span>
-
-                            <span className="text-[8px] font-bold text-gray-700">
-                              {Math.round(layer.default_opacity * 100)}%
-                            </span>
+                        {/* =================================
+                              BAKING PROGRESS
+                          ================================== */}
+                        {isBaking && (
+                          <div
+                            role="progressbar"
+                            aria-label="Progres kompilasi PMTiles"
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                            aria-valuenow={progressPct}
+                            className="mt-2.5 h-1 w-full overflow-hidden bg-amber-100"
+                          >
+                            <div
+                              className="h-full bg-[#171717] transition-[width] duration-300 motion-reduce:transition-none"
+                              style={{ width: `${progressPct}%` }}
+                            />
                           </div>
+                        )}
 
-                          <input
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.05"
-                            value={layer.default_opacity}
+                        {/* =================================
+                              ERROR BANNER
+                          ================================== */}
+                        {isFailed && (
+                          <div className="mt-2.5 border border-red-200 bg-white/90 p-2 text-red-900">
+                            <div className="flex items-start justify-between gap-1.5">
+                              <div className="min-w-0 flex-1">
+                                <p className="flex items-center gap-1 text-[10px] font-bold text-red-700">
+                                  <AlertCircle className="h-3 w-3 shrink-0 text-red-600" />
+                                  Baking Bermasalah
+                                </p>
+
+                                <p
+                                  className="mt-0.5 line-clamp-2 text-[10px] font-medium text-red-600"
+                                  title={layer.conversion_error || undefined}
+                                >
+                                  {layer.conversion_error ||
+                                    "Gagal mengonversi file GeoTIFF ke PMTiles."}
+                                </p>
+                              </div>
+
+                              {onRetryConvert && (
+                                <button
+                                  type="button"
+                                  onClick={() => onRetryConvert(layer.id)}
+                                  title="Kompilasi ulang layer"
+                                  className="flex shrink-0 items-center gap-1 bg-red-600 px-2 py-1 text-[10px] font-bold text-white outline-none transition-colors hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-red-600/30"
+                                >
+                                  <RefreshCw className="h-2.5 w-2.5" /> Coba
+                                  Lagi
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* =================================
+                              OPACITY (aktif & tidak baking/failed)
+                          ================================== */}
+
+                        {!isBaking && !isFailed && layer.is_visible && (
+                          <div
+                            data-no-drag="true"
                             draggable={false}
                             onMouseDown={(e) => e.stopPropagation()}
                             onPointerDown={(e) => e.stopPropagation()}
-                            onDragStart={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                            }}
-                            onChange={(e) =>
-                              onChangeOpacity(
-                                layer.id,
-                                parseFloat(e.target.value)
-                              )
-                            }
-                            className="mt-1.5 h-1 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 accent-[#123c28]"
-                          />
+                            className="mt-2.5 border-t border-[#DCDDD8] pt-2.5"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="flex items-center gap-1 text-[10px] font-bold text-[#6B6B66]">
+                                <Sliders className="h-2.5 w-2.5" />
+                                Transparansi
+                              </span>
 
-                          {!layer.is_base_layer && (
-                            <div className="mt-1.5">
-                              <div
-                                className={`h-1 w-full rounded-full bg-gradient-to-r ${cfg.gradient}`}
-                              />
-
-                              {layer.min_value !== undefined &&
-                                layer.max_value !== undefined && (
-                                  <div className="mt-0.5 flex justify-between text-[7px] text-gray-400">
-                                    <span>{layer.min_value?.toFixed(2)}</span>
-
-                                    <span>{layer.unit || "Indeks"}</span>
-
-                                  </div>
-                                )}
+                              <span className="text-[10px] font-bold tabular-nums text-[#171717]">
+                                {Math.round(layer.default_opacity * 100)}%
+                              </span>
                             </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
 
-              {/* FOOTER */}
+                            <input
+                              type="range"
+                              min="0"
+                              max="1"
+                              step="0.05"
+                              value={layer.default_opacity}
+                              aria-label={`Transparansi ${layer.name}`}
+                              draggable={false}
+                              onMouseDown={(e) => e.stopPropagation()}
+                              onPointerDown={(e) => e.stopPropagation()}
+                              onDragStart={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                              }}
+                              onChange={(e) =>
+                                onChangeOpacity(
+                                  layer.id,
+                                  parseFloat(e.target.value)
+                                )
+                              }
+                              className="mt-1.5 h-1 w-full cursor-pointer appearance-none bg-[#DCDDD8] accent-[#171717]"
+                            />
 
-              <div className="border-t border-gray-100 bg-gray-50 px-4 py-2 text-center text-[8px] text-gray-400">
-                Kelola dataset melalui menu{" "}
-                <span className="font-semibold text-emerald-700">
-                  Upload Peta
-                </span>
-                .
-              </div>
-            </>
-          )}
-        </div>
-      )}
+                            {!layer.is_base_layer && (
+                              <div className="mt-2">
+                                <div
+                                  className={`h-1 w-full bg-gradient-to-r ${cfg.gradient}`}
+                                />
+
+                                {layer.min_value !== undefined &&
+                                  layer.max_value !== undefined && (
+                                    <div className="mt-0.5 flex justify-between text-[10px] font-medium tabular-nums text-[#858780]">
+                                      <span>{layer.min_value?.toFixed(2)}</span>
+
+                                      <span>{layer.unit || "Indeks"}</span>
+                                    </div>
+                                  )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* FOOTER */}
+
+                <div className="border-t border-[#DCDDD8] bg-[#FAFAF8] px-4 py-2.5 text-center text-[10px] font-medium text-[#858780]">
+                  Kelola dataset melalui menu{" "}
+                  <span className="font-bold text-[#171717]">Upload Peta</span>.
+                </div>
+              </>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

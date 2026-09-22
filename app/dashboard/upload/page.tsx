@@ -3,15 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertCircle,
-  ArrowRight,
+  ArrowUpRight,
   Calendar,
   Check,
-  CheckCircle2,
   ChevronRight,
-  Eye,
   Layers,
   Lock,
   MapPin,
@@ -21,11 +19,13 @@ import {
   SlidersHorizontal,
   Upload,
   Wand2,
+  Workflow,
   X,
 } from "lucide-react";
 
 import { useUserRole } from "@/context/UserRoleContext";
 import api from "@/lib/api";
+import { cn } from "@/lib/utils";
 import { ErrorDetailObject, GeoMetadata } from "@/types/map";
 
 import {
@@ -47,16 +47,25 @@ import {
 import {
   ManualUploadFlow,
   UploadReview,
-  inputClass,
   type ReviewChecklistItem,
 } from "./ManualUploadFlow";
+
+import {
+  ActionButton,
+  EASE,
+  ICON_STROKE,
+  IconBox,
+  SectionHeader,
+  buttonClass,
+  cardClass,
+  eyebrowClass,
+  fadeUp,
+  inputClass,
+} from "./upload-ui";
 
 import { useUploadDraftStore } from "@/lib/stores/uploadDraftStore";
 import { useBakingStatusStore } from "@/lib/stores/bakingStatusStore";
 import { BakingStatusBanner } from "./BakingStatusBanner";
-
-const ICON_STROKE = 1.75;
-const EASE = [0.22, 1, 0.36, 1] as const;
 
 const MAX_FILE_SIZE_BYTES = 3 * 1024 * 1024 * 1024;
 const MAX_FILE_SIZE_LABEL = "3 GB";
@@ -91,67 +100,94 @@ function StepRail({
     {
       label: "Selesai",
       hint: "Dataset tersimpan",
-      icon: CheckCircle2,
+      icon: Check,
     },
   ];
 
   return (
-    <div className="glass p-4">
-      <p className="micro-label mb-4">Upload sequence</p>
+    <motion.section
+      initial="hidden"
+      animate="visible"
+      variants={fadeUp}
+      transition={{ delay: 0.11 }}
+      className={cardClass}
+    >
+      <div className="border-b border-[#DCDDD8] px-5 py-5">
+        <SectionHeader
+          eyebrow="Workflow"
+          title="Alur Upload"
+          description="Empat langkah dari file mentah hingga dataset tersimpan."
+          icon={Workflow}
+        />
+      </div>
 
-      <ol>
-        {steps.map((step, index) => {
-          const num = index + 1;
-          const done = isSuccess || currentStep > num;
-          const active = !isSuccess && currentStep === num;
-          const last = index === steps.length - 1;
-          const Icon = step.icon;
+      <div className="p-5">
+        <div className="relative">
+          <div className="absolute bottom-5 left-4 top-5 w-px bg-[#DCDDD8]" />
 
-          return (
-            <li key={step.label} className="relative flex gap-3 pb-6 last:pb-0">
-              {!last && (
-                <span
-                  className={`absolute left-[15px] top-8 h-full w-px ${done ? "bg-brand-900" : "bg-brand-800/12"
-                    }`}
-                />
-              )}
+          <ol className="space-y-5">
+            {steps.map((step, index) => {
+              const num = index + 1;
+              const done = isSuccess || currentStep > num;
+              const active = !isSuccess && currentStep === num;
+              const Icon = step.icon;
 
-              <span
-                className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${done
-                  ? "border-brand-900 bg-brand-900 text-white"
-                  : active
-                    ? "border-brand-600 bg-white text-brand-900"
-                    : "border-brand-800/15 bg-white text-brand-800/30"
-                  }`}
-              >
-                {done ? (
-                  <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
-                ) : (
-                  <Icon className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} />
-                )}
-
-                {active && (
-                  <span className="pointer-events-none absolute -inset-1 animate-pulse rounded-full border border-brand-600/40" />
-                )}
-              </span>
-
-              <div className="min-w-0 pt-0.5">
-                <p
-                  className={`text-xs font-bold ${active || done ? "text-brand-900" : "text-brand-800/40"
-                    }`}
+              return (
+                <motion.li
+                  key={step.label}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{
+                    duration: 0.35,
+                    delay: 0.14 + index * 0.06,
+                    ease: EASE,
+                  }}
+                  aria-current={active ? "step" : undefined}
+                  className="relative flex gap-3"
                 >
-                  {step.label}
-                </p>
+                  <motion.span
+                    whileHover={{ scale: 1.08, rotate: -4 }}
+                    className={cn(
+                      "relative z-10 flex h-8 w-8 shrink-0 items-center justify-center border",
+                      done
+                        ? "border-[#171717] bg-[#171717] text-white"
+                        : active
+                        ? "border-[#171717] bg-white text-[#171717]"
+                        : "border-[#DCDDD8] bg-[#F4F5F2] text-[#B0B1AB]"
+                    )}
+                  >
+                    {done ? (
+                      <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+                    ) : (
+                      <Icon className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} />
+                    )}
 
-                <p className="mt-0.5 text-2xs font-medium text-brand-800/45">
-                  {step.hint}
-                </p>
-              </div>
-            </li>
-          );
-        })}
-      </ol>
-    </div>
+                    {active && (
+                      <span className="pointer-events-none absolute -inset-1 animate-pulse border border-[#171717]/30 motion-reduce:animate-none" />
+                    )}
+                  </motion.span>
+
+                  <div className="min-w-0 pt-0.5">
+                    <p
+                      className={cn(
+                        "text-xs font-bold",
+                        active || done ? "text-[#171717]" : "text-[#858780]"
+                      )}
+                    >
+                      {step.label}
+                    </p>
+
+                    <p className="mt-1 text-[10px] font-medium leading-4 text-[#858780]">
+                      {step.hint}
+                    </p>
+                  </div>
+                </motion.li>
+              );
+            })}
+          </ol>
+        </div>
+      </div>
+    </motion.section>
   );
 }
 
@@ -166,7 +202,6 @@ function SystemStatusPanel({
   uploadProgress,
   pmtilesStatus = "idle",
   pmtilesProgress = { completed: 0, total: 0 },
-  createdMapId,
 }: {
   fileCount: number;
   totalBytes: number;
@@ -184,94 +219,125 @@ function SystemStatusPanel({
   const stageLabel = isBaking
     ? "2. Kompilasi PMTiles"
     : isValidating
-      ? "1. Memeriksa berkas"
-      : "1. Upload berkas";
+    ? "1. Memeriksa berkas"
+    : "1. Upload berkas";
   const progress = isBaking
     ? pmtilesProgress.total > 0
       ? Math.round((pmtilesProgress.completed / pmtilesProgress.total) * 100)
       : undefined
     : isValidating
-      ? undefined
-      : uploadProgress;
+    ? undefined
+    : uploadProgress;
+
+  const rows: { label: string; value: string; accent?: boolean }[] = [
+    { label: "Files", value: String(fileCount) },
+    {
+      label: "Ukuran",
+      value: `${totalMB.toFixed(1)} MB / ${MAX_FILE_SIZE_LABEL}`,
+    },
+  ];
+
+  const rowsAfterBar: { label: string; value: string; accent?: boolean }[] = [
+    { label: "Format", value: ".tif / .tiff" },
+    { label: "Batas per file", value: MAX_FILE_SIZE_LABEL },
+    { label: "Output", value: "PMTiles", accent: true },
+  ];
 
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-brand-800/40 bg-brand-900 p-4 text-white shadow-glass-lg">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-brand-500/25 blur-2xl"
-      />
-
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -bottom-12 -left-8 h-28 w-28 rounded-full bg-brand-400/15 blur-2xl"
-      />
+    <motion.section
+      initial="hidden"
+      animate="visible"
+      variants={fadeUp}
+      transition={{ delay: 0.17 }}
+      className="relative border border-[#171717] bg-[#171717] p-5 text-white"
+    >
+      {/* Wireframe dekorasi: di-clip sendiri agar card tidak perlu overflow-hidden */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 260 180"
+          className="absolute bottom-0 right-0 h-full w-[240px] opacity-70"
+        >
+          <g fill="none" stroke="rgba(255,255,255,0.10)" strokeWidth="1">
+            <path d="M70 38L150 18L218 44L140 68Z" />
+            <path d="M70 38V105L140 130V68" />
+            <path d="M140 68L218 44V108L140 130" />
+            <path d="M100 62L164 44L205 58L142 78Z" />
+          </g>
+        </svg>
+      </div>
 
       <div className="relative">
-        <div className="flex items-center justify-between">
-          <span className="liquid-badge-dark bg-white/15 px-2.5 py-1 text-2xs font-bold uppercase tracking-wide text-white/90 backdrop-blur-sm">
-            <Layers className="h-3 w-3" strokeWidth={2} />
-            Engine
-          </span>
-        </div>
+        <span className="inline-flex items-center gap-2 border border-white/15 bg-white/5 px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.1em] text-white/75">
+          <Layers className="h-3 w-3" strokeWidth={ICON_STROKE} />
+          Engine
+        </span>
 
-        <p className="mt-3 text-sm font-bold">AMX GeoStream Engine</p>
+        <h2 className="mt-5 text-base font-bold">AMX GeoStream Engine</h2>
 
-        <div className="my-3.5 h-px bg-white/10" />
+        <p className="mt-1.5 max-w-sm text-xs font-medium leading-5 text-white/60">
+          Validasi CRS dan kompilasi PMTiles berjalan otomatis setelah upload.
+        </p>
 
-        <div className="space-y-2.5 font-medium text-2xs">
-          <div className="flex items-center justify-between">
-            <span className="text-white/45">Files</span>
-            <span className="text-white">{fileCount}</span>
-          </div>
+        <div className="my-4 h-px bg-white/10" />
 
-          <div className="flex items-center justify-between">
-            <span className="text-white/45">Ukuran</span>
-            <span className="text-white">
-              {totalMB.toFixed(1)} MB / {MAX_FILE_SIZE_LABEL}
-            </span>
-          </div>
+        <div className="space-y-2.5 text-xs font-medium">
+          {rows.map((row) => (
+            <div key={row.label} className="flex items-center justify-between">
+              <span className="text-white/45">{row.label}</span>
+              <span className="tabular-nums text-white">{row.value}</span>
+            </div>
+          ))}
 
-          <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+          <div className="h-1.5 overflow-hidden bg-white/10">
             <div
-              className="h-full rounded-full bg-brand-300 transition-all"
+              className="h-full bg-[#76B900] transition-all"
               style={{ width: `${capPct}%` }}
             />
           </div>
 
-          <div className="flex items-center justify-between">
-            <span className="text-white/45">Format</span>
-            <span className="text-white">.tif / .tiff</span>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <span className="text-white/45">batas per file</span>
-            <span className="text-white">{MAX_FILE_SIZE_LABEL}</span>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <span className="text-white/45">Output</span>
-            <span className="text-brand-300">PMTiles</span>
-          </div>
+          {rowsAfterBar.map((row) => (
+            <div key={row.label} className="flex items-center justify-between">
+              <span className="text-white/45">{row.label}</span>
+              <span className={row.accent ? "text-[#76B900]" : "text-white"}>
+                {row.value}
+              </span>
+            </div>
+          ))}
         </div>
 
         {/* Keep the live region mounted; announce stage changes, not every percent. */}
-        <p role="status" aria-live="polite" aria-atomic="true" className="sr-only">
-          {loading ? `${stageLabel}. Formulir dikunci selama proses berlangsung.` : ""}
+        <p
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          className="sr-only"
+        >
+          {loading
+            ? `${stageLabel}. Formulir dikunci selama proses berlangsung.`
+            : ""}
         </p>
 
         {loading && (
-          <div id="upload-engine-progress" className="mt-3.5 space-y-2 border-t border-white/10 pt-3">
-            <div className="flex items-center justify-between gap-2 font-mono text-2xs">
-              <span className="flex items-center gap-1.5 font-semibold text-brand-300">
-                <RefreshCw className="h-3 w-3 shrink-0 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+          <div
+            id="upload-engine-progress"
+            className="mt-4 space-y-2 border-t border-white/10 pt-4"
+          >
+            <div className="flex items-center justify-between gap-2 text-[10px]">
+              <span className="flex items-center gap-1.5 font-bold text-[#76B900]">
+                <RefreshCw
+                  className="h-3 w-3 shrink-0 animate-spin motion-reduce:animate-none"
+                  strokeWidth={ICON_STROKE}
+                  aria-hidden="true"
+                />
                 {stageLabel}
               </span>
-              <span className="font-semibold tabular-nums text-white">
+              <span className="font-bold tabular-nums text-white">
                 {isBaking
                   ? `${pmtilesProgress.completed}/${pmtilesProgress.total} layer`
                   : isValidating
-                    ? "Menunggu server"
-                    : `${uploadProgress}%`}
+                  ? "Menunggu server"
+                  : `${uploadProgress}%`}
               </span>
             </div>
 
@@ -281,69 +347,35 @@ function SystemStatusPanel({
               aria-valuemin={0}
               aria-valuemax={100}
               aria-valuenow={progress}
-              aria-valuetext={progress === undefined ? "Menunggu respons server" : undefined}
-              className="h-1.5 overflow-hidden rounded-full bg-white/10"
+              aria-valuetext={
+                progress === undefined ? "Menunggu respons server" : undefined
+              }
+              className="h-1.5 overflow-hidden bg-white/10"
             >
               <div
-                className={`h-full rounded-full bg-brand-300 ${progress === undefined ? "animate-pulse motion-reduce:animate-none" : "transition-[width] duration-300 motion-reduce:transition-none"}`}
-                style={{ width: progress === undefined ? "100%" : `${progress}%` }}
+                className={`h-full bg-[#76B900] ${
+                  progress === undefined
+                    ? "animate-pulse motion-reduce:animate-none"
+                    : "transition-[width] duration-300 motion-reduce:transition-none"
+                }`}
+                style={{
+                  width: progress === undefined ? "100%" : `${progress}%`,
+                }}
               />
             </div>
 
-            <p className="text-2xs leading-relaxed text-white/70">
+            <p className="text-[10px] font-medium leading-4 text-white/60">
               {isBaking
                 ? "Membangun piramida ubin untuk render instan di peta."
                 : isValidating
-                  ? "Menunggu pemeriksaan berkas oleh server."
-                  : "Mengirim berkas ke server."}{" "}
+                ? "Menunggu pemeriksaan berkas oleh server."
+                : "Mengirim berkas ke server."}{" "}
               Formulir dikunci selama proses berlangsung.
             </p>
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-/* ============================================================
-   SECTION TITLE
-============================================================ */
-
-function SectionTitle({
-  number,
-  title,
-  description,
-  right,
-}: {
-  number?: number;
-  title: string;
-  description?: string;
-  right?: React.ReactNode;
-}) {
-  return (
-    <div className="mb-5 flex items-start justify-between gap-4">
-      <div>
-        <div className="flex items-center gap-2.5">
-          {number !== undefined && (
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-900 text-xs font-bold text-white">
-              {number}
-            </span>
-          )}
-
-          <h2 className="text-base font-bold tracking-[-0.02em] text-brand-900">
-            {title}
-          </h2>
-        </div>
-
-        {description && (
-          <p className="mt-1 text-xs font-medium leading-4 text-brand-800/60">
-            {description}
-          </p>
-        )}
-      </div>
-
-      {right}
-    </div>
+    </motion.section>
   );
 }
 
@@ -354,17 +386,20 @@ function SectionTitle({
 function FieldLabel({
   children,
   required,
+  htmlFor,
 }: {
   children: React.ReactNode;
   required?: boolean;
+  htmlFor?: string;
 }) {
   return (
-    <label className="mb-1.5 block text-xs font-bold text-brand-900">
+    <label
+      htmlFor={htmlFor}
+      className="mb-1.5 block text-xs font-bold text-[#171717]"
+    >
       {children}
 
-      {required && (
-        <span className="ml-1 font-medium text-brand-800/40">*</span>
-      )}
+      {required && <span className="ml-1 font-medium text-[#B0B1AB]">*</span>}
     </label>
   );
 }
@@ -383,30 +418,31 @@ function CollapsedSummary({
   onEdit: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/60 px-4 py-3.5">
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={fadeUp}
+      className="flex items-center justify-between gap-3 border border-[#DCDDD8] bg-[#FAFAF8] px-4 py-3.5"
+    >
       <div className="flex min-w-0 items-center gap-3">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center bg-[#171717] text-white">
           <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
         </span>
 
         <div className="min-w-0">
-          <p className="text-xs font-bold text-brand-900">{title}</p>
+          <p className="text-xs font-bold text-[#171717]">{title}</p>
 
-          <p className="mt-0.5 truncate font-mono text-2xs text-brand-800/55">
+          <p className="mt-0.5 truncate text-[10px] font-medium tabular-nums text-[#858780]">
             {detail}
           </p>
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={onEdit}
-        className="inline-flex shrink-0 items-center gap-1 rounded-full border border-brand-800/15 bg-white px-3 py-1.5 text-2xs font-bold text-brand-800/70 transition hover:border-brand-800/25 hover:text-brand-900"
-      >
+      <ActionButton variant="secondary" size="sm" onClick={onEdit}>
         <Pencil className="h-3 w-3" strokeWidth={2} />
         Ubah
-      </button>
-    </div>
+      </ActionButton>
+    </motion.div>
   );
 }
 
@@ -416,16 +452,16 @@ function CollapsedSummary({
 
 function LockedSection({ title, reason }: { title: string; reason: string }) {
   return (
-    <div className="rounded-2xl border border-dashed border-brand-800/15 bg-brand-50/30 px-4 py-5">
+    <div className="border border-dashed border-[#DCDDD8] bg-[#FAFAF8] px-4 py-5">
       <div className="flex items-center gap-3">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-brand-800/15 bg-white text-brand-800/30">
-          <Lock className="h-3.5 w-3.5" strokeWidth={1.75} />
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center border border-[#DCDDD8] bg-white text-[#B0B1AB]">
+          <Lock className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} />
         </span>
 
         <div>
-          <p className="text-xs font-bold text-brand-800/50">{title}</p>
+          <p className="text-xs font-bold text-[#858780]">{title}</p>
 
-          <p className="mt-0.5 text-2xs font-medium text-brand-800/40">
+          <p className="mt-0.5 text-[10px] font-medium text-[#B0B1AB]">
             {reason}
           </p>
         </div>
@@ -443,11 +479,11 @@ function DetectionStatus({ item }: { item: BatchFileItem }) {
     return (
       <div className="mt-0.5 flex items-center gap-1.5">
         <RefreshCw
-          className="h-2.5 w-2.5 animate-spin text-brand-800/35"
+          className="h-2.5 w-2.5 animate-spin text-[#858780] motion-reduce:animate-none"
           strokeWidth={2}
         />
 
-        <span className="text-[10px] font-medium text-brand-800/40">
+        <span className="text-[10px] font-medium text-[#858780]">
           Membaca metadata...
         </span>
       </div>
@@ -457,9 +493,9 @@ function DetectionStatus({ item }: { item: BatchFileItem }) {
   if (item.detection_source === "metadata") {
     return (
       <div className="mt-0.5 flex items-center gap-1.5">
-        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+        <span className="h-1.5 w-1.5 bg-[#76B900]" />
 
-        <span className="text-[10px] font-medium text-emerald-700">
+        <span className="text-[10px] font-medium text-[#33332F]">
           Terdeteksi dari metadata
         </span>
       </div>
@@ -469,7 +505,7 @@ function DetectionStatus({ item }: { item: BatchFileItem }) {
   if (item.detection_source === "raster-structure") {
     return (
       <div className="mt-0.5 flex items-center gap-1.5">
-        <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
+        <span className="h-1.5 w-1.5 bg-sky-500" />
 
         <span className="text-[10px] font-medium text-sky-700">
           Terdeteksi dari struktur raster
@@ -481,7 +517,7 @@ function DetectionStatus({ item }: { item: BatchFileItem }) {
   if (item.detection_source === "filename") {
     return (
       <div className="mt-0.5 flex items-center gap-1.5">
-        <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+        <span className="h-1.5 w-1.5 bg-amber-500" />
 
         <span className="text-[10px] font-medium text-amber-700">
           Terdeteksi dari nama file
@@ -493,9 +529,9 @@ function DetectionStatus({ item }: { item: BatchFileItem }) {
   if ((item.detection_source as string) === "manual") {
     return (
       <div className="mt-0.5 flex items-center gap-1.5">
-        <span className="h-1.5 w-1.5 rounded-full bg-brand-600" />
+        <span className="h-1.5 w-1.5 bg-[#171717]" />
 
-        <span className="text-[10px] font-medium text-brand-700">
+        <span className="text-[10px] font-medium text-[#33332F]">
           Dipilih manual
         </span>
       </div>
@@ -504,7 +540,7 @@ function DetectionStatus({ item }: { item: BatchFileItem }) {
 
   return (
     <div className="mt-0.5 flex items-center gap-1.5">
-      <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+      <span className="h-1.5 w-1.5 bg-red-500" />
 
       <span className="text-[10px] font-medium text-red-600">
         Tidak yakin · pilih manual
@@ -654,21 +690,21 @@ export default function UploadPage() {
   const submitErrors =
     uploadMode === "manual"
       ? [
-        ...(manualSlots.length
-          ? manualLayerErrors.flat()
-          : ["Tambahkan minimal satu layer."]),
-        ...(!title.trim() ? ["Judul peta wajib diisi."] : []),
-        ...(!location.trim() ? ["Lokasi survei wajib diisi."] : []),
-        ...(!surveyDate ? ["Tanggal survei wajib diisi."] : []),
-      ]
+          ...(manualSlots.length
+            ? manualLayerErrors.flat()
+            : ["Tambahkan minimal satu layer."]),
+          ...(!title.trim() ? ["Judul peta wajib diisi."] : []),
+          ...(!location.trim() ? ["Lokasi survei wajib diisi."] : []),
+          ...(!surveyDate ? ["Tanggal survei wajib diisi."] : []),
+        ]
       : batchErrors(batchFiles, title, location, surveyDate);
 
   const filesReady =
     uploadMode === "batch"
       ? batchFiles.length > 0 &&
-      batchFiles.filter((item) => item.is_base).length === 1 &&
-      !metadataStillReading &&
-      batchFiles.every((item) => Boolean(item.name.trim()))
+        batchFiles.filter((item) => item.is_base).length === 1 &&
+        !metadataStillReading &&
+        batchFiles.every((item) => Boolean(item.name.trim()))
       : manualFilesReady;
 
   // Section berikutnya hanya terbuka setelah user MENEKAN tombol
@@ -679,10 +715,10 @@ export default function UploadPage() {
   const currentStep = isSuccess
     ? 4
     : !filesConfirmed
-      ? 1
-      : !detailsConfirmed
-        ? 2
-        : 3;
+    ? 1
+    : !detailsConfirmed
+    ? 2
+    : 3;
 
   const showFilesEditor = editingFiles || !filesReady;
 
@@ -691,39 +727,39 @@ export default function UploadPage() {
   const reviewChecklist: ReviewChecklistItem[] =
     uploadMode === "batch"
       ? [
-        {
-          label: "File GeoTIFF dipilih",
-          ready: batchFiles.length > 0,
-        },
-        {
-          label: "Layer utama dipilih",
-          ready: batchFiles.filter((item) => item.is_base).length === 1,
-        },
-        {
-          label: "Nama layer lengkap",
-          ready: batchFiles.every((item) => Boolean(item.name.trim())),
-        },
-        ...metaChecklist,
-      ]
+          {
+            label: "File GeoTIFF dipilih",
+            ready: batchFiles.length > 0,
+          },
+          {
+            label: "Layer utama dipilih",
+            ready: batchFiles.filter((item) => item.is_base).length === 1,
+          },
+          {
+            label: "Nama layer lengkap",
+            ready: batchFiles.every((item) => Boolean(item.name.trim())),
+          },
+          ...metaChecklist,
+        ]
       : [
-        {
-          label: "Minimal satu layer dipilih",
-          ready: manualSlots.length > 0,
-        },
-        {
-          label: "Semua layer memiliki file",
-          ready:
-            manualSlots.length > 0 &&
-            manualSlots.every((slot) => Boolean(slot.file)),
-        },
-        {
-          label: "Semua layer memiliki nama",
-          ready:
-            manualSlots.length > 0 &&
-            manualSlots.every((slot) => Boolean(slot.name.trim())),
-        },
-        ...metaChecklist,
-      ];
+          {
+            label: "Minimal satu layer dipilih",
+            ready: manualSlots.length > 0,
+          },
+          {
+            label: "Semua layer memiliki file",
+            ready:
+              manualSlots.length > 0 &&
+              manualSlots.every((slot) => Boolean(slot.file)),
+          },
+          {
+            label: "Semua layer memiliki nama",
+            ready:
+              manualSlots.length > 0 &&
+              manualSlots.every((slot) => Boolean(slot.name.trim())),
+          },
+          ...metaChecklist,
+        ];
 
   const reviewFiles =
     uploadMode === "batch" ? batchFiles.map((item) => item.file) : manualFiles;
@@ -1142,6 +1178,15 @@ export default function UploadPage() {
     resetDraft();
   };
 
+  const switchUploadMode = (mode: "batch" | "manual") => {
+    setUploadMode(mode);
+    setMessage("");
+    setGeoError(null);
+    setEditingFiles(true);
+    setFilesConfirmed(false);
+    setDetailsConfirmed(false);
+  };
+
   /* ============================================================
      SUBMIT
   ============================================================ */
@@ -1350,28 +1395,80 @@ export default function UploadPage() {
     "Kao Barat, Halmahera Utara",
   ];
 
+  const modes = [
+    { value: "batch" as const, label: "Mudah", icon: Wand2 },
+    { value: "manual" as const, label: "Manual", icon: SlidersHorizontal },
+  ];
+
   return (
-    <main className="bg-page min-h-screen text-brand-900">
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="micro-label">Input Data</p>
+    <main className="min-h-screen bg-[#F4F5F2] text-[#171717]">
+      <div className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8">
+        {/* ==================================================
+            HEADER
+        =================================================== */}
 
-            <h1 className="mt-3 text-3xl font-bold tracking-[-0.035em] text-brand-900 sm:text-4xl">
-              Unggah <span className="text-brand-600">Dataset</span>
-            </h1>
+        <motion.header
+          initial="hidden"
+          animate="visible"
+          variants={fadeUp}
+          className="relative mb-7"
+        >
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h1 className="mt-2 text-3xl font-bold tracking-[-0.05em] text-[#171717] sm:text-4xl">
+                Unggah Dataset
+              </h1>
 
-            <p className="mt-1.5 text-sm font-medium text-brand-800/60">
-              Tambahkan hasil survei Anda ke dalam peta.
-            </p>
+              <p className="mt-2 max-w-2xl text-xs font-medium leading-5 text-[#6B6B66]">
+                Tambahkan hasil survei Anda ke dalam peta.
+              </p>
+            </div>
+
+            <div className="flex items-end gap-2 sm:gap-4">
+              <div className="hidden border-l border-[#DCDDD8] pl-4 sm:block">
+                <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#858780]">
+                  Upload Status
+                </p>
+
+                <div className="mt-1.5 flex items-center gap-2">
+                  <motion.span
+                    animate={{ scale: [1, 1.15, 1] }}
+                    transition={{
+                      duration: 1.8,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                    className={cn(
+                      "h-1.5 w-1.5",
+                      loading ? "bg-amber-500" : "bg-[#76B900]"
+                    )}
+                  />
+
+                  <span className="text-xs font-bold text-[#33332F]">
+                    {loading ? "Memproses" : "Available"}
+                  </span>
+                </div>
+              </div>
+
+              <motion.div
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                transition={{ duration: 0.2, ease: EASE }}
+              >
+                <Link
+                  href="/dashboard/maps"
+                  className={cn(buttonClass("primary"), "group")}
+                >
+                  Lihat Map
+                  <ArrowUpRight
+                    className="h-3.5 w-3.5 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                    strokeWidth={ICON_STROKE}
+                  />
+                </Link>
+              </motion.div>
+            </div>
           </div>
-
-          <Link href="/dashboard/maps" className="btn-brand w-fit">
-            <Eye className="h-3.5 w-3.5" strokeWidth={1.75} />
-            Lihat Map
-            <ArrowRight className="h-3.5 w-3.5" strokeWidth={2} />
-          </Link>
-        </header>
+        </motion.header>
 
         {/* Menunjukkan status baking PMTiles dari upload sebelumnya,
             bertahan lintas navigasi & reload halaman. */}
@@ -1382,63 +1479,66 @@ export default function UploadPage() {
         />
 
         <form onSubmit={handleSubmit} noValidate>
-          <fieldset disabled={loading} className="border-0 p-0">
+          <fieldset disabled={loading} className="min-w-0 border-0 p-0">
             <legend className="sr-only">Formulir upload dataset</legend>
 
-            {!isSuccess && (geoError || message) && (
-              <motion.section
-                initial={{
-                  opacity: 0,
-                  y: -8,
-                }}
-                animate={{
-                  opacity: 1,
-                  y: 0,
-                }}
-                transition={{
-                  duration: 0.4,
-                  ease: EASE,
-                }}
-                className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-4"
-              >
-                <div className="flex items-start gap-3">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-red-600">
-                    <AlertCircle className="h-4 w-4" />
-                  </span>
+            <AnimatePresence initial={false}>
+              {!isSuccess && (geoError || message) && (
+                <motion.section
+                  key="upload-error"
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.3, ease: EASE }}
+                  role="alert"
+                  className="mb-4 border border-red-200 bg-red-50 p-4"
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center border border-red-200 bg-white text-red-600">
+                      <AlertCircle
+                        className="h-4 w-4"
+                        strokeWidth={ICON_STROKE}
+                      />
+                    </span>
 
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold text-red-900">
-                      {geoError?.message || message}
-                    </p>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-red-900">
+                        {geoError?.message || message}
+                      </p>
 
-                    {geoError?.details?.missing_requirements && (
-                      <ul className="mt-2 space-y-1 pl-4 text-xs leading-4 text-red-900">
-                        {geoError.details.missing_requirements.map(
-                          (requirement, index) => (
-                            <li key={index} className="list-disc">
-                              {requirement}
-                            </li>
-                          )
-                        )}
-                      </ul>
-                    )}
+                      {geoError?.details?.missing_requirements && (
+                        <ul className="mt-2 space-y-1 pl-4 text-xs font-medium leading-5 text-red-900">
+                          {geoError.details.missing_requirements.map(
+                            (requirement, index) => (
+                              <li key={index} className="list-disc">
+                                {requirement}
+                              </li>
+                            )
+                          )}
+                        </ul>
+                      )}
 
-                    {geoError?.details?.solution && (
-                      <div className="mt-3 rounded-2xl bg-white/70 p-3">
-                        <p className="text-xs leading-4 text-red-900">
-                          <strong>Solusi GIS:</strong>{" "}
-                          {geoError.details.solution}
-                        </p>
-                      </div>
-                    )}
+                      {geoError?.details?.solution && (
+                        <div className="mt-3 border border-red-200 bg-white/70 p-3">
+                          <p className="text-xs font-medium leading-5 text-red-900">
+                            <strong>Solusi GIS:</strong>{" "}
+                            {geoError.details.solution}
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </motion.section>
-            )}
+                </motion.section>
+              )}
+            </AnimatePresence>
 
             {!isSuccess && (
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-                <aside className="lg:col-span-4 lg:order-2">
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.65fr)_minmax(300px,0.85fr)]">
+                {/* ==================================================
+                    RIGHT COLUMN (step rail + engine)
+                =================================================== */}
+
+                <aside className="lg:order-2">
                   <div className="space-y-4 lg:sticky lg:top-6">
                     <StepRail currentStep={currentStep} isSuccess={isSuccess} />
 
@@ -1454,441 +1554,503 @@ export default function UploadPage() {
                   </div>
                 </aside>
 
-                <div aria-busy={loading} className="space-y-4 lg:col-span-8 lg:order-1">
-                  <div className="glass flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="text-xs font-bold text-brand-900">
-                        Metode upload
-                      </p>
+                {/* ==================================================
+                    MAIN COLUMN
+                =================================================== */}
 
-                      <p className="mt-0.5 text-2xs font-medium text-brand-800/50">
+                <div
+                  aria-busy={loading}
+                  className="min-w-0 space-y-4 lg:order-1"
+                >
+                  {/* Metode upload */}
+                  <motion.section
+                    initial="hidden"
+                    animate="visible"
+                    variants={fadeUp}
+                    transition={{ delay: 0.05 }}
+                    className={cn(
+                      cardClass,
+                      "flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
+                    )}
+                  >
+                    <div>
+                      <p className={eyebrowClass}>Metode upload</p>
+
+                      <p className="mt-1 text-xs font-medium leading-5 text-[#6B6B66]">
                         Mode Mudah cocok untuk upload otomatis, Manual untuk
                         memilih layer satu per satu.
                       </p>
                     </div>
 
-                    <div className="inline-flex w-fit rounded-md border border-brand-800/15 bg-brand-50/50 p-1">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setUploadMode("batch");
-                          setMessage("");
-                          setGeoError(null);
-                          setEditingFiles(true);
-                          setFilesConfirmed(false);
-                          setDetailsConfirmed(false);
-                        }}
-                        className={`inline-flex items-center gap-1.5 rounded-[5px] px-4 py-2 text-2xs font-bold transition ${uploadMode === "batch"
-                          ? "bg-brand-900 text-white shadow-card"
-                          : "text-brand-800/60 hover:text-brand-900"
-                          }`}
-                      >
-                        <Wand2 className="h-3.5 w-3.5" strokeWidth={1.75} />
-                        Mudah
-                      </button>
+                    <div
+                      role="group"
+                      aria-label="Metode upload"
+                      className="inline-flex w-fit shrink-0 border border-[#DCDDD8] bg-[#F4F5F2] p-1"
+                    >
+                      {modes.map((mode) => {
+                        const active = uploadMode === mode.value;
+                        const ModeIcon = mode.icon;
 
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setUploadMode("manual");
-                          setMessage("");
-                          setGeoError(null);
-                          setEditingFiles(true);
-                          setFilesConfirmed(false);
-                          setDetailsConfirmed(false);
-                        }}
-                        className={`inline-flex items-center gap-1.5 rounded-[5px] px-4 py-2 text-2xs font-bold transition ${uploadMode === "manual"
-                          ? "bg-brand-900 text-white shadow-card"
-                          : "text-brand-800/60 hover:text-brand-900"
-                          }`}
-                      >
-                        <SlidersHorizontal
-                          className="h-3.5 w-3.5"
-                          strokeWidth={1.75}
-                        />
-                        Manual
-                      </button>
+                        return (
+                          <button
+                            key={mode.value}
+                            type="button"
+                            aria-pressed={active}
+                            onClick={() => switchUploadMode(mode.value)}
+                            className="relative inline-flex items-center gap-1.5 px-4 py-2 text-[10px] font-bold outline-none focus-visible:ring-2 focus-visible:ring-[#171717]/20"
+                          >
+                            {active && (
+                              <motion.span
+                                layoutId="upload-mode-pill"
+                                transition={{ duration: 0.25, ease: EASE }}
+                                className="absolute inset-0 bg-[#171717]"
+                              />
+                            )}
+
+                            <span
+                              className={cn(
+                                "relative z-10 inline-flex items-center gap-1.5 transition-colors",
+                                active
+                                  ? "text-white"
+                                  : "text-[#6B6B66] hover:text-[#171717]"
+                              )}
+                            >
+                              <ModeIcon
+                                className="h-3.5 w-3.5"
+                                strokeWidth={ICON_STROKE}
+                              />
+                              {mode.label}
+                            </span>
+                          </button>
+                        );
+                      })}
                     </div>
-                  </div>
+                  </motion.section>
+
+                  {/* ==================================================
+                      STEP 1 — UPLOAD LAYER
+                  =================================================== */}
 
                   {showFilesEditor ? (
                     <motion.section
-                      initial={{
-                        opacity: 0,
-                        y: 8,
-                      }}
-                      animate={{
-                        opacity: 1,
-                        y: 0,
-                      }}
-                      transition={{
-                        duration: 0.35,
-                        ease: EASE,
-                      }}
-                      className="glass p-5"
+                      initial="hidden"
+                      animate="visible"
+                      variants={fadeUp}
+                      transition={{ delay: 0.08 }}
+                      className={cardClass}
                     >
-                      <SectionTitle
-                        number={1}
-                        title="Upload layer"
-                        description={
-                          uploadMode === "batch"
-                            ? "Pilih file hasil survei untuk dideteksi otomatis berdasarkan metadata, struktur raster, dan nama file."
-                            : "Tambahkan layer sesuai kebutuhan. Tidak perlu upload ortho terlebih dahulu."
-                        }
-                      />
+                      <div className="border-b border-[#DCDDD8] px-5 py-5 sm:px-6">
+                        <SectionHeader
+                          eyebrow="Langkah 01"
+                          title="Upload layer"
+                          icon={Upload}
+                          description={
+                            uploadMode === "batch"
+                              ? "Pilih file hasil survei untuk dideteksi otomatis berdasarkan metadata, struktur raster, dan nama file."
+                              : "Tambahkan layer sesuai kebutuhan. Tidak perlu upload ortho terlebih dahulu."
+                          }
+                        />
+                      </div>
 
-                      {uploadMode === "batch" && (
-                        <div>
-                          <div
-                            onDragEnter={handleDrag}
-                            onDragLeave={handleDrag}
-                            onDragOver={handleDrag}
-                            onDrop={handleDrop}
-                            className={`flex min-h-[190px] flex-col items-center justify-center rounded-2xl border-2 border-dashed px-5 py-7 text-center transition ${dragActive
-                              ? "border-brand-600 bg-brand-50"
-                              : "border-brand-800/15 bg-white hover:border-brand-800/25 hover:bg-brand-50/20"
-                              }`}
-                          >
-                            <input
-                              ref={fileInputRef}
-                              id="multiFileInput"
-                              type="file"
-                              multiple
-                              accept=".tif,.tiff"
-                              className="hidden"
-                              onChange={handleFileInputChange}
-                            />
-
-                            <span className="icon-ring h-11 w-11 bg-brand-50">
-                              <Upload
-                                className="h-5 w-5 text-brand-700"
-                                strokeWidth={1.75}
-                              />
-                            </span>
-
-                            <h3 className="mt-3 text-sm font-bold text-brand-900">
-                              Pilih file GeoTIFF
-                            </h3>
-
-                            <p className="mt-1 text-2xs font-medium text-brand-800/55">
-                              atau tarik file ke sini
-                            </p>
-
-                            <label
-                              htmlFor="multiFileInput"
-                              className="btn-brand mt-3 cursor-pointer"
+                      <div className="p-4 sm:p-5">
+                        {uploadMode === "batch" && (
+                          <div>
+                            <div
+                              onDragEnter={handleDrag}
+                              onDragLeave={handleDrag}
+                              onDragOver={handleDrag}
+                              onDrop={handleDrop}
+                              className={cn(
+                                "flex min-h-[190px] flex-col items-center justify-center border-2 border-dashed px-5 py-7 text-center transition-colors duration-200",
+                                dragActive
+                                  ? "border-[#171717] bg-[#FAFAF8]"
+                                  : "border-[#DCDDD8] bg-white hover:border-[#CFCFC8] hover:bg-[#FAFAF8]"
+                              )}
                             >
-                              Pilih File
-                            </label>
+                              <input
+                                ref={fileInputRef}
+                                id="multiFileInput"
+                                type="file"
+                                multiple
+                                accept=".tif,.tiff"
+                                className="hidden"
+                                onChange={handleFileInputChange}
+                              />
 
-                            <p className="mt-2 font-mono text-2xs font-medium text-brand-800/40">
-                              .TIF / .TIFF · maks {MAX_FILE_SIZE_LABEL} per file
-                            </p>
-                          </div>
+                              <motion.div
+                                animate={{ y: dragActive ? -4 : 0 }}
+                                transition={{ duration: 0.22, ease: EASE }}
+                              >
+                                <IconBox icon={Upload} />
+                              </motion.div>
 
-                          {batchFiles.length > 0 && (
-                            <div className="mt-4">
-                              <div className="mb-2 flex items-center justify-between">
-                                <div>
-                                  <p className="text-xs font-bold text-brand-900">
-                                    {batchFiles.length} file dipilih
-                                  </p>
+                              <h3 className="mt-3 text-sm font-bold text-[#171717]">
+                                Pilih file GeoTIFF
+                              </h3>
 
-                                  <p className="font-mono text-2xs font-medium text-brand-800/50">
-                                    {totalSizeMB.toFixed(1)} MB
-                                  </p>
+                              <p className="mt-1 text-xs font-medium text-[#6B6B66]">
+                                atau tarik file ke sini
+                              </p>
+
+                              <label
+                                htmlFor="multiFileInput"
+                                className={cn(
+                                  buttonClass("primary"),
+                                  "mt-3 cursor-pointer"
+                                )}
+                              >
+                                Pilih File
+                              </label>
+
+                              <p className="mt-2 text-[10px] font-medium text-[#858780]">
+                                .TIF / .TIFF · maks {MAX_FILE_SIZE_LABEL} per
+                                file
+                              </p>
+                            </div>
+
+                            {batchFiles.length > 0 && (
+                              <div className="mt-4">
+                                <div className="mb-2 flex items-center justify-between">
+                                  <div>
+                                    <p className="text-xs font-bold text-[#171717]">
+                                      {batchFiles.length} file dipilih
+                                    </p>
+
+                                    <p className="text-[10px] font-medium tabular-nums text-[#858780]">
+                                      {totalSizeMB.toFixed(1)} MB
+                                    </p>
+                                  </div>
+
+                                  <ActionButton
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setBatchFiles([]);
+                                      setExpandedBatchItems(new Set());
+                                    }}
+                                    className="hover:!bg-red-50 hover:!text-red-600"
+                                  >
+                                    Hapus semua
+                                  </ActionButton>
                                 </div>
 
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setBatchFiles([]);
-                                    setExpandedBatchItems(new Set());
-                                  }}
-                                  className="text-2xs font-bold text-brand-800/55 transition hover:text-red-600"
-                                >
-                                  Hapus semua
-                                </button>
-                              </div>
+                                <div className="max-h-[340px] overflow-y-auto border border-[#DCDDD8] bg-white">
+                                  {batchFiles.map((item, index) => {
+                                    const config =
+                                      LAYER_TYPE_CONFIG[item.layer_type] ||
+                                      LAYER_TYPE_CONFIG.custom;
 
-                              <div className="max-h-[340px] overflow-y-auto rounded-2xl border border-brand-800/15 bg-white">
-                                {batchFiles.map((item, index) => {
-                                  const config =
-                                    LAYER_TYPE_CONFIG[item.layer_type] ||
-                                    LAYER_TYPE_CONFIG.custom;
+                                    const expanded = expandedBatchItems.has(
+                                      item.id
+                                    );
 
-                                  const expanded = expandedBatchItems.has(
-                                    item.id
-                                  );
+                                    const uncertain =
+                                      item.detection_source === "uncertain";
 
-                                  const uncertain =
-                                    item.detection_source === "uncertain";
-
-                                  return (
-                                    <div
-                                      key={item.id}
-                                      className={
-                                        index < batchFiles.length - 1
-                                          ? "border-b border-brand-800/8"
-                                          : ""
-                                      }
-                                    >
-                                      <div className="flex items-center gap-2.5 px-3 py-2.5">
-                                        <span
-                                          className={`h-2 w-2 shrink-0 rounded-full ${item.is_base
-                                            ? "bg-brand-500"
-                                            : uncertain
-                                              ? "bg-red-400"
-                                              : "bg-brand-800/20"
-                                            }`}
-                                        />
-
-                                        <div className="min-w-0 flex-1">
-                                          <div className="flex flex-wrap items-center gap-1.5">
-                                            <span
-                                              className={`rounded border px-1.5 py-0.5 font-mono text-2xs font-bold uppercase tracking-wide ${config.badgeClass}`}
-                                            >
-                                              {config.label}
-                                            </span>
-
-                                            {item.is_base && (
-                                              <span className="rounded border border-brand-600/25 bg-brand-50 px-1.5 py-0.5 font-mono text-2xs font-bold uppercase tracking-wide text-brand-700">
-                                                utama
-                                              </span>
+                                    return (
+                                      <div
+                                        key={item.id}
+                                        className={
+                                          index < batchFiles.length - 1
+                                            ? "border-b border-[#DCDDD8]"
+                                            : ""
+                                        }
+                                      >
+                                        <div className="flex items-center gap-2.5 px-3 py-2.5">
+                                          <span
+                                            className={cn(
+                                              "h-2 w-2 shrink-0",
+                                              item.is_base
+                                                ? "bg-[#171717]"
+                                                : uncertain
+                                                ? "bg-red-400"
+                                                : "bg-[#DCDDD8]"
                                             )}
+                                          />
 
-                                            <span className="min-w-0 truncate font-mono text-2xs text-brand-800/45">
-                                              {item.file.name}
-                                            </span>
-                                          </div>
-
-                                          <div className="mt-1">
-                                            <input
-                                              type="text"
-                                              value={item.name}
-                                              aria-label="Nama layer"
-                                              onChange={(event) =>
-                                                handleUpdateBatchItem(
-                                                  item.id,
-                                                  "name",
-                                                  event.target.value
-                                                )
-                                              }
-                                              disabled={
-                                                item.detection_status ===
-                                                "reading"
-                                              }
-                                              className="w-full max-w-sm border-0 bg-transparent p-0 text-2xs font-bold text-brand-900 outline-none placeholder:text-brand-800/25 disabled:cursor-wait disabled:opacity-50"
-                                              placeholder="Nama layer"
-                                            />
-
-                                            <DetectionStatus item={item} />
-
-                                            {uncertain && (
-                                              <button
-                                                type="button"
-                                                onClick={() =>
-                                                  toggleBatchItemExpanded(
-                                                    item.id
-                                                  )
-                                                }
-                                                className="mt-1.5 inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-[10px] font-bold text-red-700 transition hover:bg-red-100"
+                                          <div className="min-w-0 flex-1">
+                                            <div className="flex flex-wrap items-center gap-1.5">
+                                              <span
+                                                className={`border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${config.badgeClass}`}
                                               >
-                                                <Pencil
-                                                  className="h-2.5 w-2.5"
-                                                  strokeWidth={2}
-                                                />
-                                                Edit Deteksi
-                                              </button>
-                                            )}
-                                          </div>
-                                        </div>
-
-                                        <span className="hidden shrink-0 font-mono text-2xs font-medium text-brand-800/45 sm:block">
-                                          {formatFileSize(item.file.size)}
-                                        </span>
-
-                                        <button
-                                          type="button"
-                                          onClick={() =>
-                                            toggleBatchItemExpanded(item.id)
-                                          }
-                                          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${expanded
-                                            ? "border-brand-900 bg-brand-900 text-white"
-                                            : "border-brand-800/15 text-brand-800/55 hover:bg-brand-50"
-                                            }`}
-                                          aria-label="Edit tipe dan pengaturan layer"
-                                        >
-                                          <SlidersHorizontal
-                                            className="h-3.5 w-3.5"
-                                            strokeWidth={1.75}
-                                          />
-                                        </button>
-
-                                        <button
-                                          type="button"
-                                          onClick={() =>
-                                            handleRemoveBatchItem(item.id)
-                                          }
-                                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl text-brand-800/30 transition hover:bg-red-50 hover:text-red-600"
-                                          aria-label="Hapus layer"
-                                        >
-                                          <X
-                                            className="h-3.5 w-3.5"
-                                            strokeWidth={1.75}
-                                          />
-                                        </button>
-                                      </div>
-
-                                      {expanded && (
-                                        <div className="border-t border-brand-800/8 bg-brand-50/50 px-3 py-2.5">
-                                          <div className="mb-2 rounded-xl border border-brand-800/10 bg-white p-2.5">
-                                            <div className="mb-1.5 flex items-center justify-between gap-2">
-                                              <span className="text-2xs font-bold text-brand-900">
-                                                Tipe layer
+                                                {config.label}
                                               </span>
 
-                                              {uncertain && (
-                                                <span className="rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-600">
-                                                  Perlu dipilih
+                                              {item.is_base && (
+                                                <span className="border border-[#DCDDD8] bg-[#F4F5F2] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#33332F]">
+                                                  utama
                                                 </span>
                                               )}
+
+                                              <span className="min-w-0 truncate text-[10px] font-medium text-[#858780]">
+                                                {item.file.name}
+                                              </span>
                                             </div>
 
-                                            <select
-                                              value={item.layer_type}
-                                              disabled={
-                                                item.detection_status ===
-                                                "reading"
-                                              }
-                                              onChange={(event) =>
-                                                handleUpdateBatchItem(
-                                                  item.id,
-                                                  "layer_type",
-                                                  event.target.value
-                                                )
-                                              }
-                                              className="w-full rounded-lg border border-brand-800/15 bg-white px-2.5 py-2 text-2xs font-bold text-brand-900 outline-none focus:border-brand-600 disabled:cursor-wait disabled:opacity-50"
-                                            >
-                                              {layerOptions.map((option) => (
-                                                <option
-                                                  key={option.value}
-                                                  value={option.value}
-                                                >
-                                                  {option.label}
-                                                </option>
-                                              ))}
-                                            </select>
-
-                                            <p className="mt-1 text-[10px] leading-4 text-brand-800/45">
-                                              {uncertain
-                                                ? "Sistem belum yakin. Pilih tipe layer secara manual."
-                                                : "Anda dapat mengubah hasil deteksi kapan saja."}
-                                            </p>
-                                          </div>
-
-                                          <div className="flex flex-wrap items-center gap-2">
-                                            {!item.is_base && (
-                                              <button
-                                                type="button"
+                                            <div className="mt-1">
+                                              <input
+                                                type="text"
+                                                value={item.name}
+                                                aria-label="Nama layer"
+                                                onChange={(event) =>
+                                                  handleUpdateBatchItem(
+                                                    item.id,
+                                                    "name",
+                                                    event.target.value
+                                                  )
+                                                }
                                                 disabled={
                                                   item.detection_status ===
                                                   "reading"
                                                 }
-                                                onClick={() =>
-                                                  handleSetBaseLayer(item.id)
-                                                }
-                                                className="rounded-lg border border-brand-800/15 bg-white px-2.5 py-1.5 text-2xs font-bold text-brand-800 disabled:cursor-not-allowed disabled:opacity-40"
-                                              >
-                                                Jadikan utama
-                                              </button>
-                                            )}
-
-                                            <div className="flex min-w-[160px] flex-1 items-center gap-2">
-                                              <span className="text-2xs text-brand-800/50">
-                                                Opasitas
-                                              </span>
-
-                                              <input
-                                                type="range"
-                                                min="0"
-                                                max="1"
-                                                step="0.05"
-                                                value={item.default_opacity}
-                                                onChange={(event) =>
-                                                  handleUpdateBatchItem(
-                                                    item.id,
-                                                    "default_opacity",
-                                                    parseFloat(
-                                                      event.target.value
-                                                    )
-                                                  )
-                                                }
-                                                className="w-full accent-brand-900"
+                                                className="w-full max-w-sm border-0 bg-transparent p-0 text-xs font-bold text-[#171717] outline-none placeholder:text-[#B0B1AB] disabled:cursor-wait disabled:opacity-50"
+                                                placeholder="Nama layer"
                                               />
 
-                                              <span className="w-8 text-right font-mono text-2xs font-bold">
-                                                {Math.round(
-                                                  item.default_opacity * 100
-                                                )}
-                                                %
-                                              </span>
+                                              <DetectionStatus item={item} />
+
+                                              {uncertain && (
+                                                <button
+                                                  type="button"
+                                                  onClick={() =>
+                                                    toggleBatchItemExpanded(
+                                                      item.id
+                                                    )
+                                                  }
+                                                  className="mt-1.5 inline-flex items-center gap-1 border border-red-200 bg-red-50 px-2 py-1 text-[10px] font-bold text-red-700 outline-none transition-colors hover:bg-red-100 focus-visible:ring-2 focus-visible:ring-[#171717]/20"
+                                                >
+                                                  <Pencil
+                                                    className="h-2.5 w-2.5"
+                                                    strokeWidth={2}
+                                                  />
+                                                  Edit Deteksi
+                                                </button>
+                                              )}
                                             </div>
                                           </div>
 
-                                          {item.detection_reason && (
-                                            <div className="mt-2 rounded-lg bg-white/70 px-2.5 py-2">
-                                              <p className="text-[10px] leading-4 text-brand-800/50">
-                                                {item.detection_reason}
-                                              </p>
-                                            </div>
-                                          )}
+                                          <span className="hidden shrink-0 text-[10px] font-medium tabular-nums text-[#858780] sm:block">
+                                            {formatFileSize(item.file.size)}
+                                          </span>
+
+                                          <button
+                                            type="button"
+                                            aria-expanded={expanded}
+                                            onClick={() =>
+                                              toggleBatchItemExpanded(item.id)
+                                            }
+                                            className={cn(
+                                              "flex h-7 w-7 shrink-0 items-center justify-center border outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#171717]/20",
+                                              expanded
+                                                ? "border-[#171717] bg-[#171717] text-white"
+                                                : "border-[#DCDDD8] bg-white text-[#6B6B66] hover:bg-[#FAFAF8] hover:text-[#171717]"
+                                            )}
+                                            aria-label="Edit tipe dan pengaturan layer"
+                                          >
+                                            <SlidersHorizontal
+                                              className="h-3.5 w-3.5"
+                                              strokeWidth={ICON_STROKE}
+                                            />
+                                          </button>
+
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              handleRemoveBatchItem(item.id)
+                                            }
+                                            className="flex h-7 w-7 shrink-0 items-center justify-center border border-transparent text-[#B0B1AB] outline-none transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600 focus-visible:ring-2 focus-visible:ring-[#171717]/20"
+                                            aria-label="Hapus layer"
+                                          >
+                                            <X
+                                              className="h-3.5 w-3.5"
+                                              strokeWidth={ICON_STROKE}
+                                            />
+                                          </button>
                                         </div>
-                                      )}
-                                    </div>
-                                  );
-                                })}
+
+                                        <AnimatePresence initial={false}>
+                                          {expanded && (
+                                            <motion.div
+                                              initial={{
+                                                height: 0,
+                                                opacity: 0,
+                                              }}
+                                              animate={{
+                                                height: "auto",
+                                                opacity: 1,
+                                              }}
+                                              exit={{ height: 0, opacity: 0 }}
+                                              transition={{
+                                                duration: 0.28,
+                                                ease: EASE,
+                                              }}
+                                              className="overflow-hidden"
+                                            >
+                                              <div className="border-t border-[#DCDDD8] bg-[#FAFAF8] px-3 py-3">
+                                                <div className="mb-2 border border-[#DCDDD8] bg-white p-2.5">
+                                                  <div className="mb-1.5 flex items-center justify-between gap-2">
+                                                    <span className="text-[10px] font-bold text-[#171717]">
+                                                      Tipe layer
+                                                    </span>
+
+                                                    {uncertain && (
+                                                      <span className="border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-600">
+                                                        Perlu dipilih
+                                                      </span>
+                                                    )}
+                                                  </div>
+
+                                                  <select
+                                                    value={item.layer_type}
+                                                    disabled={
+                                                      item.detection_status ===
+                                                      "reading"
+                                                    }
+                                                    onChange={(event) =>
+                                                      handleUpdateBatchItem(
+                                                        item.id,
+                                                        "layer_type",
+                                                        event.target.value
+                                                      )
+                                                    }
+                                                    className="w-full border border-[#DCDDD8] bg-white px-2.5 py-2 text-[10px] font-bold text-[#171717] outline-none transition-colors hover:border-[#CFCFC8] focus:border-[#171717] focus:ring-2 focus:ring-[#171717]/10 disabled:cursor-wait disabled:opacity-50"
+                                                  >
+                                                    {layerOptions.map(
+                                                      (option) => (
+                                                        <option
+                                                          key={option.value}
+                                                          value={option.value}
+                                                        >
+                                                          {option.label}
+                                                        </option>
+                                                      )
+                                                    )}
+                                                  </select>
+
+                                                  <p className="mt-1.5 text-[10px] font-medium leading-4 text-[#858780]">
+                                                    {uncertain
+                                                      ? "Sistem belum yakin. Pilih tipe layer secara manual."
+                                                      : "Anda dapat mengubah hasil deteksi kapan saja."}
+                                                  </p>
+                                                </div>
+
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                  {!item.is_base && (
+                                                    <ActionButton
+                                                      variant="secondary"
+                                                      size="sm"
+                                                      disabled={
+                                                        item.detection_status ===
+                                                        "reading"
+                                                      }
+                                                      onClick={() =>
+                                                        handleSetBaseLayer(
+                                                          item.id
+                                                        )
+                                                      }
+                                                    >
+                                                      Jadikan utama
+                                                    </ActionButton>
+                                                  )}
+
+                                                  <div className="flex min-w-[160px] flex-1 items-center gap-2">
+                                                    <span className="text-[10px] font-bold text-[#171717]">
+                                                      Opasitas
+                                                    </span>
+
+                                                    <input
+                                                      type="range"
+                                                      min="0"
+                                                      max="1"
+                                                      step="0.05"
+                                                      value={
+                                                        item.default_opacity
+                                                      }
+                                                      aria-label="Opasitas layer"
+                                                      onChange={(event) =>
+                                                        handleUpdateBatchItem(
+                                                          item.id,
+                                                          "default_opacity",
+                                                          parseFloat(
+                                                            event.target.value
+                                                          )
+                                                        )
+                                                      }
+                                                      className="w-full accent-[#171717]"
+                                                    />
+
+                                                    <span className="w-9 text-right text-[10px] font-bold tabular-nums text-[#171717]">
+                                                      {Math.round(
+                                                        item.default_opacity *
+                                                          100
+                                                      )}
+                                                      %
+                                                    </span>
+                                                  </div>
+                                                </div>
+
+                                                {item.detection_reason && (
+                                                  <div className="mt-2 border border-[#DCDDD8] bg-white px-2.5 py-2">
+                                                    <p className="text-[10px] font-medium leading-4 text-[#858780]">
+                                                      {item.detection_reason}
+                                                    </p>
+                                                  </div>
+                                                )}
+                                              </div>
+                                            </motion.div>
+                                          )}
+                                        </AnimatePresence>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
                               </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                            )}
+                          </div>
+                        )}
 
-                      {uploadMode === "manual" && (
-                        <ManualUploadFlow
-                          disabled={loading}
-                          slots={manualSlots}
-                          addLayer={handleAddManualLayer}
-                          removeLayer={handleRemoveManualLayer}
-                          updateLayer={handleUpdateManualLayer}
-                          errors={manualLayerErrors}
-                        />
-                      )}
+                        {uploadMode === "manual" && (
+                          <ManualUploadFlow
+                            disabled={loading}
+                            slots={manualSlots}
+                            addLayer={handleAddManualLayer}
+                            removeLayer={handleRemoveManualLayer}
+                            updateLayer={handleUpdateManualLayer}
+                            errors={manualLayerErrors}
+                          />
+                        )}
 
-                      {filesReady && (
-                        <div className="mt-5 flex justify-end border-t border-brand-800/8 pt-4">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditingFiles(false);
-                              setFilesConfirmed(true);
-                            }}
-                            className="btn-brand"
-                          >
-                            Lanjutkan ke detail dataset
-                            <ChevronRight className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      )}
+                        {filesReady && (
+                          <div className="mt-5 flex justify-end border-t border-[#DCDDD8] pt-4">
+                            <ActionButton
+                              onClick={() => {
+                                setEditingFiles(false);
+                                setFilesConfirmed(true);
+                              }}
+                            >
+                              Lanjutkan ke detail dataset
+                              <ChevronRight
+                                className="h-3.5 w-3.5"
+                                strokeWidth={ICON_STROKE}
+                              />
+                            </ActionButton>
+                          </div>
+                        )}
+                      </div>
                     </motion.section>
                   ) : (
                     <CollapsedSummary
                       title="Upload layer"
-                      detail={`${reviewFiles.length
-                        } layer · ${totalSizeMB.toFixed(1)} MB`}
+                      detail={`${
+                        reviewFiles.length
+                      } layer · ${totalSizeMB.toFixed(1)} MB`}
                       onEdit={() => setEditingFiles(true)}
                     />
                   )}
+
+                  {/* ==================================================
+                      STEP 2 — DETAIL DATASET
+                  =================================================== */}
 
                   {!detailsUnlocked ? (
                     <LockedSection
@@ -1897,186 +2059,201 @@ export default function UploadPage() {
                     />
                   ) : showDetailsEditor ? (
                     <motion.section
-                      initial={{
-                        opacity: 0,
-                        y: 8,
-                      }}
-                      animate={{
-                        opacity: 1,
-                        y: 0,
-                      }}
-                      transition={{
-                        duration: 0.35,
-                        ease: EASE,
-                      }}
-                      className="glass p-5"
+                      initial="hidden"
+                      animate="visible"
+                      variants={fadeUp}
+                      className={cardClass}
                     >
-                      <SectionTitle
-                        number={2}
-                        title="Detail dataset"
-                        description="Tambahkan informasi dasar survei."
-                      />
+                      <div className="border-b border-[#DCDDD8] px-5 py-5 sm:px-6">
+                        <SectionHeader
+                          eyebrow="Langkah 02"
+                          title="Detail dataset"
+                          description="Tambahkan informasi dasar survei."
+                          icon={Calendar}
+                        />
+                      </div>
 
-                      <div className="space-y-4">
-                        <div>
-                          <FieldLabel required>Judul peta / sesi</FieldLabel>
-
-                          <input
-                            id="field-title"
-                            type="text"
-                            value={title}
-                            onChange={(event) => setTitle(event.target.value)}
-                            required
-                            placeholder="Contoh: Survei Perkebunan Paca - Blok A"
-                            className={`${inputClass} h-9 text-xs text-brand-900 placeholder:text-brand-800/30 focus:border-brand-600 focus:ring-brand-600/20`}
-                          />
-                        </div>
-
-                        <div>
-                          <FieldLabel required>Lokasi survei</FieldLabel>
-
-                          <div className="mb-2 flex flex-wrap gap-1.5">
-                            {locationPresets.map((preset) => {
-                              const active = location === preset;
-
-                              return (
-                                <button
-                                  key={preset}
-                                  type="button"
-                                  onClick={() => {
-                                    setLocation(preset);
-
-                                    if (!title) {
-                                      setTitle(`Survei Pertanian ${preset}`);
-                                    }
-                                  }}
-                                  className={`rounded-full border px-2.5 py-1.5 text-2xs font-bold transition ${active
-                                    ? "border-brand-900 bg-brand-900 text-white"
-                                    : "border-brand-800/15 bg-white text-brand-800/60 hover:border-brand-800/20 hover:text-brand-900"
-                                    }`}
-                                >
-                                  {preset.split(",")[0]}
-                                </button>
-                              );
-                            })}
-                          </div>
-
-                          <div className="relative">
-                            <MapPin className="absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-brand-800/35" />
-
-                            <input
-                              id="field-location"
-                              type="text"
-                              value={location}
-                              onChange={(event) =>
-                                setLocation(event.target.value)
-                              }
-                              required
-                              placeholder="Paca, Halmahera Utara"
-                              className={`${inputClass} h-9 pl-10 text-xs text-brand-900 placeholder:text-brand-800/30 focus:border-brand-600 focus:ring-brand-600/20`}
-                            />
-                          </div>
-                        </div>
-
-                        <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="p-4 sm:p-5">
+                        <div className="space-y-4">
                           <div>
-                            <FieldLabel required>
-                              Tanggal penerbangan
+                            <FieldLabel required htmlFor="field-title">
+                              Judul peta / sesi
                             </FieldLabel>
 
+                            <input
+                              id="field-title"
+                              type="text"
+                              value={title}
+                              onChange={(event) => setTitle(event.target.value)}
+                              required
+                              placeholder="Contoh: Survei Perkebunan Paca - Blok A"
+                              className={cn(inputClass, "h-9")}
+                            />
+                          </div>
+
+                          <div>
+                            <FieldLabel required htmlFor="field-location">
+                              Lokasi survei
+                            </FieldLabel>
+
+                            <div className="mb-2 flex flex-wrap gap-1.5">
+                              {locationPresets.map((preset) => {
+                                const active = location === preset;
+
+                                return (
+                                  <motion.button
+                                    key={preset}
+                                    type="button"
+                                    whileHover={{ y: -2 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    transition={{ duration: 0.2, ease: EASE }}
+                                    aria-pressed={active}
+                                    onClick={() => {
+                                      setLocation(preset);
+
+                                      if (!title) {
+                                        setTitle(`Survei Pertanian ${preset}`);
+                                      }
+                                    }}
+                                    className={cn(
+                                      "border px-2.5 py-1.5 text-[10px] font-bold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#171717]/20",
+                                      active
+                                        ? "border-[#171717] bg-[#171717] text-white"
+                                        : "border-[#DCDDD8] bg-white text-[#6B6B66] hover:border-[#CFCFC8] hover:bg-[#FAFAF8] hover:text-[#171717]"
+                                    )}
+                                  >
+                                    {preset.split(",")[0]}
+                                  </motion.button>
+                                );
+                              })}
+                            </div>
+
                             <div className="relative">
-                              <Calendar className="absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-brand-800/35" />
+                              <MapPin
+                                className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#858780]"
+                                strokeWidth={ICON_STROKE}
+                              />
 
                               <input
-                                id="field-date"
-                                type="date"
-                                value={surveyDate}
+                                id="field-location"
+                                type="text"
+                                value={location}
                                 onChange={(event) =>
-                                  setSurveyDate(event.target.value)
+                                  setLocation(event.target.value)
                                 }
                                 required
-                                className={`${inputClass} h-9 pl-10 text-xs text-brand-900 focus:border-brand-600 focus:ring-brand-600/20`}
+                                placeholder="Paca, Halmahera Utara"
+                                className={cn(inputClass, "h-9 pl-10")}
                               />
                             </div>
                           </div>
 
-                          <div>
-                            <FieldLabel>Deskripsi</FieldLabel>
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <div>
+                              <FieldLabel required htmlFor="field-date">
+                                Tanggal penerbangan
+                              </FieldLabel>
 
-                            <input
-                              id="field-description"
-                              type="text"
-                              value={description}
-                              onChange={(event) =>
-                                setDescription(event.target.value)
-                              }
-                              placeholder="Opsional"
-                              className={`${inputClass} h-9 text-xs text-brand-900 placeholder:text-brand-800/30`}
-                            />
+                              <div className="relative">
+                                <Calendar
+                                  className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#858780]"
+                                  strokeWidth={ICON_STROKE}
+                                />
+
+                                <input
+                                  id="field-date"
+                                  type="date"
+                                  value={surveyDate}
+                                  onChange={(event) =>
+                                    setSurveyDate(event.target.value)
+                                  }
+                                  required
+                                  className={cn(inputClass, "h-9 pl-10")}
+                                />
+                              </div>
+                            </div>
+
+                            <div>
+                              <FieldLabel htmlFor="field-description">
+                                Deskripsi
+                              </FieldLabel>
+
+                              <input
+                                id="field-description"
+                                type="text"
+                                value={description}
+                                onChange={(event) =>
+                                  setDescription(event.target.value)
+                                }
+                                placeholder="Opsional"
+                                className={cn(inputClass, "h-9")}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="border-t border-[#DCDDD8] pt-4">
+                            <div className="mb-2 flex items-center gap-2">
+                              <ShieldCheck
+                                className="h-3.5 w-3.5 text-[#33332F]"
+                                strokeWidth={ICON_STROKE}
+                              />
+
+                              <span className="text-xs font-bold text-[#171717]">
+                                Pengaturan akses
+                              </span>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2">
+                              <label className="flex cursor-pointer items-center gap-2 border border-[#DCDDD8] bg-white px-3 py-2 transition-colors hover:bg-[#FAFAF8]">
+                                <input
+                                  type="checkbox"
+                                  checked={lockedForFree}
+                                  onChange={(event) =>
+                                    setLockedForFree(event.target.checked)
+                                  }
+                                  className="h-3.5 w-3.5 accent-[#171717]"
+                                />
+
+                                <span className="text-[10px] font-bold text-[#33332F]">
+                                  Batasi untuk member berbayar
+                                </span>
+                              </label>
+
+                              <label className="flex cursor-pointer items-center gap-2 border border-[#DCDDD8] bg-white px-3 py-2 transition-colors hover:bg-[#FAFAF8]">
+                                <input
+                                  type="checkbox"
+                                  checked={purchasable}
+                                  onChange={(event) =>
+                                    setPurchasable(event.target.checked)
+                                  }
+                                  className="h-3.5 w-3.5 accent-[#171717]"
+                                />
+
+                                <span className="text-[10px] font-bold text-[#33332F]">
+                                  Izinkan pembelian satuan
+                                </span>
+                              </label>
+                            </div>
                           </div>
                         </div>
 
-                        <div className="border-t border-brand-800/8 pt-3.5">
-                          <div className="mb-2 flex items-center gap-2">
-                            <ShieldCheck
-                              className="h-3.5 w-3.5 text-brand-600"
-                              strokeWidth={1.75}
-                            />
-
-                            <span className="text-xs font-bold text-brand-900">
-                              Pengaturan akses
-                            </span>
-                          </div>
-
-                          <div className="flex flex-wrap gap-2">
-                            <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-brand-800/8 bg-white px-3 py-2">
-                              <input
-                                type="checkbox"
-                                checked={lockedForFree}
-                                onChange={(event) =>
-                                  setLockedForFree(event.target.checked)
-                                }
-                                className="h-3.5 w-3.5 rounded border-brand-800/20 text-brand-900 focus:ring-brand-600"
+                        {detailReady && (
+                          <div className="mt-5 flex justify-end border-t border-[#DCDDD8] pt-4">
+                            <ActionButton
+                              onClick={() => {
+                                setEditingDetails(false);
+                                setDetailsConfirmed(true);
+                              }}
+                            >
+                              Lanjutkan ke review
+                              <ChevronRight
+                                className="h-3.5 w-3.5"
+                                strokeWidth={ICON_STROKE}
                               />
-
-                              <span className="text-2xs font-medium text-brand-800/65">
-                                Batasi untuk member berbayar
-                              </span>
-                            </label>
-
-                            <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-brand-800/8 bg-white px-3 py-2">
-                              <input
-                                type="checkbox"
-                                checked={purchasable}
-                                onChange={(event) =>
-                                  setPurchasable(event.target.checked)
-                                }
-                                className="h-3.5 w-3.5 rounded border-brand-800/20 text-brand-900 focus:ring-brand-600"
-                              />
-
-                              <span className="text-2xs font-medium text-brand-800/65">
-                                Izinkan pembelian satuan
-                              </span>
-                            </label>
+                            </ActionButton>
                           </div>
-                        </div>
+                        )}
                       </div>
-
-                      {detailReady && (
-                        <div className="mt-5 flex justify-end border-t border-brand-800/8 pt-4">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditingDetails(false);
-                              setDetailsConfirmed(true);
-                            }}
-                            className="btn-brand"
-                          >
-                            Lanjutkan ke review
-                            <ChevronRight className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      )}
                     </motion.section>
                   ) : (
                     <CollapsedSummary
@@ -2086,6 +2263,10 @@ export default function UploadPage() {
                     />
                   )}
 
+                  {/* ==================================================
+                      STEP 3 — REVIEW & KIRIM
+                  =================================================== */}
+
                   {!reviewUnlocked ? (
                     <LockedSection
                       title="Review & kirim"
@@ -2093,82 +2274,86 @@ export default function UploadPage() {
                     />
                   ) : (
                     <motion.section
-                      initial={{
-                        opacity: 0,
-                        y: 8,
-                      }}
-                      animate={{
-                        opacity: 1,
-                        y: 0,
-                      }}
-                      transition={{
-                        duration: 0.35,
-                        ease: EASE,
-                      }}
-                      className="glass p-5"
+                      initial="hidden"
+                      animate="visible"
+                      variants={fadeUp}
+                      className={cardClass}
                     >
-                      <SectionTitle
-                        number={3}
-                        title="Review & kirim"
-                        description="Periksa sebelum upload."
-                        right={
-                          submitErrors.length === 0 && !metadataStillReading ? (
-                            <span className="icon-ring h-8 w-8 bg-brand-50 text-brand-600">
-                              <Check className="h-4 w-4" strokeWidth={2} />
-                            </span>
-                          ) : undefined
-                        }
-                      />
-
-                      <div className="rounded-2xl border border-brand-800/8 bg-white p-4">
-                        <UploadReview
-                          files={reviewFiles}
-                          totalBytes={reviewTotalBytes}
-                          checklist={reviewChecklist}
-                          loading={loading}
+                      <div className="border-b border-[#DCDDD8] px-5 py-5 sm:px-6">
+                        <SectionHeader
+                          eyebrow="Langkah 03"
+                          title="Review & kirim"
+                          description="Periksa sebelum upload."
+                          icon={ShieldCheck}
+                          right={
+                            submitErrors.length === 0 &&
+                            !metadataStillReading ? (
+                              <span className="flex h-8 w-8 shrink-0 items-center justify-center bg-[#171717] text-white">
+                                <Check
+                                  className="h-4 w-4"
+                                  strokeWidth={2.5}
+                                  aria-hidden="true"
+                                />
+                              </span>
+                            ) : undefined
+                          }
                         />
                       </div>
 
-                      <div className="mt-4">
-                        {!loading && (metadataStillReading ? (
-                          <div className="rounded-2xl bg-amber-50 px-3.5 py-3">
-                            <div className="flex items-center gap-2">
-                              <RefreshCw className="h-3.5 w-3.5 animate-spin text-amber-600" />
-
-                              <p className="text-xs font-bold text-amber-900">
-                                Sedang membaca metadata GeoTIFF...
-                              </p>
-                            </div>
-                          </div>
-                        ) : submitErrors.length > 0 ? (
-                          <div className="rounded-2xl bg-brand-50 px-3.5 py-3">
-                            <p className="text-2xs font-medium leading-4 text-brand-800/60">
-                              Lengkapi bagian yang masih diperlukan sebelum
-                              upload.
-                            </p>
-                          </div>
-                        ) : null)}
-
-                        <button
-                          type="submit"
-                          disabled={
-                            loading ||
-                            metadataStillReading ||
-                            submitErrors.length > 0
-                          }
-                          aria-describedby={loading ? "upload-engine-progress" : undefined}
-                          className={`mt-3 flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:bg-brand-900 disabled:hover:shadow-none ${submitErrors.length === 0 && !metadataStillReading
-                            ? "bg-brand-900 text-white shadow-card hover:-translate-y-0.5 hover:bg-brand-800 hover:shadow-card-hover"
-                            : "cursor-not-allowed bg-brand-800/8 text-brand-800/30"
-                            }`}
-                        >
-                          Validasi & Import
-                          <ChevronRight
-                            className="h-3.5 w-3.5"
-                            strokeWidth={2}
-                            aria-hidden="true"
+                      <div className="p-4 sm:p-5">
+                        <div className="border border-[#DCDDD8] bg-white p-4">
+                          <UploadReview
+                            files={reviewFiles}
+                            totalBytes={reviewTotalBytes}
+                            checklist={reviewChecklist}
+                            loading={loading}
                           />
-                        </button>
+                        </div>
+
+                        <div className="mt-4">
+                          {!loading &&
+                            (metadataStillReading ? (
+                              <div className="border border-amber-200 bg-amber-50 px-3.5 py-3">
+                                <div className="flex items-center gap-2">
+                                  <RefreshCw
+                                    className="h-3.5 w-3.5 animate-spin text-amber-600 motion-reduce:animate-none"
+                                    strokeWidth={ICON_STROKE}
+                                  />
+
+                                  <p className="text-xs font-bold text-amber-900">
+                                    Sedang membaca metadata GeoTIFF...
+                                  </p>
+                                </div>
+                              </div>
+                            ) : submitErrors.length > 0 ? (
+                              <div className="border border-[#DCDDD8] bg-[#F4F5F2] px-3.5 py-3">
+                                <p className="text-[10px] font-medium leading-4 text-[#6B6B66]">
+                                  Lengkapi bagian yang masih diperlukan sebelum
+                                  upload.
+                                </p>
+                              </div>
+                            ) : null)}
+
+                          <ActionButton
+                            type="submit"
+                            disabled={
+                              loading ||
+                              metadataStillReading ||
+                              submitErrors.length > 0
+                            }
+                            aria-describedby={
+                              loading ? "upload-engine-progress" : undefined
+                            }
+                            className="mt-3 w-full py-3"
+                          >
+                            Validasi & Import
+                            <ChevronRight
+                              className="h-3.5 w-3.5"
+                              strokeWidth={ICON_STROKE}
+                              aria-hidden="true"
+                            />
+                          </ActionButton>
+                        </div>
                       </div>
                     </motion.section>
                   )}
@@ -2176,10 +2361,28 @@ export default function UploadPage() {
               </div>
             )}
 
-            <div className="flex items-center justify-center gap-1.5 py-6 text-2xs font-medium text-brand-800/40">
-              <ShieldCheck className="h-3 w-3" strokeWidth={1.75} />
-              Dataset diperiksa otomatis sebelum disimpan.
-            </div>
+            {/* ==================================================
+                FOOTER
+            =================================================== */}
+
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.5 }}
+              className="mt-4 flex items-center justify-between gap-4 px-1"
+            >
+              <p className="text-[10px] font-medium text-[#858780]">
+                AMX GeoStream · Upload Center
+              </p>
+
+              <div className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 bg-[#76B900]" />
+
+                <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#858780]">
+                  Dataset diperiksa otomatis
+                </span>
+              </div>
+            </motion.div>
           </fieldset>
         </form>
       </div>

@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import styles from "./Sidebar.module.css";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useUserRole } from "@/context/UserRoleContext";
 
 import {
@@ -20,6 +19,7 @@ import {
   Leaf,
   PanelLeftClose,
   PanelLeftOpen,
+  ChevronRight,
 } from "lucide-react";
 
 /* ============================================================
@@ -85,12 +85,14 @@ function SidebarTooltip({
 
     const rect = anchor.current?.getBoundingClientRect();
 
-    if (rect) {
-      setPosition({
-        left: rect.right + 12,
-        top: rect.top + rect.height / 2,
-      });
+    if (!rect) {
+      return;
     }
+
+    setPosition({
+      left: rect.right + 10,
+      top: rect.top + rect.height / 2,
+    });
   };
 
   useEffect(() => {
@@ -103,16 +105,12 @@ function SidebarTooltip({
     };
 
     window.addEventListener("resize", hide);
-
     window.addEventListener("scroll", hide, true);
-
     window.addEventListener("keydown", escape);
 
     return () => {
       window.removeEventListener("resize", hide);
-
       window.removeEventListener("scroll", hide, true);
-
       window.removeEventListener("keydown", escape);
     };
   }, []);
@@ -138,8 +136,12 @@ function SidebarTooltip({
           <span
             id={id}
             role="tooltip"
-            className={styles.tooltip}
-            style={position}
+            className="pointer-events-none fixed z-[9999] whitespace-nowrap border border-[#2B2B2B] bg-[#171717] px-3 py-2 text-[11px] font-semibold text-white shadow-[0_10px_30px_rgba(0,0,0,0.15)]"
+            style={{
+              left: position.left,
+              top: position.top,
+              transform: "translateY(-50%)",
+            }}
           >
             {label}
           </span>,
@@ -212,13 +214,11 @@ export default function Sidebar({
       label: "Ringkasan",
       icon: <LayoutDashboard size={18} strokeWidth={ICON_STROKE} />,
     },
-
     {
       href: "/dashboard/maps",
       label: "Peta Saya",
       icon: <Map size={18} strokeWidth={ICON_STROKE} />,
     },
-
     {
       href: "/dashboard/subscription",
       label: "Langganan",
@@ -268,7 +268,6 @@ export default function Sidebar({
       label: "Pengaturan",
       icon: <Settings size={18} strokeWidth={ICON_STROKE} />,
     },
-
     {
       href: "/dashboard/help",
       label: "Bantuan",
@@ -284,13 +283,15 @@ export default function Sidebar({
     user?.subscription?.tier ?? user?.tier ?? undefined
   );
 
-  const userInitials = (user?.username || "Pengguna").slice(0, 2).toUpperCase();
+  const userName = user?.username || "Pengguna";
+
+  const userInitials = userName.slice(0, 2).toUpperCase();
 
   const profileLabel = isGod
-    ? `${user?.username || "God"} · God · Protected`
+    ? `${userName} · God · Protected`
     : user?.role === "admin"
-    ? `${user?.username || "Administrator"} · Administrator`
-    : `${user?.username || "Pengguna"} · ${tierLabel}`;
+    ? `${userName} · Administrator`
+    : `${userName} · ${tierLabel}`;
 
   /* ==========================================================
      MENU ITEM RENDERER
@@ -304,11 +305,65 @@ export default function Sidebar({
         href={item.href}
         aria-current={active ? "page" : undefined}
         aria-label={isCollapsed ? item.label : undefined}
-        className={`${styles.item} ${active ? styles.active : ""}`}
+        className={[
+          "group relative flex items-center transition-all duration-200",
+          isCollapsed
+            ? "mx-auto h-11 w-11 justify-center"
+            : "w-full px-3 py-2.5",
+          active
+            ? "border border-[#DDE3D3] bg-white text-[#76B900] shadow-[0_5px_18px_rgba(0,0,0,0.035)]"
+            : "border border-transparent text-[#6F716B] hover:border-[#E5E6E1] hover:bg-white hover:text-[#171717]",
+        ].join(" ")}
       >
-        {item.icon}
+        {/* ACTIVE INDICATOR */}
 
-        {!isCollapsed && <span className={styles.label}>{item.label}</span>}
+        {active && !isCollapsed && (
+          <span
+            className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 bg-[#76B900]"
+            aria-hidden="true"
+          />
+        )}
+
+        {/* ICON */}
+
+        <span
+          className={[
+            "flex shrink-0 items-center justify-center transition-colors duration-200",
+            active
+              ? "text-[#76B900]"
+              : "text-[#7E8179] group-hover:text-[#4F514B]",
+          ].join(" ")}
+        >
+          {item.icon}
+        </span>
+
+        {/* LABEL */}
+
+        {!isCollapsed && (
+          <>
+            <span
+              className={[
+                "ml-3 flex-1 truncate text-[12px] font-semibold transition-colors",
+                active
+                  ? "text-[#171717]"
+                  : "text-[#666860] group-hover:text-[#171717]",
+              ].join(" ")}
+            >
+              {item.label}
+            </span>
+
+            <ChevronRight
+              size={14}
+              strokeWidth={1.7}
+              className={[
+                "shrink-0 transition-all duration-200",
+                active
+                  ? "translate-x-0 text-[#76B900]"
+                  : "text-[#B8BAB4] opacity-0 group-hover:translate-x-0.5 group-hover:opacity-100",
+              ].join(" ")}
+            />
+          </>
+        )}
       </Link>
     );
 
@@ -329,11 +384,14 @@ export default function Sidebar({
 
   const renderSectionLabel = (label: string, id: string) =>
     isCollapsed ? (
-      <div aria-hidden className={styles.divider} />
+      <div aria-hidden="true" className="mx-2 my-3 h-px bg-[#E0E1DD]" />
     ) : (
-      <p id={id} className={styles.sectionLabel}>
+      <div
+        id={id}
+        className="mb-2 px-3 text-[9px] font-bold uppercase tracking-[0.17em] text-[#999B94]"
+      >
         {label}
-      </p>
+      </div>
     );
 
   /* ==========================================================
@@ -342,13 +400,24 @@ export default function Sidebar({
 
   return (
     <aside
-      className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ""}`}
+      className={[
+        "sticky top-3 z-40 flex h-[calc(100vh-1.5rem)] shrink-0 flex-col overflow-hidden",
+        "border border-[#DCDDD8] bg-[#F8F9F6]",
+        "shadow-[0_8px_30px_rgba(0,0,0,0.04)]",
+        "transition-[width,margin] duration-300",
+        isCollapsed ? "ml-3 w-[76px]" : "ml-3 w-[258px]",
+      ].join(" ")}
     >
       {/* ==================================================
           HEADER
       =================================================== */}
 
-      <div className={styles.header}>
+      <div
+        className={[
+          "flex h-[76px] shrink-0 items-center border-b border-[#E5E6E1]",
+          isCollapsed ? "justify-center px-3" : "justify-between px-4",
+        ].join(" ")}
+      >
         {isCollapsed ? (
           <SidebarTooltip label="Buka sidebar">
             <button
@@ -356,22 +425,43 @@ export default function Sidebar({
               onClick={() => toggleCollapsed(false)}
               aria-label="Buka sidebar"
               aria-expanded={false}
-              className={`${styles.toggle} ${styles.expand}`}
+              className="group flex h-10 w-10 items-center justify-center border border-[#DCDDD8] bg-white text-[#171717] shadow-[0_4px_14px_rgba(0,0,0,0.03)] transition-all duration-200 hover:border-[#C9CCC3] hover:bg-[#F7F8F5]"
             >
-              <PanelLeftOpen size={18} strokeWidth={ICON_STROKE} />
+              {/* LOGO NORMAL */}
+
+              <Drone
+                size={19}
+                strokeWidth={ICON_STROKE}
+                className="transition-all duration-200 group-hover:hidden"
+              />
+
+              {/* OPEN ICON ON HOVER */}
+
+              <PanelLeftOpen
+                size={18}
+                strokeWidth={ICON_STROKE}
+                className="hidden transition-all duration-200 group-hover:block group-hover:text-[#76B900]"
+              />
             </button>
           </SidebarTooltip>
         ) : (
           <>
-            <Link href="/dashboard" className={styles.brand}>
-              <span className={styles.logo}>
-                <Drone size={20} strokeWidth={ICON_STROKE} />
+            <Link
+              href="/dashboard"
+              className="group flex min-w-0 items-center gap-3 px-2 py-1.5"
+            >
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center bg-[#171717] text-white shadow-[0_6px_18px_rgba(0,0,0,0.08)] transition-transform duration-200 group-hover:-translate-y-0.5">
+                <Drone size={19} strokeWidth={ICON_STROKE} />
               </span>
 
-              <span className={styles.brandCopy}>
-                <strong>UAV</strong>
+              <span className="min-w-0">
+                <span className="block text-[13px] font-bold tracking-[-0.02em] text-[#171717]">
+                  UAV
+                </span>
 
-                <small>DAAS PLATFORM</small>
+                <span className="mt-0.5 block text-[8px] font-bold uppercase tracking-[0.16em] text-[#999B94]">
+                  DAAS Platform
+                </span>
               </span>
             </Link>
 
@@ -381,9 +471,9 @@ export default function Sidebar({
                 onClick={() => toggleCollapsed(true)}
                 aria-label="Tutup sidebar"
                 aria-expanded={true}
-                className={styles.toggle}
+                className="flex h-9 w-9 shrink-0 items-center justify-center border border-transparent text-[#8A8C85] transition-all hover:border-[#DCDDD8] hover:bg-white hover:text-[#171717]"
               >
-                <PanelLeftClose size={18} strokeWidth={ICON_STROKE} />
+                <PanelLeftClose size={17} strokeWidth={ICON_STROKE} />
               </button>
             )}
           </>
@@ -394,32 +484,37 @@ export default function Sidebar({
           NAVIGATION
       =================================================== */}
 
-      <nav aria-label="Navigasi utama" className={styles.nav}>
-        {/* Workspace */}
+      <nav
+        aria-label="Navigasi utama"
+        className="flex-1 overflow-y-auto px-3 py-6"
+      >
+        {/* WORKSPACE */}
+
         {renderSectionLabel("Workspace", "nav-workspace")}
 
         <ul
           aria-labelledby={isCollapsed ? undefined : "nav-workspace"}
-          className={styles.list}
+          className="space-y-1"
         >
           {mainMenuItems.map(renderMenuItem)}
         </ul>
 
-        {/* Administration */}
-        {showAdministration && (
-          <div
-            className={styles.section}
-            style={{
-              marginTop: 26,
-            }}
-          >
-            {isCollapsed ? (
-              <div aria-hidden className={styles.divider} />
-            ) : (
-              <div className={styles.sectionLabel}>
-                <p id="nav-admin">Administration</p>
+        {/* ADMINISTRATION */}
 
-                <span className={styles.sectionBadge}>
+        {showAdministration && (
+          <div className="mt-7">
+            {isCollapsed ? (
+              <div aria-hidden="true" className="mx-2 my-3 h-px bg-[#E0E1DD]" />
+            ) : (
+              <div className="mb-2 flex items-center justify-between px-3">
+                <p
+                  id="nav-admin"
+                  className="text-[9px] font-bold uppercase tracking-[0.17em] text-[#999B94]"
+                >
+                  Administration
+                </p>
+
+                <span className="border border-[#DCDDD8] bg-white px-1.5 py-1 text-[8px] font-bold uppercase tracking-[0.08em] text-[#858780]">
                   {isGod ? "God" : "Admin"}
                 </span>
               </div>
@@ -427,25 +522,21 @@ export default function Sidebar({
 
             <ul
               aria-labelledby={isCollapsed ? undefined : "nav-admin"}
-              className={styles.list}
+              className="space-y-1"
             >
               {adminMenuItems.map(renderMenuItem)}
             </ul>
           </div>
         )}
 
-        {/* Preferences */}
-        <div
-          className={styles.section}
-          style={{
-            marginTop: 26,
-          }}
-        >
+        {/* PREFERENCES */}
+
+        <div className="mt-7">
           {renderSectionLabel("Preferences", "nav-preferences")}
 
           <ul
             aria-labelledby={isCollapsed ? undefined : "nav-preferences"}
-            className={styles.list}
+            className="space-y-1"
           >
             {settingsMenuItems.map(renderMenuItem)}
           </ul>
@@ -456,62 +547,82 @@ export default function Sidebar({
           FOOTER / USER
       =================================================== */}
 
-      <div className={styles.footer}>
+      <div className="shrink-0 p-3">
         <SidebarTooltip enabled={isCollapsed} label={profileLabel}>
           <Link
             href="/dashboard/settings"
-            title={undefined}
             aria-label={isCollapsed ? profileLabel : undefined}
-            className={styles.profile}
+            className={[
+              "group flex items-center border border-[#DCDDD8] bg-white transition-all duration-200",
+              "hover:border-[#C9CCC3] hover:shadow-[0_6px_20px_rgba(0,0,0,0.04)]",
+              isCollapsed ? "mx-auto h-11 w-11 justify-center" : "px-3 py-2.5",
+            ].join(" ")}
           >
-            <span className={styles.avatar}>{userInitials}</span>
+            {/* AVATAR */}
+
+            <span
+              className={[
+                "flex shrink-0 items-center justify-center border border-[#DCE4D4] bg-[#F3F7EF] font-bold text-[#5F8F13]",
+                isCollapsed ? "h-9 w-9 text-[11px]" : "h-9 w-9 text-[10px]",
+              ].join(" ")}
+            >
+              {userInitials}
+            </span>
 
             {!isCollapsed && (
-              <span className={styles.profileCopy}>
-                <span className="block truncate text-xs font-semibold text-brand-900">
-                  {user?.username || "Pengguna"}
+              <>
+                <span className="ml-3 min-w-0 flex-1">
+                  <span className="block truncate text-xs font-bold text-[#171717]">
+                    {userName}
+                  </span>
+
+                  <span className="mt-1 flex min-w-0 items-center gap-1.5">
+                    {isGod ? (
+                      <>
+                        <ShieldCheck
+                          size={11}
+                          strokeWidth={ICON_STROKE}
+                          className="shrink-0 text-[#76B900]"
+                        />
+
+                        <span className="truncate text-[9px] font-bold text-[#5F910D]">
+                          God · Protected
+                        </span>
+                      </>
+                    ) : user?.role === "admin" ? (
+                      <>
+                        <ShieldCheck
+                          size={11}
+                          strokeWidth={ICON_STROKE}
+                          className="shrink-0 text-[#6E7169]"
+                        />
+
+                        <span className="truncate text-[9px] font-semibold text-[#777972]">
+                          Administrator
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Leaf
+                          size={11}
+                          strokeWidth={ICON_STROKE}
+                          className="shrink-0 text-[#76B900]"
+                        />
+
+                        <span className="truncate text-[9px] font-semibold text-[#777972]">
+                          {tierLabel}
+                        </span>
+                      </>
+                    )}
+                  </span>
                 </span>
 
-                <span className="mt-0.5 flex items-center gap-1">
-                  {isGod ? (
-                    <>
-                      <ShieldCheck
-                        size={11}
-                        strokeWidth={ICON_STROKE}
-                        className="shrink-0 text-violet-600"
-                      />
-
-                      <span className="truncate text-2xs font-bold text-violet-700">
-                        God · Protected
-                      </span>
-                    </>
-                  ) : user?.role === "admin" ? (
-                    <>
-                      <ShieldCheck
-                        size={11}
-                        strokeWidth={ICON_STROKE}
-                        className="shrink-0 text-brand-700"
-                      />
-
-                      <span className="truncate text-2xs font-medium text-brand-800/60">
-                        Administrator
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <Leaf
-                        size={11}
-                        strokeWidth={ICON_STROKE}
-                        className="shrink-0 text-brand-500"
-                      />
-
-                      <span className="truncate text-2xs font-medium text-brand-800/60">
-                        {tierLabel}
-                      </span>
-                    </>
-                  )}
-                </span>
-              </span>
+                <ChevronRight
+                  size={14}
+                  strokeWidth={1.7}
+                  className="shrink-0 text-[#B4B6AF] transition-transform group-hover:translate-x-0.5 group-hover:text-[#76B900]"
+                />
+              </>
             )}
           </Link>
         </SidebarTooltip>

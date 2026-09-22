@@ -1,22 +1,29 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactElement } from "react";
-import { motion } from "framer-motion";
-import { useRouter } from "next/navigation";
-import { useUserRole } from "@/context/UserRoleContext";
-import api from "@/lib/api";
+import { AnimatePresence, motion, type Variants } from "framer-motion";
 import {
   AlertTriangle,
   Check,
+  ChevronRight,
   CreditCard,
   Crown,
   Edit3,
   Layers,
+  Lock,
+  RotateCcw,
   Save,
+  Settings2,
   ShieldCheck,
+  Sparkles,
   Users,
   X,
+  type LucideIcon,
 } from "lucide-react";
+import { useEffect, useMemo, useState, type ReactElement } from "react";
+import { useRouter } from "next/navigation";
+
+import { useUserRole } from "@/context/UserRoleContext";
+import api from "@/lib/api";
 
 /* ============================================================
    TYPES
@@ -58,89 +65,218 @@ type PlanSaveMessage = {
 } | null;
 
 /* ============================================================
-   TIER STYLES
+   CONSTANTS
 ============================================================ */
 
-const TIER_STYLES: Record<
-  string,
-  {
-    bg: string;
-    text: string;
-    border: string;
-    orbTint: string;
-    icon: ReactElement;
-  }
-> = {
-  free: {
-    bg: "bg-brand-50",
-    text: "text-brand-800",
-    border: "border-brand-800/10",
-    orbTint: "#8cc7a5",
-    icon: <Layers className="h-4 w-4" strokeWidth={1.75} />,
-  },
+const ICON_STROKE = 1.75;
 
-  desa: {
-    bg: "bg-[#e7efc4]",
-    text: "text-[#4a5f0e]",
-    border: "border-[#91b928]/25",
-    orbTint: "#91b928",
-    icon: <Users className="h-4 w-4" strokeWidth={1.75} />,
-  },
+const EASE = [0.22, 1, 0.36, 1] as const;
 
-  kecamatan: {
-    bg: "bg-[#fbe8c2]",
-    text: "text-[#8a5a06]",
-    border: "border-[#d99a2b]/25",
-    orbTint: "#d99a2b",
-    icon: <Crown className="h-4 w-4" strokeWidth={1.75} />,
+const fadeUp: Variants = {
+  hidden: {
+    opacity: 0,
+    y: 16,
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.5,
+      ease: EASE,
+    },
   },
 };
 
-function getTierStyle(tier: string) {
+const staggerItem: Variants = {
+  hidden: {
+    opacity: 0,
+    y: 10,
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.42,
+      ease: EASE,
+    },
+  },
+};
+
+/* ============================================================
+   ICON HELPERS
+============================================================ */
+
+const TIER_ICONS: Record<string, ReactElement> = {
+  free: <Layers className="h-4 w-4" strokeWidth={ICON_STROKE} />,
+  desa: <Users className="h-4 w-4" strokeWidth={ICON_STROKE} />,
+  kecamatan: <Crown className="h-4 w-4" strokeWidth={ICON_STROKE} />,
+};
+
+function getTierIcon(tier: string) {
   return (
-    TIER_STYLES[tier] || {
-      ...TIER_STYLES.free,
-      icon: <Layers className="h-4 w-4" strokeWidth={1.75} />,
-    }
+    TIER_ICONS[tier] ?? <Layers className="h-4 w-4" strokeWidth={ICON_STROKE} />
   );
 }
 
 /* ============================================================
-   DECORATIVE ORB
+   MICRO UI
 ============================================================ */
 
-function AdminOrb({ tint, dark = false }: { tint: string; dark?: boolean }) {
+function AnimatedIcon({
+  icon: Icon,
+  active = false,
+  size = "normal",
+}: {
+  icon: LucideIcon;
+  active?: boolean;
+  size?: "small" | "normal" | "large";
+}) {
+  const sizeMap = {
+    small: "h-3.5 w-3.5",
+    normal: "h-4 w-4",
+    large: "h-5 w-5",
+  };
+
   return (
-    <div
-      aria-hidden
-      className="pointer-events-none absolute -right-8 -top-8 h-28 w-28"
+    <motion.span
+      animate={{
+        rotate: active ? 0 : 0,
+        scale: active ? 1 : 1,
+      }}
+      whileHover={{
+        rotate: -6,
+        scale: 1.08,
+      }}
+      transition={{
+        duration: 0.22,
+        ease: EASE,
+      }}
+      className="inline-flex"
     >
-      <div
-        className={`absolute -inset-5 rounded-full blur-xl ${dark ? "opacity-20" : "opacity-25"
-          }`}
-        style={{
-          background: `${tint}35`,
-        }}
-      />
+      <Icon className={sizeMap[size]} strokeWidth={ICON_STROKE} />
+    </motion.span>
+  );
+}
 
-      <div
-        className="absolute inset-0 rounded-full"
-        style={{
-          background: `radial-gradient(circle at 32% 28%, #ffffffcc 0%, ${tint}40 42%, ${tint}5c 72%, ${tint}73 100%)`,
-          boxShadow: `inset -5px -7px 12px ${tint}33, inset 3px 4px 8px rgba(255,255,255,0.75), 0 8px 18px ${tint}25`,
+function SectionMarker({
+  eyebrow,
+  title,
+  description,
+  icon,
+}: {
+  eyebrow: string;
+  title: string;
+  description?: string;
+  icon: LucideIcon;
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <motion.div
+        whileHover={{
+          y: -2,
+          rotate: -3,
         }}
-      />
+        transition={{
+          duration: 0.22,
+          ease: EASE,
+        }}
+        className="flex h-10 w-10 flex-shrink-0 items-center justify-center border border-[#DCDDD8] bg-white"
+      >
+        <AnimatedIcon icon={icon} />
+      </motion.div>
 
-      <div className="absolute left-[18%] top-[14%] h-4 w-4 rounded-full bg-white/90 blur-[3px]" />
+      <div>
+        <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#858780]">
+          {eyebrow}
+        </p>
+
+        <h2 className="mt-1 text-base font-bold tracking-[-0.02em] text-[#171717]">
+          {title}
+        </h2>
+
+        {description && (
+          <p className="mt-1 max-w-xl text-xs font-medium leading-5 text-[#6B6B66]">
+            {description}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
 
+function WireframeDecoration({
+  variant = "grid",
+  dark = false,
+}: {
+  variant?: "grid" | "cube" | "layers";
+  dark?: boolean;
+}) {
+  const stroke = dark ? "rgba(255,255,255,0.12)" : "rgba(23,23,23,0.10)";
+
+  if (variant === "cube") {
+    return (
+      <svg
+        aria-hidden
+        viewBox="0 0 240 180"
+        className="pointer-events-none absolute right-0 top-0 h-full w-[260px] opacity-70"
+      >
+        <g fill="none" stroke={stroke} strokeWidth="1" strokeLinecap="square">
+          <path d="M100 34L176 58L140 86L64 62Z" />
+          <path d="M64 62L64 122L140 148L140 86Z" />
+          <path d="M140 86L176 58L176 116L140 148Z" />
+
+          <path d="M82 54L158 78L122 106L46 82Z" />
+          <path d="M46 82L46 106L122 132L122 106Z" />
+          <path d="M122 106L158 78L158 102L122 132Z" />
+        </g>
+      </svg>
+    );
+  }
+
+  if (variant === "layers") {
+    return (
+      <svg
+        aria-hidden
+        viewBox="0 0 260 180"
+        className="pointer-events-none absolute right-0 top-0 h-full w-[280px] opacity-65"
+      >
+        <g fill="none" stroke={stroke} strokeWidth="1" strokeLinecap="square">
+          <path d="M45 54L127 30L216 60L130 88Z" />
+          <path d="M45 76L127 52L216 82L130 110Z" />
+          <path d="M45 98L127 74L216 104L130 132Z" />
+          <path d="M45 120L127 96L216 126L130 154Z" />
+
+          <path d="M128 30L128 154" />
+          <path d="M216 60L216 126" />
+        </g>
+      </svg>
+    );
+  }
+
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 320 180"
+      className="pointer-events-none absolute right-0 top-0 h-full w-[340px] opacity-55"
+    >
+      <g fill="none" stroke={stroke} strokeWidth="1" strokeLinecap="square">
+        {Array.from({ length: 8 }).map((_, index) => (
+          <path key={`h-${index}`} d={`M60 ${28 + index * 18}H300`} />
+        ))}
+
+        {Array.from({ length: 10 }).map((_, index) => (
+          <path key={`v-${index}`} d={`M${72 + index * 24} 20V170`} />
+        ))}
+      </g>
+    </svg>
+  );
+}
+
 /* ============================================================
-   ROLE PERMISSION EDITOR
+   ROLE WORKSPACE
 ============================================================ */
 
-function RolePermissionEditor({
+function RoleWorkspace({
   roles,
   permissionGroups,
   roleLoading,
@@ -170,71 +306,106 @@ function RolePermissionEditor({
   const selectedRoleProtected =
     Boolean(selectedRole?.is_protected) || selectedRole?.name === "god";
 
-  const toggleGroup = (permissions: string[]) => {
+  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
+
+  useEffect(() => {
+    setExpandedGroups(permissionGroups.map((group) => group.title));
+  }, [permissionGroups]);
+
+  const activePermissionCount = editedPermissions.filter(
+    (permission) => permission !== "all"
+  ).length;
+
+  const toggleGroup = (group: PermissionGroup) => {
     if (!canManageRoles || selectedRoleProtected) {
       return;
     }
 
-    const selectablePermissions = permissions.filter(
-      (permission) => permission !== "all"
-    );
+    const keys = group.permissions
+      .map((permission) => permission.key)
+      .filter((key) => key !== "all");
 
     const allSelected =
-      selectablePermissions.length > 0 &&
-      selectablePermissions.every((permission) =>
-        editedPermissions.includes(permission)
-      );
-
-    if (allSelected) {
-      setTimeout(() => {
-        selectablePermissions.forEach((permission) =>
-          togglePermission(permission)
-        );
-      }, 0);
-      return;
-    }
+      keys.length > 0 && keys.every((key) => editedPermissions.includes(key));
 
     const next = new Set(
       editedPermissions.filter((permission) => permission !== "all")
     );
 
-    selectablePermissions.forEach((permission) => next.add(permission));
+    if (allSelected) {
+      keys.forEach((key) => next.delete(key));
+    } else {
+      keys.forEach((key) => next.add(key));
+    }
 
-    selectablePermissions.forEach((permission) => {
-      if (!editedPermissions.includes(permission)) {
-        togglePermission(permission);
+    const nextPermissions = [...next];
+
+    if (
+      nextPermissions.length ===
+      permissionGroups.reduce(
+        (total, currentGroup) =>
+          total +
+          currentGroup.permissions.filter(
+            (permission) => permission.key !== "all"
+          ).length,
+        0
+      )
+    ) {
+      nextPermissions.unshift("all");
+    }
+
+    // Direct state update through each permission is intentionally avoided
+    // because togglePermission protects system roles.
+    keys.forEach((key) => {
+      const shouldBeSelected = next.has(key);
+      const isSelected = editedPermissions.includes(key);
+
+      if (shouldBeSelected !== isSelected) {
+        togglePermission(key);
       }
     });
+  };
+
+  const toggleGroupExpanded = (title: string) => {
+    setExpandedGroups((previous) =>
+      previous.includes(title)
+        ? previous.filter((item) => item !== title)
+        : [...previous, title]
+    );
   };
 
   if (roleLoading || !selectedRole) {
     return (
       <motion.section
-        initial={{
-          opacity: 0,
-          y: 12,
-        }}
-        animate={{
-          opacity: 1,
-          y: 0,
-        }}
-        transition={{
-          duration: 0.5,
-          ease: [0.22, 1, 0.36, 1],
-        }}
-        className="glass flex min-h-[300px] items-center justify-center p-8"
+        initial="hidden"
+        animate="visible"
+        variants={fadeUp}
+        className="border border-[#DCDDD8] bg-white"
       >
-        <div className="flex flex-col items-center gap-3 text-center">
-          <span className="icon-ring h-12 w-12">
-            <ShieldCheck className="h-5 w-5 animate-pulse" strokeWidth={1.75} />
-          </span>
+        <div className="flex min-h-[500px] items-center justify-center">
+          <div className="text-center">
+            <motion.div
+              animate={{
+                rotate: [0, 180, 360],
+              }}
+              transition={{
+                duration: 1.8,
+                repeat: Infinity,
+                ease: "linear",
+              }}
+              className="mx-auto flex h-12 w-12 items-center justify-center border border-[#DCDDD8] bg-[#F4F5F2]"
+            >
+              <ShieldCheck
+                className="h-5 w-5 text-[#33332F]"
+                strokeWidth={ICON_STROKE}
+              />
+            </motion.div>
 
-          <div>
-            <p className="text-sm font-bold text-brand-900">
-              Memuat data role...
+            <p className="mt-4 text-sm font-bold text-[#171717]">
+              Memuat workspace...
             </p>
 
-            <p className="mt-1 text-xs font-medium text-brand-800/55">
+            <p className="mt-1 text-xs font-medium text-[#858780]">
               Mengambil konfigurasi akses terbaru.
             </p>
           </div>
@@ -245,241 +416,1083 @@ function RolePermissionEditor({
 
   return (
     <motion.section
-      initial={{
-        opacity: 0,
-        y: 12,
-      }}
-      animate={{
-        opacity: 1,
-        y: 0,
-      }}
-      transition={{
-        duration: 0.5,
-        delay: 0.06,
-        ease: [0.22, 1, 0.36, 1],
-      }}
-      className="glass overflow-hidden"
+      initial="hidden"
+      animate="visible"
+      variants={fadeUp}
+      className="border border-[#DCDDD8] bg-white"
     >
-      {/* Header */}
-      <div className="flex flex-col gap-5 border-b border-brand-800/8 px-6 py-5 sm:px-7 lg:flex-row lg:items-end lg:justify-between">
-        <div className="flex items-start gap-3">
-          <span className="icon-ring h-10 w-10 flex-shrink-0">
-            <ShieldCheck className="h-4.5 w-4.5" strokeWidth={1.75} />
-          </span>
+      {/* Workspace top bar */}
+      <div className="relative overflow-hidden border-b border-[#DCDDD8] bg-[#FBFBF9]">
+        <WireframeDecoration variant="grid" />
 
-          <div>
-            <p className="micro-label">RBAC</p>
-
-            <h2 className="text-base font-bold tracking-[-0.02em] text-brand-900">
-              Edit Role & Permission
-            </h2>
-
-            <p className="mt-1 max-w-xl text-xs font-medium leading-5 text-brand-800/55">
-              Atur fitur dan akses yang dapat digunakan oleh setiap role pada
-              platform.
-            </p>
-          </div>
-        </div>
-
-        <label className="w-full lg:w-[240px]">
-          <span className="mb-1.5 block text-2xs font-bold uppercase tracking-[0.14em] text-brand-800/55">
-            Role
-          </span>
-
-          <select
-            value={selectedRoleId}
-            onChange={(event) => setSelectedRoleId(event.target.value)}
-            className="glass-input w-full cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={!canManageRoles}
-          >
-            {roles.map((role) => (
-              <option key={role.id} value={role.id}>
-                {role.name === "god" ? "God · Protected" : role.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-
-      {/* Protected notice */}
-      {selectedRoleProtected && (
-        <div className="flex items-start gap-3 border-b border-violet-200/50 bg-violet-50/70 px-6 py-4 sm:px-7">
-          <ShieldCheck
-            className="mt-0.5 h-4 w-4 flex-shrink-0 text-violet-700"
-            strokeWidth={1.75}
+        <div className="relative flex flex-col gap-5 px-5 py-5 sm:px-6 lg:flex-row lg:items-end lg:justify-between">
+          <SectionMarker
+            eyebrow=""
+            title="Role & Permission Matrix"
+            description="Pilih role di sebelah kiri, lalu atur capability yang tersedia untuk role tersebut."
+            icon={ShieldCheck}
           />
 
-          <div>
-            <p className="text-xs font-bold text-violet-800">
-              Protected System Role
-            </p>
+          <div className="flex items-center gap-5">
+            <div className="text-right">
+              <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#858780]">
+                Active Permissions
+              </p>
 
-            <p className="mt-1 text-xs font-medium leading-5 text-violet-700/70">
-              Role God memiliki akses penuh dan tidak dapat diedit dari Admin
-              Panel.
-            </p>
+              <motion.p
+                key={activePermissionCount}
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-1 text-xl font-bold tracking-[-0.04em] text-[#171717]"
+              >
+                {activePermissionCount}
+              </motion.p>
+            </div>
+
+            <div className="h-8 w-px bg-[#DCDDD8]" />
+
+            <div className="text-right">
+              <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#858780]">
+                Groups
+              </p>
+
+              <p className="mt-1 text-xl font-bold tracking-[-0.04em] text-[#171717]">
+                {permissionGroups.length}
+              </p>
+            </div>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Permission Groups */}
-      <div className="grid gap-3 p-4 sm:p-5 lg:grid-cols-2">
-        {permissionGroups.map((group, index) => {
-          const groupKeys = group.permissions.map(
-            (permission) => permission.key
-          );
+      {/* Main workspace */}
+      <div className="grid min-h-[620px] lg:grid-cols-[280px_minmax(0,1fr)]">
+        {/* Role rail */}
+        <aside className="border-b border-[#DCDDD8] bg-[#F7F8F5] lg:border-b-0 lg:border-r">
+          <div className="border-b border-[#DCDDD8] px-5 py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="mt-1 text-xs font-medium text-[#6B6B66]">
+                  {roles.length} Role{roles.length === 1 ? "" : "s"} Terdaftar
+                </p>
+              </div>
 
-          const selectableKeys = groupKeys.filter((key) => key !== "all");
+              <motion.div
+                whileHover={{ rotate: 90 }}
+                transition={{ duration: 0.25 }}
+                className="flex h-8 w-8 items-center justify-center border border-[#DCDDD8] bg-white"
+              >
+                <Settings2
+                  className="h-3.5 w-3.5 text-[#6B6B66]"
+                  strokeWidth={ICON_STROKE}
+                />
+              </motion.div>
+            </div>
+          </div>
 
-          const allSelected =
-            editedPermissions.includes("all") ||
-            (selectableKeys.length > 0 &&
-              selectableKeys.every((permission) =>
-                editedPermissions.includes(permission)
-              ));
+          <div className="p-3">
+            <div className="space-y-1">
+              {roles.map((role, index) => {
+                const active = role.id === selectedRole.id;
 
-          return (
-            <motion.div
-              key={group.title}
-              initial={{
-                opacity: 0,
-                y: 10,
-              }}
-              animate={{
-                opacity: 1,
-                y: 0,
-              }}
-              transition={{
-                duration: 0.45,
-                delay: 0.12 + index * 0.04,
-                ease: [0.22, 1, 0.36, 1],
-              }}
-              className="rounded-2xl border border-brand-800/8 bg-white/55 p-4 transition-all duration-200 hover:bg-white/75 hover:shadow-sm"
-            >
-              <div className="mb-4 flex flex-col gap-3 border-b border-brand-800/8 pb-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-sm font-bold text-brand-900">
-                    {group.title}
-                  </p>
+                const protectedRole =
+                  Boolean(role.is_protected) || role.name === "god";
 
-                  {group.description && (
-                    <p className="mt-0.5 text-xs font-medium text-brand-800/50">
-                      {group.description}
-                    </p>
-                  )}
+                return (
+                  <motion.button
+                    key={role.id}
+                    type="button"
+                    onClick={() => setSelectedRoleId(role.id)}
+                    disabled={!canManageRoles}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{
+                      duration: 0.35,
+                      delay: index * 0.04,
+                      ease: EASE,
+                    }}
+                    whileHover={
+                      canManageRoles
+                        ? {
+                            x: 2,
+                          }
+                        : undefined
+                    }
+                    className={`group relative flex w-full items-center justify-between border px-3.5 py-3 text-left transition-colors ${
+                      active
+                        ? "border-[#CFCFC8] bg-white"
+                        : "border-transparent hover:border-[#DCDDD8] hover:bg-white"
+                    } ${
+                      !canManageRoles
+                        ? "cursor-not-allowed opacity-60"
+                        : "cursor-pointer"
+                    }`}
+                  >
+                    {active && (
+                      <motion.span
+                        layoutId="activeRoleIndicator"
+                        className="absolute bottom-0 left-0 top-0 w-[3px] bg-[#76B900]"
+                        transition={{
+                          duration: 0.3,
+                          ease: EASE,
+                        }}
+                      />
+                    )}
+
+                    <div className="flex items-center gap-3">
+                      <motion.span
+                        animate={{
+                          scale: active ? 1 : 0.94,
+                          rotate: active ? 0 : 0,
+                        }}
+                        whileHover={{
+                          rotate: -6,
+                          scale: 1.06,
+                        }}
+                        className={`flex h-9 w-9 items-center justify-center border ${
+                          active
+                            ? "border-[#DCDDD8] bg-[#F4F5F2]"
+                            : "border-[#E1E1DC] bg-white"
+                        }`}
+                      >
+                        {protectedRole ? (
+                          <ShieldCheck
+                            className={`h-4 w-4 ${
+                              active ? "text-[#171717]" : "text-[#858780]"
+                            }`}
+                            strokeWidth={ICON_STROKE}
+                          />
+                        ) : (
+                          <Users
+                            className={`h-4 w-4 ${
+                              active ? "text-[#171717]" : "text-[#858780]"
+                            }`}
+                            strokeWidth={ICON_STROKE}
+                          />
+                        )}
+                      </motion.span>
+
+                      <div>
+                        <p
+                          className={`text-xs font-bold ${
+                            active ? "text-[#171717]" : "text-[#33332F]"
+                          }`}
+                        >
+                          {role.name}
+                        </p>
+
+                        <p className="mt-0.5 text-[10px] font-medium text-[#858780]">
+                          {role.permissions?.length || 0} permissions
+                        </p>
+                      </div>
+                    </div>
+
+                    <ChevronRight
+                      className={`h-3.5 w-3.5 transition-transform ${
+                        active
+                          ? "translate-x-0 text-[#171717]"
+                          : "-translate-x-1 text-[#B1B2AC] group-hover:translate-x-0"
+                      }`}
+                      strokeWidth={1.75}
+                    />
+                  </motion.button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="border-t border-[#DCDDD8] px-5 py-4">
+            <div className="flex items-start gap-2.5">
+              <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center border border-[#DCDDD8] bg-white">
+                <Lock
+                  className="h-3.5 w-3.5 text-[#6B6B66]"
+                  strokeWidth={ICON_STROKE}
+                />
+              </div>
+
+              <div>
+                <p className="text-[10px] font-bold text-[#33332F]">
+                  Protected roles
+                </p>
+
+                <p className="mt-0.5 text-[10px] leading-4 text-[#858780]">
+                  System role tertentu dikunci dan tidak dapat diedit.
+                </p>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        {/* Permission workspace */}
+        <div className="min-w-0">
+          <div className="flex flex-col border-b border-[#DCDDD8] px-5 py-4 sm:px-6 md:flex-row md:items-center md:justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-[#171717]">
+                  {selectedRole.name}
+                </h3>
+
+                {selectedRoleProtected && (
+                  <span className="inline-flex items-center gap-1 border border-[#DCDDD8] bg-[#F4F5F2] px-2 py-1 text-[9px] font-bold uppercase tracking-[0.08em] text-[#6B6B66]">
+                    <ShieldCheck
+                      className="h-3 w-3"
+                      strokeWidth={ICON_STROKE}
+                    />
+                    Protected
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-4 flex items-center gap-2 md:mt-0">
+              <div className="h-1.5 w-1.5 bg-[#76B900]" />
+
+              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#6B6B66]">
+                Configuration Mode
+              </span>
+            </div>
+          </div>
+
+          <div className="p-4 sm:p-5">
+            <div className="grid gap-3 xl:grid-cols-2">
+              {permissionGroups.map((group, index) => {
+                const expanded = expandedGroups.includes(group.title);
+
+                const selectableKeys = group.permissions
+                  .map((permission) => permission.key)
+                  .filter((key) => key !== "all");
+
+                const allSelected =
+                  selectableKeys.length > 0 &&
+                  selectableKeys.every((key) =>
+                    editedPermissions.includes(key)
+                  );
+
+                const selectedCount = selectableKeys.filter((key) =>
+                  editedPermissions.includes(key)
+                ).length;
+
+                return (
+                  <motion.div
+                    key={group.title}
+                    variants={staggerItem}
+                    initial="hidden"
+                    animate="visible"
+                    transition={{
+                      delay: index * 0.045,
+                    }}
+                    className={`border bg-white transition-colors ${
+                      expanded ? "border-[#CFCFC8]" : "border-[#DCDDD8]"
+                    }`}
+                  >
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => toggleGroupExpanded(group.title)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          toggleGroupExpanded(group.title);
+                        }
+                      }}
+                      className="flex w-full cursor-pointer items-center justify-between px-4 py-3.5 text-left"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2.5">
+                          <motion.span
+                            animate={{
+                              rotate: expanded ? 0 : -90,
+                            }}
+                            transition={{
+                              duration: 0.22,
+                              ease: EASE,
+                            }}
+                            className="flex h-6 w-6 items-center justify-center bg-[#F4F5F2]"
+                          >
+                            <ChevronRight
+                              className="h-3.5 w-3.5 text-[#6B6B66]"
+                              strokeWidth={1.75}
+                            />
+                          </motion.span>
+
+                          <div>
+                            <p className="text-sm font-bold text-[#171717]">
+                              {group.title}
+                            </p>
+
+                            {group.description && (
+                              <p className="mt-0.5 text-[10px] font-medium text-[#858780]">
+                                {group.description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#858780]">
+                          {selectedCount}/{selectableKeys.length}
+                        </span>
+
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            toggleGroup(group);
+                          }}
+                          disabled={!canManageRoles || selectedRoleProtected}
+                          className={`hidden border px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.08em] sm:inline-flex ${
+                            allSelected
+                              ? "border-[#CFCFC8] bg-[#F4F5F2] text-[#33332F]"
+                              : "border-[#DCDDD8] bg-white text-[#6B6B66] hover:bg-[#F4F5F2]"
+                          } ${
+                            !canManageRoles || selectedRoleProtected
+                              ? "cursor-not-allowed opacity-40"
+                              : ""
+                          }`}
+                        >
+                          {allSelected ? "Clear" : "All"}
+                        </button>
+                      </div>
+                    </div>
+
+                    <AnimatePresence initial={false}>
+                      {expanded && (
+                        <motion.div
+                          initial={{
+                            height: 0,
+                            opacity: 0,
+                          }}
+                          animate={{
+                            height: "auto",
+                            opacity: 1,
+                          }}
+                          exit={{
+                            height: 0,
+                            opacity: 0,
+                          }}
+                          transition={{
+                            duration: 0.26,
+                            ease: EASE,
+                          }}
+                          className="overflow-hidden"
+                        >
+                          <div className="border-t border-[#DCDDD8] p-3">
+                            <div className="grid gap-2">
+                              {group.permissions.map((permission) => {
+                                const isAll = permission.key === "all";
+
+                                const checked =
+                                  editedPermissions.includes(permission.key) ||
+                                  editedPermissions.includes("all");
+
+                                const disabled =
+                                  !canManageRoles ||
+                                  selectedRoleProtected ||
+                                  isAll;
+
+                                return (
+                                  <motion.label
+                                    key={permission.key}
+                                    whileHover={
+                                      !disabled
+                                        ? {
+                                            x: 2,
+                                          }
+                                        : undefined
+                                    }
+                                    className={`group/permission flex items-center justify-between border px-3 py-3 transition-colors ${
+                                      disabled
+                                        ? "cursor-not-allowed border-[#E9E9E5] bg-[#F7F8F5] opacity-60"
+                                        : checked
+                                        ? "cursor-pointer border-[#CFCFC8] bg-[#F3F5EF]"
+                                        : "cursor-pointer border-[#DCDDD8] bg-white hover:bg-[#FAFAF8]"
+                                    }`}
+                                  >
+                                    <span className="flex items-center gap-3">
+                                      <span
+                                        className={`relative flex h-5 w-5 items-center justify-center border ${
+                                          checked
+                                            ? "border-[#171717] bg-[#171717]"
+                                            : "border-[#C7C8C2] bg-white"
+                                        }`}
+                                      >
+                                        <input
+                                          type="checkbox"
+                                          checked={checked}
+                                          disabled={disabled}
+                                          onChange={() =>
+                                            togglePermission(permission.key)
+                                          }
+                                          className="absolute inset-0 cursor-pointer opacity-0 disabled:cursor-not-allowed"
+                                        />
+
+                                        <AnimatePresence>
+                                          {checked && (
+                                            <motion.div
+                                              initial={{
+                                                opacity: 0,
+                                                scale: 0.5,
+                                              }}
+                                              animate={{
+                                                opacity: 1,
+                                                scale: 1,
+                                              }}
+                                              exit={{
+                                                opacity: 0,
+                                                scale: 0.5,
+                                              }}
+                                            >
+                                              <Check
+                                                className="h-3 w-3 text-white"
+                                                strokeWidth={2.5}
+                                              />
+                                            </motion.div>
+                                          )}
+                                        </AnimatePresence>
+                                      </span>
+
+                                      <span
+                                        className={`text-xs font-semibold ${
+                                          checked
+                                            ? "text-[#171717]"
+                                            : "text-[#6B6B66]"
+                                        }`}
+                                      >
+                                        {permission.label}
+                                      </span>
+                                    </span>
+
+                                    <motion.span
+                                      animate={{
+                                        opacity: checked ? 1 : 0.35,
+                                        scale: checked ? 1 : 0.9,
+                                      }}
+                                    >
+                                      <ChevronRight
+                                        className="h-3.5 w-3.5 text-[#858780]"
+                                        strokeWidth={1.75}
+                                      />
+                                    </motion.span>
+                                  </motion.label>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Action dock */}
+          <div className="sticky bottom-0 z-20 border-t border-[#DCDDD8] bg-white/95 px-5 py-4 backdrop-blur-sm sm:px-6">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-start gap-3">
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center border border-[#DCDDD8] bg-[#F4F5F2]">
+                  <Settings2
+                    className="h-3.5 w-3.5 text-[#6B6B66]"
+                    strokeWidth={ICON_STROKE}
+                  />
                 </div>
 
-                <label
-                  className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-1.5 text-2xs font-bold ${canManageRoles && !selectedRoleProtected
-                      ? "cursor-pointer bg-brand-50 text-brand-800 transition hover:bg-brand-100"
-                      : "cursor-not-allowed bg-brand-50/50 text-brand-800/35"
-                    }`}
+                <div>
+                  <p className="text-xs font-bold text-[#171717]">
+                    {selectedRoleProtected
+                      ? "Protected role"
+                      : `${activePermissionCount} permission aktif`}
+                  </p>
+
+                  <p className="mt-0.5 text-[10px] font-medium text-[#858780]">
+                    {selectedRoleProtected
+                      ? "Konfigurasi role ini dikunci oleh sistem."
+                      : "Perubahan belum tersimpan sampai tombol simpan ditekan."}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <motion.button
+                  type="button"
+                  onClick={cancelEdit}
+                  disabled={!canManageRoles}
+                  whileHover={
+                    canManageRoles
+                      ? {
+                          x: -2,
+                        }
+                      : undefined
+                  }
+                  whileTap={{
+                    scale: 0.98,
+                  }}
+                  className="inline-flex items-center justify-center gap-1.5 border border-[#DCDDD8] bg-white px-4 py-2.5 text-xs font-bold text-[#6B6B66] transition-colors hover:bg-[#F4F5F2] hover:text-[#171717] disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  <input
-                    type="checkbox"
-                    checked={allSelected}
-                    disabled={
-                      !canManageRoles ||
-                      selectedRoleProtected ||
-                      selectableKeys.length === 0
-                    }
-                    onChange={() => toggleGroup(groupKeys)}
-                    className="h-3.5 w-3.5 accent-[#123c28]"
+                  <RotateCcw
+                    className="h-3.5 w-3.5"
+                    strokeWidth={ICON_STROKE}
                   />
-                  Pilih Semua
-                </label>
+                  Reset
+                </motion.button>
+
+                <motion.button
+                  type="button"
+                  onClick={() => saveRole(selectedRole.id)}
+                  disabled={!canManageRoles || selectedRoleProtected}
+                  whileHover={
+                    !selectedRoleProtected && canManageRoles
+                      ? {
+                          y: -2,
+                        }
+                      : undefined
+                  }
+                  whileTap={{
+                    scale: 0.98,
+                  }}
+                  className="inline-flex items-center justify-center gap-1.5 bg-[#171717] px-5 py-2.5 text-xs font-bold text-white transition-colors hover:bg-[#2A2A2A] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <motion.span
+                    whileHover={{
+                      rotate: -8,
+                    }}
+                  >
+                    <Save className="h-3.5 w-3.5" strokeWidth={2} />
+                  </motion.span>
+                  Simpan Perubahan
+                </motion.button>
               </div>
+            </div>
+          </div>
 
-              <div className="grid gap-2 sm:grid-cols-2">
-                {group.permissions.map((permission) => {
-                  const isAll = permission.key === "all";
+          {/* Save feedback */}
+          <AnimatePresence>
+            {saveMessage?.id === selectedRole.id && (
+              <motion.div
+                initial={{
+                  opacity: 0,
+                  height: 0,
+                }}
+                animate={{
+                  opacity: 1,
+                  height: "auto",
+                }}
+                exit={{
+                  opacity: 0,
+                  height: 0,
+                }}
+                className={`overflow-hidden border-t ${
+                  saveMessage.type === "success"
+                    ? "border-[#D7E6B7] bg-[#F4F8EB]"
+                    : "border-red-200 bg-red-50"
+                }`}
+              >
+                <div className="flex items-center gap-2.5 px-5 py-3 text-xs font-bold sm:px-6">
+                  {saveMessage.type === "success" ? (
+                    <Check
+                      className="h-4 w-4 flex-shrink-0 text-[#5D762C]"
+                      strokeWidth={2}
+                    />
+                  ) : (
+                    <AlertTriangle
+                      className="h-4 w-4 flex-shrink-0 text-red-700"
+                      strokeWidth={ICON_STROKE}
+                    />
+                  )}
 
-                  const checked =
-                    editedPermissions.includes(permission.key) ||
-                    editedPermissions.includes("all");
-
-                  const disabled =
-                    !canManageRoles || selectedRoleProtected || isAll;
-
-                  return (
-                    <label
-                      key={permission.key}
-                      className={`flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-xs font-semibold transition-all ${disabled
-                          ? "cursor-not-allowed opacity-55"
-                          : "cursor-pointer"
-                        } ${checked
-                          ? "border-brand-800/10 bg-brand-50/80 text-brand-900"
-                          : "border-brand-800/8 bg-white/50 text-brand-800/65 hover:border-brand-800/15 hover:bg-white"
-                        }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        disabled={disabled}
-                        onChange={() => togglePermission(permission.key)}
-                        className="h-3.5 w-3.5 accent-[#123c28]"
-                      />
-
-                      <span className="leading-5">{permission.label}</span>
-                    </label>
-                  );
-                })}
-              </div>
-            </motion.div>
-          );
-        })}
-      </div>
-
-      {/* Footer */}
-      <div className="flex flex-col gap-4 border-t border-brand-800/8 px-6 py-4 sm:px-7 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-xs font-bold text-brand-900">
-            {editedPermissions.includes("all")
-              ? "Akses penuh aktif"
-              : `${editedPermissions.length} permission aktif`}
-          </p>
-
-          <p className="mt-0.5 text-2xs font-medium text-brand-800/45">
-            {selectedRoleProtected
-              ? "Role ini dilindungi dan tidak dapat diubah."
-              : "Perubahan akan diterapkan pada role yang sedang dipilih."}
-          </p>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={cancelEdit}
-            disabled={!canManageRoles}
-            className="inline-flex items-center gap-1.5 rounded-full border border-brand-800/10 bg-white px-4 py-2.5 text-xs font-bold text-brand-800/70 transition hover:bg-brand-50 hover:text-brand-900 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <X className="h-3.5 w-3.5" strokeWidth={2} />
-            Batal
-          </button>
-
-          <button
-            type="button"
-            onClick={() => saveRole(selectedRole.id)}
-            disabled={!canManageRoles || selectedRoleProtected}
-            className="btn-brand disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <Save className="h-3.5 w-3.5" strokeWidth={2} />
-            Simpan Role
-          </button>
+                  <span
+                    className={
+                      saveMessage.type === "success"
+                        ? "text-[#5D762C]"
+                        : "text-red-700"
+                    }
+                  >
+                    {saveMessage.text}
+                  </span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
-
-      {saveMessage?.id === selectedRole.id && (
-        <div
-          className={`border-t px-6 py-3.5 text-xs font-bold sm:px-7 ${saveMessage.type === "success"
-              ? "border-[#91b928]/15 bg-[#f3f8e2] text-[#4a5f0e]"
-              : "border-red-200 bg-red-50 text-red-600"
-            }`}
-        >
-          {saveMessage.text}
-        </div>
-      )}
     </motion.section>
+  );
+}
+
+/* ============================================================
+   PRICING WORKSPACE
+============================================================ */
+
+function PricingWorkspace({
+  plans,
+  editingPlan,
+  editedPrice,
+  editedFeatures,
+  setEditedPrice,
+  setEditedFeatures,
+  startEditPlan,
+  savePlan,
+  setEditingPlan,
+  planSaveMsg,
+  canManagePricing,
+}: {
+  plans: Plan[];
+  editingPlan: string | null;
+  editedPrice: string;
+  editedFeatures: string;
+  setEditedPrice: (value: string) => void;
+  setEditedFeatures: (value: string) => void;
+  startEditPlan: (plan: Plan) => void;
+  savePlan: (planId: string) => Promise<void>;
+  setEditingPlan: (id: string | null) => void;
+  planSaveMsg: PlanSaveMessage;
+  canManagePricing: boolean;
+}) {
+  const [hoveredPlan, setHoveredPlan] = useState<string | null>(null);
+
+  const sortedPlans = useMemo(() => {
+    const order = ["free", "desa", "kecamatan"];
+
+    return [...plans].sort((a, b) => {
+      return order.indexOf(a.tier) - order.indexOf(b.tier);
+    });
+  }, [plans]);
+
+  return (
+    <div>
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={fadeUp}
+        className="mb-5 border border-[#DCDDD8] bg-white"
+      >
+        <div className="relative overflow-hidden">
+          <WireframeDecoration variant="layers" />
+
+          <div className="relative flex flex-col gap-5 px-5 py-5 sm:px-6 lg:flex-row lg:items-end lg:justify-between">
+            <SectionMarker
+              eyebrow=""
+              title="Pricing Control Center"
+              description="Kelola harga dan feature set yang ditampilkan pada halaman subscription."
+              icon={CreditCard}
+            />
+
+            <div className="flex items-center gap-3">
+              <div className="hidden h-10 w-px bg-[#DCDDD8] sm:block" />
+
+              <div className="hidden max-w-[180px] sm:block">
+                <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#858780]">
+                  Pricing Mode
+                </p>
+
+                <p className="mt-1 text-xs font-semibold text-[#33332F]">
+                  Database driven
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {planSaveMsg && (
+        <motion.div
+          initial={{
+            opacity: 0,
+            y: -8,
+          }}
+          animate={{
+            opacity: 1,
+            y: 0,
+          }}
+          className={`mb-5 flex items-center gap-3 border px-4 py-3 text-xs font-bold ${
+            planSaveMsg.type === "success"
+              ? "border-[#D7E6B7] bg-[#F4F8EB] text-[#5D762C]"
+              : "border-red-200 bg-red-50 text-red-700"
+          }`}
+        >
+          {planSaveMsg.type === "success" ? (
+            <Check className="h-4 w-4 flex-shrink-0" strokeWidth={2} />
+          ) : (
+            <AlertTriangle
+              className="h-4 w-4 flex-shrink-0"
+              strokeWidth={ICON_STROKE}
+            />
+          )}
+
+          {planSaveMsg.text}
+        </motion.div>
+      )}
+
+      {plans.length === 0 ? (
+        <motion.section
+          initial="hidden"
+          animate="visible"
+          variants={fadeUp}
+          className="border border-[#DCDDD8] bg-white px-6 py-20 text-center"
+        >
+          <div className="mx-auto flex h-14 w-14 items-center justify-center border border-[#DCDDD8] bg-[#F4F5F2]">
+            <CreditCard
+              className="h-5 w-5 text-[#33332F]"
+              strokeWidth={ICON_STROKE}
+            />
+          </div>
+
+          <h3 className="mt-4 text-sm font-bold text-[#171717]">
+            Belum ada paket
+          </h3>
+
+          <p className="mx-auto mt-1.5 max-w-sm text-xs font-medium leading-5 text-[#6B6B66]">
+            Data paket subscription belum tersedia dari server.
+          </p>
+        </motion.section>
+      ) : (
+        <>
+          <div className="grid gap-4 lg:grid-cols-3">
+            {sortedPlans.map((plan, index) => {
+              const isEditing = editingPlan === plan.id;
+              const isPopular = plan.tier === "desa";
+              const isHovered = hoveredPlan === plan.id;
+
+              return (
+                <motion.article
+                  key={plan.id}
+                  initial="hidden"
+                  animate="visible"
+                  variants={fadeUp}
+                  transition={{
+                    delay: index * 0.07,
+                  }}
+                  onMouseEnter={() => setHoveredPlan(plan.id)}
+                  onMouseLeave={() => setHoveredPlan(null)}
+                  whileHover={{
+                    y: isEditing ? 0 : -5,
+                  }}
+                  className={`group relative flex min-h-[470px] flex-col overflow-hidden border ${
+                    isPopular
+                      ? "border-[#171717] bg-[#171717] text-white"
+                      : "border-[#DCDDD8] bg-white text-[#171717]"
+                  }`}
+                >
+                  <WireframeDecoration
+                    variant={
+                      index === 0 ? "grid" : index === 1 ? "cube" : "layers"
+                    }
+                    dark={isPopular}
+                  />
+
+                  <div className="relative flex flex-1 flex-col p-6">
+                    {/* Plan top */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <motion.div
+                          animate={{
+                            rotate: isHovered ? -7 : 0,
+                            scale: isHovered ? 1.04 : 1,
+                          }}
+                          transition={{
+                            duration: 0.25,
+                            ease: EASE,
+                          }}
+                          className={`flex h-10 w-10 items-center justify-center border ${
+                            isPopular
+                              ? "border-white/15 bg-white/8"
+                              : "border-[#DCDDD8] bg-[#F4F5F2]"
+                          }`}
+                        >
+                          {getTierIcon(plan.tier)}
+                        </motion.div>
+
+                        <div>
+                          <p
+                            className={`text-[9px] font-bold uppercase tracking-[0.15em] ${
+                              isPopular ? "text-white/45" : "text-[#858780]"
+                            }`}
+                          >
+                            Plan
+                          </p>
+
+                          <h3
+                            className={`mt-1 text-base font-bold capitalize ${
+                              isPopular ? "text-white" : "text-[#171717]"
+                            }`}
+                          >
+                            {plan.tier}
+                          </h3>
+                        </div>
+                      </div>
+
+                      {isPopular && (
+                        <span className="border border-white/15 bg-white/8 px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.1em] text-white/80">
+                          Popular
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Price */}
+                    <div className="relative mt-8">
+                      <p
+                        className={`text-[9px] font-bold uppercase tracking-[0.15em] ${
+                          isPopular ? "text-white/45" : "text-[#858780]"
+                        }`}
+                      >
+                        Harga / Bulan
+                      </p>
+
+                      {isEditing ? (
+                        <div className="mt-3 flex items-center gap-2">
+                          <span
+                            className={`text-sm font-bold ${
+                              isPopular ? "text-white/55" : "text-[#6B6B66]"
+                            }`}
+                          >
+                            Rp
+                          </span>
+
+                          <input
+                            type="number"
+                            min="0"
+                            value={editedPrice}
+                            onChange={(event) =>
+                              setEditedPrice(event.target.value)
+                            }
+                            style={
+                              isPopular ? { colorScheme: "dark" } : undefined
+                            }
+                            className={`min-w-0 flex-1 border px-3 py-3 text-xl font-bold outline-none ${
+                              isPopular
+                                ? "border-white/15 !bg-white/[0.08] !text-white caret-white focus:border-white/30"
+                                : "border-[#DCDDD8] bg-[#F9FAF7] text-[#171717] focus:border-[#9A9B95]"
+                            }`}
+                          />
+                        </div>
+                      ) : (
+                        <motion.p
+                          key={plan.price}
+                          initial={{
+                            opacity: 0,
+                            y: 5,
+                          }}
+                          animate={{
+                            opacity: 1,
+                            y: 0,
+                          }}
+                          className={`mt-2 text-3xl font-bold tracking-[-0.04em] ${
+                            isPopular ? "text-white" : "text-[#171717]"
+                          }`}
+                        >
+                          {plan.price === 0
+                            ? "Gratis"
+                            : `Rp ${plan.price.toLocaleString("id-ID")}`}
+                        </motion.p>
+                      )}
+                    </div>
+
+                    {/* Divider */}
+                    <div
+                      className={`mt-7 border-t ${
+                        isPopular ? "border-white/12" : "border-[#DCDDD8]"
+                      }`}
+                    />
+
+                    {/* Features */}
+                    <div className="relative flex-1 py-6">
+                      <div className="flex items-center justify-between">
+                        <p
+                          className={`text-[9px] font-bold uppercase tracking-[0.15em] ${
+                            isPopular ? "text-white/45" : "text-[#858780]"
+                          }`}
+                        >
+                          Fitur Termasuk
+                        </p>
+
+                        <span
+                          className={`text-[9px] font-bold ${
+                            isPopular ? "text-white/35" : "text-[#A1A29C]"
+                          }`}
+                        >
+                          {plan.features?.length || 0} items
+                        </span>
+                      </div>
+
+                      {isEditing ? (
+                        <textarea
+                          value={editedFeatures}
+                          onChange={(event) =>
+                            setEditedFeatures(event.target.value)
+                          }
+                          rows={9}
+                          placeholder="Satu fitur per baris..."
+                          style={
+                            isPopular ? { colorScheme: "dark" } : undefined
+                          }
+                          className={`mt-4 w-full resize-none border px-3.5 py-3 text-xs font-medium leading-5 outline-none ${
+                            isPopular
+                              ? "border-white/15 !bg-white/[0.08] !text-white !placeholder:text-white/30 caret-white focus:border-white/30"
+                              : "border-[#DCDDD8] bg-[#F9FAF7] text-[#171717] placeholder:text-[#858780] focus:border-[#9A9B95]"
+                          }`}
+                        />
+                      ) : plan.features?.length ? (
+                        <ul className="mt-4 space-y-2.5">
+                          {plan.features.map((feature, featureIndex) => (
+                            <motion.li
+                              key={`${feature}-${featureIndex}`}
+                              initial={{
+                                opacity: 0,
+                                x: -6,
+                              }}
+                              animate={{
+                                opacity: 1,
+                                x: 0,
+                              }}
+                              transition={{
+                                delay: 0.08 + featureIndex * 0.025,
+                                duration: 0.25,
+                                ease: EASE,
+                              }}
+                              className="flex items-start gap-3"
+                            >
+                              <motion.span
+                                whileHover={{
+                                  rotate: -8,
+                                  scale: 1.08,
+                                }}
+                                className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center border ${
+                                  isPopular
+                                    ? "border-white/15 bg-white/6 text-white/80"
+                                    : "border-[#DCDDD8] bg-[#F4F5F2] text-[#33332F]"
+                                }`}
+                              >
+                                <Check className="h-3 w-3" strokeWidth={2} />
+                              </motion.span>
+
+                              <span
+                                className={`text-xs font-medium leading-5 ${
+                                  isPopular ? "text-white/80" : "text-[#33332F]"
+                                }`}
+                              >
+                                {feature}
+                              </span>
+                            </motion.li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div
+                          className={`mt-4 border border-dashed px-4 py-8 text-center ${
+                            isPopular
+                              ? "border-white/15 text-white/40"
+                              : "border-[#DCDDD8] text-[#858780]"
+                          }`}
+                        >
+                          <Sparkles
+                            className="mx-auto h-4 w-4"
+                            strokeWidth={ICON_STROKE}
+                          />
+
+                          <p className="mt-2 text-[10px] font-semibold">
+                            Belum ada fitur.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Footer action */}
+                    {isEditing ? (
+                      <div className="flex gap-2">
+                        <motion.button
+                          type="button"
+                          onClick={() => savePlan(plan.id)}
+                          whileHover={{
+                            y: -2,
+                          }}
+                          whileTap={{
+                            scale: 0.98,
+                          }}
+                          className={`inline-flex flex-1 items-center justify-center gap-1.5 px-4 py-3 text-xs font-bold ${
+                            isPopular
+                              ? "bg-white text-[#171717] hover:bg-[#F0F0EC]"
+                              : "bg-[#171717] text-white hover:bg-[#2A2A2A]"
+                          }`}
+                        >
+                          <Save className="h-3.5 w-3.5" strokeWidth={2} />
+                          Simpan
+                        </motion.button>
+
+                        <motion.button
+                          type="button"
+                          onClick={() => setEditingPlan(null)}
+                          whileHover={{
+                            rotate: 4,
+                          }}
+                          whileTap={{
+                            scale: 0.96,
+                          }}
+                          className={`flex h-11 w-11 items-center justify-center border ${
+                            isPopular
+                              ? "border-white/15 bg-white/5 text-white/70"
+                              : "border-[#DCDDD8] bg-white text-[#6B6B66]"
+                          }`}
+                          aria-label="Batal edit"
+                        >
+                          <X className="h-3.5 w-3.5" strokeWidth={2} />
+                        </motion.button>
+                      </div>
+                    ) : (
+                      <motion.button
+                        type="button"
+                        onClick={() => startEditPlan(plan)}
+                        disabled={!canManagePricing}
+                        whileHover={{
+                          y: -2,
+                        }}
+                        whileTap={{
+                          scale: 0.98,
+                        }}
+                        className={`inline-flex w-full items-center justify-center gap-1.5 px-4 py-3 text-xs font-bold transition-colors ${
+                          isPopular
+                            ? "bg-white text-[#171717] hover:bg-[#F0F0EC]"
+                            : "border border-[#DCDDD8] bg-white text-[#171717] hover:bg-[#F4F5F2]"
+                        } ${
+                          !canManagePricing
+                            ? "cursor-not-allowed opacity-50"
+                            : ""
+                        }`}
+                      >
+                        <motion.span
+                          whileHover={{
+                            rotate: -8,
+                          }}
+                        >
+                          <Edit3 className="h-3.5 w-3.5" strokeWidth={1.9} />
+                        </motion.span>
+                        Edit Harga & Fitur
+                      </motion.button>
+                    )}
+                  </div>
+                </motion.article>
+              );
+            })}
+          </div>
+
+          <motion.div
+            initial={{
+              opacity: 0,
+              y: 12,
+            }}
+            animate={{
+              opacity: 1,
+              y: 0,
+            }}
+            transition={{
+              duration: 0.5,
+              delay: 0.28,
+              ease: EASE,
+            }}
+            className="mt-4 grid gap-4 lg:grid-cols-[1fr_auto]"
+          ></motion.div>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -493,9 +1506,7 @@ export default function AdminPage() {
   const { user, isLoading: authLoading, hasPermission } = useUserRole();
 
   const canManageRoles = hasPermission("manage_roles");
-
   const canManagePricing = hasPermission("manage_pricing");
-
   const canOpenAdminPanel = canManageRoles || canManagePricing;
 
   const [activeTab, setActiveTab] = useState<"roles" | "pricing">("roles");
@@ -505,17 +1516,12 @@ export default function AdminPage() {
   ========================================================== */
 
   const [roles, setRoles] = useState<Role[]>([]);
-
   const [permissionGroups, setPermissionGroups] = useState<PermissionGroup[]>(
     []
   );
-
   const [selectedRoleId, setSelectedRoleId] = useState("");
-
   const [editedPermissions, setEditedPermissions] = useState<string[]>([]);
-
   const [roleLoading, setRoleLoading] = useState(false);
-
   const [roleSaveMsg, setRoleSaveMsg] = useState<SaveMessage>(null);
 
   /* ==========================================================
@@ -523,13 +1529,9 @@ export default function AdminPage() {
   ========================================================== */
 
   const [plans, setPlans] = useState<Plan[]>([]);
-
   const [editingPlan, setEditingPlan] = useState<string | null>(null);
-
   const [editedPrice, setEditedPrice] = useState("0");
-
   const [editedFeatures, setEditedFeatures] = useState("");
-
   const [planSaveMsg, setPlanSaveMsg] = useState<PlanSaveMessage>(null);
 
   /* ==========================================================
@@ -562,6 +1564,7 @@ export default function AdminPage() {
 
     if (!canManageRoles && canManagePricing) {
       setActiveTab("pricing");
+      return;
     }
 
     if (canManageRoles) {
@@ -584,7 +1587,6 @@ export default function AdminPage() {
 
     Promise.all([
       api.get<Role[]>("/admin/roles"),
-
       api.get<PermissionGroup[]>("/admin/permission-catalog"),
     ])
       .then(([roleResponse, permissionResponse]) => {
@@ -595,7 +1597,6 @@ export default function AdminPage() {
         const fetchedRoles = roleResponse.data;
 
         setRoles(fetchedRoles);
-
         setPermissionGroups(permissionResponse.data);
 
         if (fetchedRoles.length === 0) {
@@ -609,7 +1610,6 @@ export default function AdminPage() {
         const firstRole = editableRole || fetchedRoles[0];
 
         setSelectedRoleId(firstRole.id);
-
         setEditedPermissions(firstRole.permissions || []);
       })
       .catch(() => {
@@ -671,7 +1671,6 @@ export default function AdminPage() {
 
   const startEditRole = (role: Role) => {
     setSelectedRoleId(role.id);
-
     setEditedPermissions(role.permissions || []);
   };
 
@@ -734,7 +1733,9 @@ export default function AdminPage() {
         text: "Role berhasil diperbarui.",
       });
 
-      window.setTimeout(() => setRoleSaveMsg(null), 3000);
+      window.setTimeout(() => {
+        setRoleSaveMsg(null);
+      }, 3000);
     } catch (error: any) {
       setRoleSaveMsg({
         id: roleId,
@@ -750,9 +1751,7 @@ export default function AdminPage() {
 
   const startEditPlan = (plan: Plan) => {
     setEditingPlan(plan.id);
-
     setEditedPrice(plan.price.toString());
-
     setEditedFeatures(plan.features?.join("\n") || "");
   };
 
@@ -769,7 +1768,6 @@ export default function AdminPage() {
 
       const { data } = await api.put<Plan>(`/admin/plans/${planId}`, {
         price: Number(editedPrice) || 0,
-
         features,
       });
 
@@ -784,7 +1782,9 @@ export default function AdminPage() {
         text: "Harga paket berhasil diperbarui.",
       });
 
-      window.setTimeout(() => setPlanSaveMsg(null), 3000);
+      window.setTimeout(() => {
+        setPlanSaveMsg(null);
+      }, 3000);
     } catch (error: any) {
       setPlanSaveMsg({
         type: "error",
@@ -801,86 +1801,98 @@ export default function AdminPage() {
     return null;
   }
 
-  /* ==========================================================
-     AVAILABLE TABS
-  ========================================================== */
-
   const showRolesTab = canManageRoles;
-
   const showPricingTab = canManagePricing;
 
   return (
-    <main className="min-h-screen bg-page text-brand-900">
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-[#F4F5F2] text-[#171717]">
+      <div className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8">
         {/* ==================================================
-            HEADER
-        =================================================== */}
+    PAGE HEADER
+=================================================== */}
 
         <motion.header
-          initial={{
-            opacity: 0,
-            y: 12,
-          }}
-          animate={{
-            opacity: 1,
-            y: 0,
-          }}
-          transition={{
-            duration: 0.5,
-            ease: [0.22, 1, 0.36, 1],
-          }}
-          className="mb-8"
+          initial="hidden"
+          animate="visible"
+          variants={fadeUp}
+          className="relative mb-8 overflow-hidden"
         >
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h1 className="mt-4 text-3xl font-bold tracking-[-0.04em] text-brand-900 sm:text-4xl">
-                Admin <span className="text-brand-600">Panel</span>
+              <h1 className="text-3xl font-bold tracking-[-0.05em] text-[#171717] sm:text-4xl">
+                Admin Panel
               </h1>
 
-
+              <p className="mt-2 max-w-2xl text-xs font-medium leading-5 text-[#6B6B66]">
+                Central workspace untuk mengontrol akses, role, permission, dan
+                subscription platform.
+              </p>
             </div>
 
-            <span className="liquid-badge px-4 py-2 text-xs font-bold text-brand-800">
-              <ShieldCheck className="h-3.5 w-3.5" strokeWidth={1.75} />
+            <div className="hidden border-l border-[#DCDDD8] pl-4 sm:block">
+              <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#858780]">
+                Signed in as
+              </p>
 
-              {user.role === "god" ? "God · Protected" : "Administrator"}
-            </span>
+              <p className="mt-1 text-xs font-bold text-[#171717]">
+                {user.role === "god" ? "God Administrator" : "Administrator"}
+              </p>
+            </div>
           </div>
         </motion.header>
-
         {/* ==================================================
-            TABS
+            MODULE NAV
         =================================================== */}
 
         {(showRolesTab || showPricingTab) && (
           <motion.div
             initial={{
               opacity: 0,
-              y: 10,
+              y: 8,
             }}
             animate={{
               opacity: 1,
               y: 0,
             }}
             transition={{
-              duration: 0.45,
-              delay: 0.06,
-              ease: [0.22, 1, 0.36, 1],
+              duration: 0.4,
+              delay: 0.08,
+              ease: EASE,
             }}
-            className="mb-6"
+            className="mb-5 flex items-center justify-between border-b border-[#DCDDD8]"
           >
-            <div className="inline-flex items-center gap-1 rounded-full border border-brand-800/10 bg-white/70 p-1 shadow-sm">
+            <div className="flex items-center gap-6">
               {showRolesTab && (
                 <button
                   type="button"
                   onClick={() => setActiveTab("roles")}
-                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-bold transition-all ${activeTab === "roles"
-                      ? "bg-brand-800 text-white shadow-sm"
-                      : "text-brand-800/60 hover:text-brand-900"
-                    }`}
+                  className="group relative flex items-center gap-2 py-3 text-xs font-bold"
                 >
-                  <ShieldCheck className="h-3.5 w-3.5" strokeWidth={1.75} />
-                  Manajemen Role
+                  <AnimatedIcon
+                    icon={ShieldCheck}
+                    active={activeTab === "roles"}
+                  />
+
+                  <span
+                    className={
+                      activeTab === "roles"
+                        ? "text-[#171717]"
+                        : "text-[#858780]"
+                    }
+                  >
+                    Role Management
+                  </span>
+
+                  {activeTab === "roles" && (
+                    <motion.span
+                      layoutId="activeAdminTab"
+                      className="absolute bottom-[-1px] left-0 right-0 h-[2px] bg-[#171717]"
+                      transition={{
+                        duration: 0.3,
+                        ease: EASE,
+                      }}
+                    />
+                  )}
                 </button>
               )}
 
@@ -888,13 +1900,33 @@ export default function AdminPage() {
                 <button
                   type="button"
                   onClick={() => setActiveTab("pricing")}
-                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-bold transition-all ${activeTab === "pricing"
-                      ? "bg-brand-800 text-white shadow-sm"
-                      : "text-brand-800/60 hover:text-brand-900"
-                    }`}
+                  className="group relative flex items-center gap-2 py-3 text-xs font-bold"
                 >
-                  <CreditCard className="h-3.5 w-3.5" strokeWidth={1.75} />
-                  Harga Subscription
+                  <AnimatedIcon
+                    icon={CreditCard}
+                    active={activeTab === "pricing"}
+                  />
+
+                  <span
+                    className={
+                      activeTab === "pricing"
+                        ? "text-[#171717]"
+                        : "text-[#858780]"
+                    }
+                  >
+                    Subscription Pricing
+                  </span>
+
+                  {activeTab === "pricing" && (
+                    <motion.span
+                      layoutId="activeAdminTab"
+                      className="absolute bottom-[-1px] left-0 right-0 h-[2px] bg-[#171717]"
+                      transition={{
+                        duration: 0.3,
+                        ease: EASE,
+                      }}
+                    />
+                  )}
                 </button>
               )}
             </div>
@@ -902,73 +1934,13 @@ export default function AdminPage() {
         )}
 
         {/* ==================================================
-            ROLE MANAGEMENT
+            CONTENT
         =================================================== */}
 
-        {activeTab === "roles" && showRolesTab && (
-          <RolePermissionEditor
-            roles={roles}
-            permissionGroups={permissionGroups}
-            roleLoading={roleLoading}
-            selectedRoleId={selectedRoleId}
-            setSelectedRoleId={(roleId) => {
-              const role = roles.find((item) => item.id === roleId);
-
-              if (role) {
-                startEditRole(role);
-              }
-            }}
-            editedPermissions={editedPermissions}
-            togglePermission={togglePermission}
-            saveRole={saveRole}
-            cancelEdit={() => {
-              if (selectedRole) {
-                startEditRole(selectedRole);
-              }
-            }}
-            saveMessage={roleSaveMsg}
-            canManageRoles={canManageRoles}
-          />
-        )}
-
-        {/* ==================================================
-            PRICING MANAGEMENT
-        =================================================== */}
-
-        {activeTab === "pricing" && showPricingTab && (
-          <div>
-            {planSaveMsg && (
-              <motion.div
-                initial={{
-                  opacity: 0,
-                  y: 8,
-                }}
-                animate={{
-                  opacity: 1,
-                  y: 0,
-                }}
-                className={`mb-5 flex items-start gap-3 rounded-2xl border px-5 py-4 text-xs font-bold ${planSaveMsg.type === "success"
-                    ? "border-[#91b928]/25 bg-[#f3f8e2] text-[#4a5f0e]"
-                    : "border-red-200 bg-red-50 text-red-700"
-                  }`}
-              >
-                {planSaveMsg.type === "success" ? (
-                  <Check
-                    className="mt-0.5 h-4 w-4 flex-shrink-0"
-                    strokeWidth={2}
-                  />
-                ) : (
-                  <AlertTriangle
-                    className="mt-0.5 h-4 w-4 flex-shrink-0"
-                    strokeWidth={1.75}
-                  />
-                )}
-
-                <span>{planSaveMsg.text}</span>
-              </motion.div>
-            )}
-
+        <AnimatePresence mode="wait">
+          {activeTab === "roles" && showRolesTab && (
             <motion.div
+              key="roles"
               initial={{
                 opacity: 0,
                 y: 10,
@@ -977,295 +1949,77 @@ export default function AdminPage() {
                 opacity: 1,
                 y: 0,
               }}
-              transition={{
-                duration: 0.45,
-                delay: 0.08,
-                ease: [0.22, 1, 0.36, 1],
+              exit={{
+                opacity: 0,
+                y: -8,
               }}
-              className="mb-5 flex items-center gap-2.5"
+              transition={{
+                duration: 0.3,
+                ease: EASE,
+              }}
             >
-              <span className="icon-ring h-9 w-9">
-                <CreditCard className="h-4 w-4" strokeWidth={1.75} />
-              </span>
+              <RoleWorkspace
+                roles={roles}
+                permissionGroups={permissionGroups}
+                roleLoading={roleLoading}
+                selectedRoleId={selectedRoleId}
+                setSelectedRoleId={(roleId) => {
+                  const role = roles.find((item) => item.id === roleId);
 
-              <div>
-                <p className="micro-label">Subscription</p>
-
-                <h2 className="text-base font-bold tracking-[-0.02em] text-brand-900">
-                  Konfigurasi Harga & Fitur
-                </h2>
-              </div>
+                  if (role) {
+                    startEditRole(role);
+                  }
+                }}
+                editedPermissions={editedPermissions}
+                togglePermission={togglePermission}
+                saveRole={saveRole}
+                cancelEdit={() => {
+                  if (selectedRole) {
+                    startEditRole(selectedRole);
+                  }
+                }}
+                saveMessage={roleSaveMsg}
+                canManageRoles={canManageRoles}
+              />
             </motion.div>
+          )}
 
-            {plans.length === 0 ? (
-              <motion.section
-                initial={{
-                  opacity: 0,
-                  y: 12,
-                }}
-                animate={{
-                  opacity: 1,
-                  y: 0,
-                }}
-                className="glass mb-6 px-6 py-16 text-center"
-              >
-                <span className="icon-ring mx-auto h-12 w-12">
-                  <CreditCard className="h-5 w-5" strokeWidth={1.75} />
-                </span>
-
-                <h3 className="mt-4 text-sm font-bold text-brand-900">
-                  Belum ada paket
-                </h3>
-
-                <p className="mx-auto mt-1.5 max-w-sm text-xs font-medium leading-5 text-brand-800/55">
-                  Data paket subscription belum tersedia dari server.
-                </p>
-              </motion.section>
-            ) : (
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                {plans.map((plan, index) => {
-                  const style = getTierStyle(plan.tier);
-
-                  const isEditing = editingPlan === plan.id;
-
-                  const isPopular = plan.tier === "desa";
-
-                  return (
-                    <motion.article
-                      key={plan.id}
-                      initial={{
-                        opacity: 0,
-                        y: 12,
-                      }}
-                      animate={{
-                        opacity: 1,
-                        y: 0,
-                      }}
-                      transition={{
-                        duration: 0.5,
-                        delay: 0.1 + index * 0.07,
-                        ease: [0.22, 1, 0.36, 1],
-                      }}
-                      whileHover={{
-                        y: isEditing ? 0 : -3,
-                      }}
-                      className={`group relative flex min-h-[440px] flex-col overflow-hidden rounded-3xl p-6 transition-shadow duration-300 ${isPopular
-                          ? "bg-brand-800 text-white shadow-card-hover"
-                          : "glass text-brand-900 hover:shadow-card-hover"
-                        }`}
-                    >
-                      <AdminOrb tint={style.orbTint} dark={isPopular} />
-
-                      <div className="relative mb-7 flex items-center justify-between gap-3">
-                        <span
-                          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-2xs font-bold ${isPopular
-                              ? "bg-[#91b928] text-brand-900"
-                              : `${style.bg} ${style.text}`
-                            }`}
-                        >
-                          {style.icon}
-
-                          <span className="capitalize">{plan.tier}</span>
-                        </span>
-
-                        {isPopular && (
-                          <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-2xs font-bold uppercase tracking-[0.14em] text-white">
-                            Populer
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="relative mb-6">
-                        <p
-                          className={`micro-label ${isPopular ? "text-white/50" : ""
-                            }`}
-                        >
-                          Harga / Bulan
-                        </p>
-
-                        {isEditing ? (
-                          <div className="mt-2 flex items-center gap-2">
-                            <span
-                              className={`text-sm font-bold ${isPopular
-                                  ? "text-white/65"
-                                  : "text-brand-800/55"
-                                }`}
-                            >
-                              Rp
-                            </span>
-
-                            <input
-                              type="number"
-                              min="0"
-                              value={editedPrice}
-                              onChange={(event) =>
-                                setEditedPrice(event.target.value)
-                              }
-                              className={`min-w-0 flex-1 rounded-xl border px-3 py-2 text-lg font-bold outline-none ${isPopular
-                                  ? "border-white/15 bg-white/10 text-white placeholder:text-white/30 focus:border-white/30"
-                                  : "border-brand-800/10 bg-white text-brand-900 focus:border-brand-800/25"
-                                }`}
-                            />
-                          </div>
-                        ) : (
-                          <p
-                            className={`mt-1 text-3xl font-bold tracking-[-0.04em] ${isPopular ? "text-white" : "text-brand-900"
-                              }`}
-                          >
-                            {plan.price === 0
-                              ? "Gratis"
-                              : `Rp ${plan.price.toLocaleString("id-ID")}`}
-                          </p>
-                        )}
-                      </div>
-
-                      <div
-                        className={`border-t ${isPopular ? "border-white/12" : "border-brand-800/8"
-                          }`}
-                      />
-
-                      <div className="relative flex-1 py-6">
-                        <p
-                          className={`micro-label ${isPopular ? "text-white/50" : ""
-                            }`}
-                        >
-                          Fitur Termasuk
-                        </p>
-
-                        {isEditing ? (
-                          <textarea
-                            value={editedFeatures}
-                            onChange={(event) =>
-                              setEditedFeatures(event.target.value)
-                            }
-                            rows={7}
-                            placeholder="Satu fitur per baris..."
-                            className={`mt-4 w-full resize-none rounded-2xl border px-3.5 py-3 text-xs font-medium leading-5 outline-none ${isPopular
-                                ? "border-white/15 bg-white/10 text-white placeholder:text-white/35 focus:border-white/30"
-                                : "border-brand-800/10 bg-white text-brand-900 focus:border-brand-800/25"
-                              }`}
-                          />
-                        ) : plan.features?.length ? (
-                          <ul className="mt-4 space-y-3">
-                            {plan.features.map((feature, featureIndex) => (
-                              <li
-                                key={`${feature}-${featureIndex}`}
-                                className="flex items-start gap-3"
-                              >
-                                <span
-                                  className={`mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full ${isPopular
-                                      ? "bg-white/10 text-[#91b928]"
-                                      : "bg-brand-50 text-brand-700"
-                                    }`}
-                                >
-                                  <Check
-                                    className="h-3.5 w-3.5"
-                                    strokeWidth={2}
-                                  />
-                                </span>
-
-                                <span
-                                  className={`text-xs font-medium leading-5 ${isPopular
-                                      ? "text-white/80"
-                                      : "text-brand-900"
-                                    }`}
-                                >
-                                  {feature}
-                                </span>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p
-                            className={`mt-4 rounded-2xl border border-dashed px-4 py-5 text-center text-xs font-medium ${isPopular
-                                ? "border-white/15 text-white/45"
-                                : "border-brand-800/10 text-brand-800/45"
-                              }`}
-                          >
-                            Belum ada fitur.
-                          </p>
-                        )}
-                      </div>
-
-                      {isEditing ? (
-                        <div className="relative flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => savePlan(plan.id)}
-                            className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-xs font-bold transition-all hover:-translate-y-0.5 ${isPopular
-                                ? "bg-white text-brand-900 hover:bg-[#dfeeb1]"
-                                : "bg-brand-800 text-white hover:bg-brand-700"
-                              }`}
-                          >
-                            <Save className="h-3.5 w-3.5" strokeWidth={2} />
-                            Simpan
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => setEditingPlan(null)}
-                            className={`inline-flex h-10 w-10 items-center justify-center rounded-full border transition ${isPopular
-                                ? "border-white/15 bg-white/5 text-white/70 hover:bg-white/10"
-                                : "border-brand-800/10 bg-white text-brand-800/60 hover:bg-brand-50 hover:text-brand-900"
-                              }`}
-                            aria-label="Batal edit"
-                          >
-                            <X className="h-3.5 w-3.5" strokeWidth={2} />
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => startEditPlan(plan)}
-                          className={`relative inline-flex w-full items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-xs font-bold transition-all hover:-translate-y-0.5 ${isPopular
-                              ? "bg-white text-brand-900 hover:bg-[#dfeeb1]"
-                              : "border border-brand-800/10 bg-white text-brand-900 hover:bg-brand-50"
-                            }`}
-                        >
-                          <Edit3 className="h-3.5 w-3.5" strokeWidth={1.9} />
-                          Edit Harga & Fitur
-                        </button>
-                      )}
-                    </motion.article>
-                  );
-                })}
-              </div>
-            )}
-
+          {activeTab === "pricing" && showPricingTab && (
             <motion.div
+              key="pricing"
               initial={{
                 opacity: 0,
-                y: 12,
+                y: 10,
               }}
               animate={{
                 opacity: 1,
                 y: 0,
               }}
-              transition={{
-                duration: 0.5,
-                delay: 0.32,
-                ease: [0.22, 1, 0.36, 1],
+              exit={{
+                opacity: 0,
+                y: -8,
               }}
-              className="mt-5 flex items-start gap-3 rounded-3xl border border-[#d99a2b]/20 bg-[#fdf5e5] p-5"
+              transition={{
+                duration: 0.3,
+                ease: EASE,
+              }}
             >
-              <span className="icon-ring h-9 w-9 flex-shrink-0 text-[#8a5a06]">
-                <AlertTriangle className="h-4 w-4" strokeWidth={1.75} />
-              </span>
-
-              <div>
-                <p className="text-sm font-bold text-[#8a5a06]">
-                  Mode Simulasi Aktif
-                </p>
-
-                <p className="mt-1 text-xs font-medium leading-5 text-[#8a5a06]/75">
-                  Platform ini berjalan tanpa payment gateway. Perubahan harga
-                  di sini akan disimpan ke database dan mempengaruhi tampilan
-                  halaman Langganan.
-                </p>
-              </div>
+              <PricingWorkspace
+                plans={plans}
+                editingPlan={editingPlan}
+                editedPrice={editedPrice}
+                editedFeatures={editedFeatures}
+                setEditedPrice={setEditedPrice}
+                setEditedFeatures={setEditedFeatures}
+                startEditPlan={startEditPlan}
+                savePlan={savePlan}
+                setEditingPlan={setEditingPlan}
+                planSaveMsg={planSaveMsg}
+                canManagePricing={canManagePricing}
+              />
             </motion.div>
-          </div>
-        )}
+          )}
+        </AnimatePresence>
       </div>
     </main>
   );

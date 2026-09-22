@@ -9,6 +9,7 @@ import React, {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
+import { AnimatePresence, motion } from "framer-motion";
 
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -33,12 +34,16 @@ import {
   ZoomOut,
   Maximize2,
   Minimize2,
+  Sprout,
+  ChevronDown,
 } from "lucide-react";
 
 import LayerControlPanel from "@/components/LayerControlPanel";
 import MapLegend from "@/components/MapLegend";
 import type { MapLayerItem } from "@/types/map";
 import { generatePetakGrid, type PetakProperties } from "@/lib/gridGenerator";
+import { cn } from "@/lib/utils";
+import { EASE, ICON_STROKE } from "@/app/dashboard/upload/upload-ui";
 
 /* =========================================================
    PMTILES REGISTRATION
@@ -144,6 +149,10 @@ const UAV_RASTER_LAYER_ID = "uav-raster-layer";
 const UAV_IMAGE_SOURCE_ID = "uav-image";
 const UAV_IMAGE_LAYER_ID = "uav-image-layer";
 
+/* Warna aksen tema (dipakai juga di garis ukur & marker peta) */
+const INK = "#171717";
+const ACCENT = "#76B900";
+
 /* =========================================================
    BASEMAPS
 ========================================================= */
@@ -168,6 +177,198 @@ const BASEMAPS = {
     attribution: "© OpenStreetMap contributors",
   },
 };
+
+/* =========================================================
+   SHARED UI BITS
+   ---------------------------------------------------------
+   Gaya mengikuti halaman Subscription: sudut kotak, border
+   #DCDDD8, eyebrow #999B94, chip #F7F8F5, aksen hijau tipis,
+   dan tombol utama dengan efek sweep.
+========================================================= */
+
+const eyebrowClass =
+  "text-[10px] font-bold uppercase tracking-[0.16em] text-[#999B94]";
+
+const hudCardMotion = {
+  initial: { opacity: 0, y: -8 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -8 },
+  transition: { duration: 0.25, ease: EASE },
+} as const;
+
+const hudCardClass =
+  "border border-[#DCDDD8] bg-white/95 p-5 shadow-[0_20px_45px_rgba(0,0,0,0.10)] backdrop-blur-md";
+
+function ToolbarButton({
+  active,
+  onClick,
+  title,
+  label,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  title: string;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <motion.button
+      type="button"
+      whileTap={{ scale: 0.97 }}
+      onClick={onClick}
+      title={title}
+      aria-label={title}
+      aria-pressed={active}
+      className={cn(
+        "relative flex shrink-0 items-center justify-center gap-1.5 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.08em] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#76B900]/40",
+        active
+          ? "bg-[#171717] text-white"
+          : "text-[#4E504A] hover:bg-[#F7F8F5] hover:text-[#171717]"
+      )}
+    >
+      {children}
+
+      <span className="hidden sm:inline">{label}</span>
+
+      {active && (
+        <span
+          aria-hidden="true"
+          className="absolute inset-x-0 bottom-0 h-[2px] bg-[#76B900]"
+        />
+      )}
+    </motion.button>
+  );
+}
+
+function HudHeader({
+  eyebrow,
+  title,
+  onClose,
+  closeLabel,
+  meta,
+  icon,
+}: {
+  eyebrow: string;
+  title: string;
+  onClose: () => void;
+  closeLabel: string;
+  meta?: React.ReactNode;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-3 border-b border-[#E7E8E3] pb-4">
+      <div className="flex min-w-0 items-center gap-3">
+        {icon}
+
+        <div className="min-w-0">
+          <p className={eyebrowClass}>{eyebrow}</p>
+
+          <h4 className="mt-1 text-sm font-bold tracking-[-0.02em] text-[#171717]">
+            {title}
+          </h4>
+        </div>
+      </div>
+
+      <div className="flex shrink-0 items-center gap-2">
+        {meta}
+
+        <button
+          type="button"
+          onClick={onClose}
+          title={closeLabel}
+          aria-label={closeLabel}
+          className="flex h-8 w-8 items-center justify-center border border-[#E0E1DC] bg-[#FAFAF8] text-[#777972] outline-none transition-colors hover:bg-[#F2F3EF] hover:text-[#171717] focus-visible:ring-2 focus-visible:ring-[#76B900]/40"
+        >
+          <X className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* Tombol utama: warna hijau menyapu dari kiri ke kanan saat hover */
+function SweepButton({
+  children,
+  onClick,
+  title,
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  title?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      className="group/sweep relative inline-flex items-center justify-center gap-1.5 overflow-hidden bg-[#171717] px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.08em] text-white outline-none transition-transform duration-200 focus-visible:ring-2 focus-visible:ring-[#76B900] focus-visible:ring-offset-2 active:scale-[0.985]"
+    >
+      <span
+        aria-hidden="true"
+        className="absolute inset-0 origin-right scale-x-0 transform-gpu bg-[#76B900] transition-transform duration-[650ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform group-hover/sweep:origin-left group-hover/sweep:scale-x-100 motion-reduce:transition-none"
+      />
+
+      <span className="relative z-10 inline-flex items-center justify-center gap-1.5 transition-colors duration-500 ease-out group-hover/sweep:text-[#0F1A00]">
+        {children}
+      </span>
+    </button>
+  );
+}
+
+/* Baris dropdown ringkas (dipakai di kartu Inspeksi Petak) */
+function AccordionRow({
+  title,
+  badge,
+  open,
+  onToggle,
+  children,
+}: {
+  title: string;
+  badge?: string;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="border border-[#E0E1DC] bg-white">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="flex w-full items-center justify-between gap-2 px-2.5 py-2 text-left outline-none transition-colors hover:bg-[#F7F8F5] focus-visible:ring-2 focus-visible:ring-[#76B900]/40"
+      >
+        <span className="text-[11px] font-bold text-[#171717]">{title}</span>
+
+        <span className="flex items-center gap-1.5">
+          {badge && (
+            <span className="border border-[#E0E1DC] bg-[#F7F8F5] px-1.5 py-0.5 text-[9px] font-bold tabular-nums text-[#666861]">
+              {badge}
+            </span>
+          )}
+
+          <ChevronDown
+            className={cn(
+              "h-3.5 w-3.5 text-[#858780] transition-transform duration-200",
+              open && "rotate-180"
+            )}
+            strokeWidth={ICON_STROKE}
+          />
+        </span>
+      </button>
+
+      {open && (
+        <div className="border-t border-[#E7E8E3] px-2.5 py-2">{children}</div>
+      )}
+    </div>
+  );
+}
+
+const hudButtonSecondary =
+  "inline-flex items-center justify-center gap-1.5 border border-[#DCDDD8] bg-white px-3 py-2.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#555750] outline-none transition-colors hover:bg-[#F8F8F6] focus-visible:ring-2 focus-visible:ring-[#76B900]/40";
+
+const compareSelectClass =
+  "h-9 w-full border border-[#DCDDD8] bg-[#FAFAF8] px-2.5 text-xs font-medium text-[#171717] outline-none transition-all hover:border-[#C8CAC4] focus:border-[#BFC4B8] focus:bg-white focus:ring-4 focus:ring-black/[0.03]";
 
 /* =========================================================
    COMPONENT
@@ -297,7 +498,11 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       y: number;
     } | null>(null);
 
-    const [popupHeight, setPopupHeight] = useState<number>(440);
+    const [popupHeight, setPopupHeight] = useState<number>(190);
+
+    const [petakSection, setPetakSection] = useState<
+      "summary" | "layers" | null
+    >(null);
 
     const gridDataRef = useRef<GeoJSON.FeatureCollection<
       GeoJSON.Polygon,
@@ -339,18 +544,24 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
     useEffect(() => {
       const hasBaking = mapLayers.some(
-        (l) => l.conversion_status === "pending" || l.conversion_status === "processing"
+        (l) =>
+          l.conversion_status === "pending" ||
+          l.conversion_status === "processing"
       );
       if (!hasBaking || !mapId) return;
 
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
+      const baseUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
       let cancelled = false;
 
       const poll = async () => {
         try {
           const headers: Record<string, string> = {};
-          if (tokenRef.current) headers.Authorization = `Bearer ${tokenRef.current}`;
-          const res = await fetch(`${baseUrl}/maps/${mapId}/layers`, { headers });
+          if (tokenRef.current)
+            headers.Authorization = `Bearer ${tokenRef.current}`;
+          const res = await fetch(`${baseUrl}/maps/${mapId}/layers`, {
+            headers,
+          });
           if (!res.ok || cancelled) return;
           const fresh: MapLayerItem[] = await res.json();
 
@@ -387,7 +598,11 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                     type: "raster",
                     source: sourceId,
                     layout: { visibility: fl.is_visible ? "visible" : "none" },
-                    paint: { "raster-opacity": fl.default_opacity, "raster-resampling": "linear", "raster-fade-duration": 150 },
+                    paint: {
+                      "raster-opacity": fl.default_opacity,
+                      "raster-resampling": "linear",
+                      "raster-fade-duration": 150,
+                    },
                   });
                 }
               }
@@ -761,7 +976,8 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             if (
               layer.conversion_status === "pending" ||
               layer.conversion_status === "processing"
-            ) return;
+            )
+              return;
 
             const sourceId = `layer-source-${layer.id}`;
 
@@ -941,7 +1157,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
           setCurrentMeta(data);
           currentMetaRef.current = data;
         } else {
-          console.warn(`[MapDisplay] Batas peta tidak ditemukan untuk ID ${activeMapId} (HTTP ${response.status})`);
+          console.warn(
+            `[MapDisplay] Batas peta tidak ditemukan untuk ID ${activeMapId} (HTTP ${response.status})`
+          );
         }
 
         try {
@@ -1103,7 +1321,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               type: "background",
 
               paint: {
-                "background-color": "#eef2ec",
+                "background-color": "#F4F5F2",
               },
             },
           ],
@@ -1145,11 +1363,14 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       const legendIControl: maplibregl.IControl = {
         onAdd: () => {
           const div = document.createElement("div");
-          div.className = "maplibregl-ctrl maplibregl-ctrl-legend mb-2 mr-1.5 sm:mb-3 sm:mr-3";
+          div.className =
+            "maplibregl-ctrl maplibregl-ctrl-legend mb-2 mr-1.5 sm:mb-3 sm:mr-3";
           div.addEventListener("mousedown", (e) => e.stopPropagation());
           div.addEventListener("dblclick", (e) => e.stopPropagation());
           div.addEventListener("wheel", (e) => e.stopPropagation());
-          div.addEventListener("touchstart", (e) => e.stopPropagation(), { passive: true });
+          div.addEventListener("touchstart", (e) => e.stopPropagation(), {
+            passive: true,
+          });
           div.addEventListener("pointerdown", (e) => e.stopPropagation());
           setLegendHost(div);
           return div;
@@ -1519,7 +1740,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
           type: "line",
           source: sourceId,
           paint: {
-            "line-color": "#10b981",
+            "line-color": INK,
             "line-width": 3.5,
             "line-opacity": 1,
           },
@@ -1541,7 +1762,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
           source: markerSourceId,
           paint: {
             "circle-radius": 5,
-            "circle-color": "#10b981",
+            "circle-color": INK,
             "circle-stroke-width": 2.5,
             "circle-stroke-color": "#ffffff",
           },
@@ -1763,7 +1984,6 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             justify-center
             w-5
             h-5
-            rounded-full
             border-2
             border-white
             text-white
@@ -1780,10 +2000,10 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             sm:text-[11px]
             ${
               isFirstInArea
-                ? "bg-[#91b928] ring-4 ring-[#91b928]/60 animate-pulse"
+                ? "bg-[#76B900] ring-4 ring-[#76B900]/60 animate-pulse"
                 : isLastPoint
                 ? "bg-amber-500 ring-2 ring-amber-300"
-                : "bg-[#123c28]"
+                : "bg-[#171717]"
             }
           `;
 
@@ -1940,7 +2160,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
           type: "line",
           source: LINE_SRC,
           paint: {
-            "line-color": "#123c28",
+            "line-color": INK,
             "line-width": 2.5,
             "line-dasharray": [2, 2],
           },
@@ -1970,7 +2190,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
           type: "fill",
           source: POLY_SRC,
           paint: {
-            "fill-color": "#91b928",
+            "fill-color": ACCENT,
             "fill-opacity": 0.35,
           },
         });
@@ -2294,20 +2514,37 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
        RENDER
     ====================================================== */
 
+    const isPlainNavigation =
+      toolMode === "none" && !compareMode && !postgisCardOpen;
+
+    const controlButtonClass =
+      "flex h-8 w-8 items-center justify-center border border-transparent text-[#4E504A] outline-none transition-colors hover:border-[#E0E1DC] hover:bg-[#F7F8F5] hover:text-[#171717] focus-visible:ring-2 focus-visible:ring-[#76B900]/40";
+
     return (
-      <div className="relative h-full w-full overflow-hidden bg-[#eef2ec]">
+      <div className="relative h-full w-full overflow-hidden bg-[#F4F5F2]">
         {/* =================================================
             LOADING
         ================================================== */}
 
-        {loading && (
-          <div className="pointer-events-none absolute bottom-4 left-1/2 z-40 -translate-x-1/2 transition-all duration-300 animate-in fade-in slide-in-from-bottom-2 sm:bottom-6">
-            <div className="flex items-center gap-2 rounded-full border border-emerald-900/10 bg-white/95 px-3 py-1.5 text-[10px] font-semibold text-gray-800 shadow-xl backdrop-blur-md ring-1 ring-black/5 sm:gap-2.5 sm:px-4 sm:py-2 sm:text-xs">
-              <div className="h-3 w-3 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent sm:h-3.5 sm:w-3.5" />
-              <span>Memuat data geospasial...</span>
-            </div>
-          </div>
-        )}
+        <AnimatePresence>
+          {loading && (
+            <motion.div
+              key="map-loading"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={{ duration: 0.25, ease: EASE }}
+              role="status"
+              className="pointer-events-none absolute inset-x-0 bottom-4 z-40 mx-auto w-fit sm:bottom-6"
+            >
+              <div className="flex items-center gap-2.5 border border-[#DCDDD8] bg-white/95 px-4 py-2.5 text-[11px] font-semibold text-[#4E504A] shadow-[0_12px_30px_rgba(0,0,0,0.08)] backdrop-blur-md">
+                <span className="h-1.5 w-1.5 animate-pulse bg-[#76B900] motion-reduce:animate-none" />
+
+                <span>Memuat data geospasial...</span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* =================================================
             LAYER CONTROL PANEL
@@ -2500,13 +2737,21 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                 setMapLayers((prev) =>
                   prev.map((l) =>
                     l.id === layerId
-                      ? { ...l, conversion_status: "pending", conversion_error: null }
+                      ? {
+                          ...l,
+                          conversion_status: "pending",
+                          conversion_error: null,
+                        }
                       : l
                   )
                 );
                 mapLayersRef.current = mapLayersRef.current.map((l) =>
                   l.id === layerId
-                    ? { ...l, conversion_status: "pending", conversion_error: null }
+                    ? {
+                        ...l,
+                        conversion_status: "pending",
+                        conversion_error: null,
+                      }
                     : l
                 );
               }
@@ -2563,7 +2808,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                   fetch(`${baseUrl}/maps/${activeMapId}/layers/${layer.id}`, {
                     method: "PATCH",
                     headers,
-                    body: JSON.stringify({ display_order: layer.display_order }),
+                    body: JSON.stringify({
+                      display_order: layer.display_order,
+                    }),
                   })
                 )
               );
@@ -2606,38 +2853,15 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
         {/* =================================================
             PRECISION FARMING TOOLBAR
-            RESPONSIVE, TETAP SATU BARIS
         ================================================== */}
 
-        <div
-          className="
-            absolute
-            left-1/2
-            top-2
-            z-50
-            flex
-            max-w-[calc(100%-12px)]
-            -translate-x-1/2
-            items-center
-            gap-0.5
-            whitespace-nowrap
-            rounded-full
-            border border-gray-200/80
-            bg-white/95
-            p-0.5
-            shadow-lg
-            backdrop-blur-md
-            sm:top-3
-            sm:max-w-[calc(100%-24px)]
-            sm:gap-1
-            sm:p-1
-            md:p-1.5
-          "
-        >
+        <div className="absolute inset-x-0 top-3 z-50 mx-auto flex w-fit max-w-[calc(100%-24px)] translate-x-10 items-center gap-0.5 overflow-x-auto whitespace-nowrap border border-[#DCDDD8] bg-white/95 p-1 shadow-[0_12px_30px_rgba(0,0,0,0.08)] backdrop-blur-md">
           {/* NAVIGASI */}
 
-          <button
-            type="button"
+          <ToolbarButton
+            active={isPlainNavigation}
+            title="Navigasi Standar"
+            label="Navigasi"
             onClick={() => {
               setToolMode("none");
 
@@ -2647,44 +2871,20 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
               setPostgisCardOpen(false);
             }}
-            title="Navigasi Standar"
-            className={`
-              flex
-              shrink-0
-              items-center
-              justify-center
-              gap-0.5
-              rounded-full
-              px-1.5
-              py-1
-              text-[7px]
-              font-semibold
-              transition
-              sm:gap-1
-              sm:px-2
-              sm:py-1
-              sm:text-[9px]
-              md:gap-1.5
-              md:px-3
-              md:py-1.5
-              md:text-[11px]
-              ${
-                toolMode === "none" && !compareMode && !postgisCardOpen
-                  ? "bg-[#123c28] text-white shadow-sm"
-                  : "text-gray-700 hover:bg-gray-100"
-              }
-            `}
           >
-            <MousePointer className="h-2.5 w-2.5 shrink-0 sm:h-3 sm:w-3 md:h-3.5 md:w-3.5" />
-
-            <span>Navigasi</span>
-          </button>
+            <MousePointer
+              className="h-3.5 w-3.5 shrink-0"
+              strokeWidth={ICON_STROKE}
+            />
+          </ToolbarButton>
 
           {/* POSTGIS */}
 
           {spatialInfo?.has_spatial_geometry && spatialInfo.area_hectares && (
-            <button
-              type="button"
+            <ToolbarButton
+              active={postgisCardOpen}
+              title={`Klik untuk melihat detail verifikasi geodetik PostGIS (${spatialInfo.area_hectares} ha)`}
+              label="PostGIS"
               onClick={() => {
                 const next = !postgisCardOpen;
 
@@ -2698,56 +2898,27 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                   handleClearMeasurement();
                 }
               }}
-              title={`Klik untuk melihat detail verifikasi geodetik PostGIS (${spatialInfo.area_hectares} ha)`}
-              className={`
-                  flex
-                  shrink-0
-                  items-center
-                  justify-center
-                  gap-0.5
-                  whitespace-nowrap
-                  rounded-full
-                  px-1.5
-                  py-1
-                  text-[7px]
-                  font-semibold
-                  transition
-                  cursor-pointer
-                  select-none
-                  sm:gap-1
-                  sm:px-2
-                  sm:py-1
-                  sm:text-[9px]
-                  md:gap-1.5
-                  md:px-3
-                  md:py-1.5
-                  md:text-[11px]
-                  ${
-                    postgisCardOpen
-                      ? "bg-[#123c28] text-white shadow-sm"
-                      : "text-gray-700 hover:bg-gray-100"
-                  }
-                `}
             >
-              <img src="/postgis.png" alt="PostGIS Elephant" className="h-6 w-6 shrink-0 object-contain -my-1" />
-              <span>PostGIS</span>
+              <img
+                src="/postgis.png"
+                alt=""
+                className="-my-1 h-6 w-6 shrink-0 object-contain"
+              />
 
-              <span
-                className={`font-bold ${
-                  postgisCardOpen ? "text-white" : "text-gray-900"
-                }`}
-              >
+              <span className="tabular-nums normal-case tracking-normal">
                 {typeof spatialInfo.area_hectares === "number"
                   ? `${Number(spatialInfo.area_hectares.toFixed(2))} ha`
                   : `${spatialInfo.area_hectares} ha`}
               </span>
-            </button>
+            </ToolbarButton>
           )}
 
           {/* UKUR JARAK */}
 
-          <button
-            type="button"
+          <ToolbarButton
+            active={toolMode === "distance"}
+            title="Ukur Jarak & Keliling"
+            label="Ukur Jarak"
             onClick={() => {
               handleCloseCompare();
 
@@ -2759,43 +2930,16 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
               handleClearMeasurement();
             }}
-            title="Ukur Jarak & Keliling"
-            className={`
-              flex
-              shrink-0
-              items-center
-              justify-center
-              gap-0.5
-              rounded-full
-              px-1.5
-              py-1
-              text-[7px]
-              font-semibold
-              transition
-              sm:gap-1
-              sm:px-2
-              sm:py-1
-              sm:text-[9px]
-              md:gap-1.5
-              md:px-3
-              md:py-1.5
-              md:text-[11px]
-              ${
-                toolMode === "distance"
-                  ? "bg-[#123c28] text-white shadow-sm"
-                  : "text-gray-700 hover:bg-gray-100"
-              }
-            `}
           >
-            <Ruler className="h-2.5 w-2.5 shrink-0 sm:h-3 sm:w-3 md:h-3.5 md:w-3.5" />
-
-            <span>Ukur Jarak</span>
-          </button>
+            <Ruler className="h-3.5 w-3.5 shrink-0" strokeWidth={ICON_STROKE} />
+          </ToolbarButton>
 
           {/* BANDINGKAN */}
 
-          <button
-            type="button"
+          <ToolbarButton
+            active={compareMode}
+            title="Bandingkan Layer Multilayer"
+            label="Bandingkan"
             onClick={() => {
               handleClearMeasurement();
 
@@ -2819,592 +2963,523 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                 }
               }
             }}
-            title="Bandingkan Layer Multilayer"
-            className={`
-              flex
-              shrink-0
-              items-center
-              justify-center
-              gap-0.5
-              rounded-full
-              px-1.5
-              py-1
-              text-[7px]
-              font-semibold
-              transition
-              sm:gap-1
-              sm:px-2
-              sm:py-1
-              sm:text-[9px]
-              md:gap-1.5
-              md:px-3
-              md:py-1.5
-              md:text-[11px]
-              ${
-                compareMode
-                  ? "bg-[#123c28] text-white shadow-sm"
-                  : "text-gray-700 hover:bg-gray-100"
-              }
-            `}
           >
-            <SplitSquareVertical className="h-2.5 w-2.5 shrink-0 sm:h-3 sm:w-3 md:h-3.5 md:w-3.5" />
-
-            <span>Bandingkan</span>
-          </button>
+            <SplitSquareVertical
+              className="h-3.5 w-3.5 shrink-0"
+              strokeWidth={ICON_STROKE}
+            />
+          </ToolbarButton>
 
           {/* DIVIDER */}
 
-          <div className="mx-0.5 h-4 w-px shrink-0 bg-gray-200 sm:mx-1 sm:h-5" />
+          <div className="mx-0.5 h-5 w-px shrink-0 bg-[#E7E8E3]" />
 
           {/* PETAK */}
 
-          <button
-            type="button"
+          <ToolbarButton
+            active={gridEnabled}
+            title="Tampilkan Grid Petak Pertanian (10×10m)"
+            label="Petak"
             onClick={() => {
               setGridEnabled((prev) => !prev);
             }}
-            title="Tampilkan Grid Petak Pertanian (10×10m)"
-            className={`
-              flex
-              shrink-0
-              items-center
-              justify-center
-              gap-0.5
-              rounded-full
-              px-1.5
-              py-1
-              text-[7px]
-              font-semibold
-              transition
-              sm:gap-1
-              sm:px-2
-              sm:py-1
-              sm:text-[9px]
-              md:gap-1.5
-              md:px-3
-              md:py-1.5
-              md:text-[11px]
-              ${
-                gridEnabled
-                  ? "bg-[#123c28] text-white shadow-sm"
-                  : "text-gray-700 hover:bg-gray-100"
-              }
-            `}
           >
-            <Grid className="h-2.5 w-2.5 shrink-0 sm:h-3 sm:w-3 md:h-3.5 md:w-3.5" />
-
-            <span>Petak</span>
-          </button>
+            <Grid className="h-3.5 w-3.5 shrink-0" strokeWidth={ICON_STROKE} />
+          </ToolbarButton>
         </div>
 
         {/* =================================================
             MEASUREMENT STATUS CARD
         ================================================== */}
 
-        {toolMode !== "none" && (
-          <div
-            className="
-              absolute
-              left-1/2
-              top-12
-              z-50
-              w-[calc(100%-20px)]
-              max-w-[380px]
-              -translate-x-1/2
-              rounded-xl
-              border border-emerald-900/10
-              bg-white/95
-              p-2.5
-              shadow-2xl
-              backdrop-blur-xl
-              transition-all
-              duration-200
-              animate-in
-              fade-in
-              slide-in-from-top-2
-              sm:top-16
-              sm:w-[92vw]
-              sm:rounded-2xl
-              sm:p-4
-            "
-          >
-            {/* HEADER */}
-
-            <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-              <h4 className="text-[10px] font-bold text-gray-900 sm:text-xs">
-                {toolMode === "area"
-                  ? "Ukur Area Lahan"
-                  : "Ukur Jarak Lintasan"}
-              </h4>
-
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                {measurePoints.length > 0 && (
-                  <span className="text-[9px] font-medium text-gray-500 sm:text-[11px]">
-                    {measurePoints.length} titik
-                  </span>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => setToolMode("none")}
-                  className="flex h-5 w-5 items-center justify-center rounded-md text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 sm:h-6 sm:w-6"
-                  title="Tutup Pengukuran"
-                >
-                  <X className="h-3 w-3 sm:h-4 sm:w-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* HINT */}
-
-            <div className="my-2 flex items-center gap-1.5 rounded-lg border border-slate-100 bg-slate-50/90 px-2 py-1.5 text-[9px] text-slate-600 sm:my-2.5 sm:gap-2 sm:rounded-xl sm:px-3 sm:py-2 sm:text-[11px]">
-              <MousePointer className="h-3 w-3 shrink-0 text-[#91b928] sm:h-3.5 sm:w-3.5" />
-
-              <span className="font-medium leading-tight">
-                {measurePoints.length === 0
-                  ? "Klik titik batas ke-1 di atas peta lahan"
-                  : measurePoints.length === 1
-                  ? "Klik titik ke-2 untuk mulai menghubungkan garis"
-                  : toolMode === "area" && measurePoints.length < 3
-                  ? "Klik titik ke-3 untuk membentuk bidang poligon"
-                  : toolMode === "area"
-                  ? "Klik titik selanjutnya atau klik titik awal untuk menutup area"
-                  : "Klik titik berikutnya untuk memperpanjang jalur lintasan"}
-              </span>
-            </div>
-
-            {/* METRICS */}
-
-            {measuredMetrics && (
-              <div className="my-2 rounded-lg border border-gray-200 bg-gray-50/80 p-2.5 shadow-xs sm:my-2.5 sm:rounded-xl sm:p-3">
-                {toolMode === "area" ? (
-                  <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                    <div className="border-r border-gray-200 pr-2">
-                      <span className="block text-[8px] font-bold uppercase tracking-wider text-gray-400 sm:text-[9px]">
-                        Total Luas Lahan
-                      </span>
-
-                      <div className="mt-0.5 flex items-baseline gap-1">
-                        <span className="text-lg font-black tracking-tight text-[#123c28] sm:text-xl">
-                          {measuredMetrics.areaHa ?? 0}
-                        </span>
-
-                        <span className="text-[10px] font-bold text-gray-500 sm:text-xs">
-                          ha
-                        </span>
-                      </div>
-
-                      <span className="text-[9px] font-medium text-gray-400 sm:text-[10px]">
-                        {(measuredMetrics.areaM2 ?? 0).toLocaleString("id-ID")}{" "}
-                        m²
-                      </span>
-                    </div>
-
-                    <div className="flex flex-col justify-between pl-1">
-                      <div>
-                        <span className="block text-[8px] font-bold uppercase tracking-wider text-gray-400 sm:text-[9px]">
-                          Keliling Batas
-                        </span>
-
-                        <div className="mt-0.5 flex items-baseline gap-1">
-                          <span className="text-sm font-extrabold text-gray-800 sm:text-base">
-                            {(measuredMetrics.perimeterM ?? 0).toLocaleString(
-                              "id-ID"
-                            )}
-                          </span>
-
-                          <span className="text-[10px] font-bold text-gray-500 sm:text-xs">
-                            meter
-                          </span>
-                        </div>
-                      </div>
-
-                      {measuredMetrics.areaHa ? (
-                        <div className="mt-1 flex items-center gap-1 rounded-md border border-[#123c28]/20 bg-[#123c28]/10 px-1 py-0.5 text-[8px] font-bold text-[#123c28] sm:px-1.5 sm:text-[9px]">
-                          <span>🌱 Est. Urea:</span>
-
-                          <span>
-                            ±{Math.round(measuredMetrics.areaHa * 250)} kg
-                          </span>
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <span className="block text-[8px] font-bold uppercase tracking-wider text-gray-400 sm:text-[9px]">
-                      Total Jarak Lintasan
+        <AnimatePresence>
+          {toolMode !== "none" && (
+            <motion.div
+              key="measure-card"
+              {...hudCardMotion}
+              className={cn(
+                hudCardClass,
+                "absolute inset-x-0 top-16 z-50 mx-auto w-[calc(100%-24px)] max-w-[380px]"
+              )}
+            >
+              <HudHeader
+                eyebrow="Pengukuran"
+                title={
+                  toolMode === "area"
+                    ? "Ukur Area Lahan"
+                    : "Ukur Jarak Lintasan"
+                }
+                onClose={() => setToolMode("none")}
+                closeLabel="Tutup Pengukuran"
+                meta={
+                  measurePoints.length > 0 ? (
+                    <span className="border border-[#E0E1DC] bg-[#F7F8F5] px-2 py-1 text-[10px] font-bold tabular-nums text-[#666861]">
+                      {measurePoints.length} titik
                     </span>
+                  ) : undefined
+                }
+              />
 
-                    <div className="mt-0.5 flex flex-wrap items-baseline gap-1 sm:gap-1.5">
-                      <span className="text-xl font-black tracking-tight text-[#123c28] sm:text-2xl">
-                        {measuredMetrics.distanceKm}
-                      </span>
+              {/* HINT */}
 
-                      <span className="text-[10px] font-bold text-gray-600 sm:text-xs">
-                        km
-                      </span>
+              <div className="my-4 flex items-center gap-2.5 border border-[#E0E1DC] bg-[#F7F8F5] px-3 py-2.5 text-[11px] text-[#666861]">
+                <MousePointer
+                  className="h-3.5 w-3.5 shrink-0 text-[#171717]"
+                  strokeWidth={ICON_STROKE}
+                />
 
-                      <span className="text-[9px] font-medium text-gray-400 sm:text-xs">
-                        (
-                        {(measuredMetrics.distanceM ?? 0).toLocaleString(
-                          "id-ID"
-                        )}{" "}
-                        meter)
-                      </span>
-                    </div>
-                  </div>
-                )}
+                <span className="font-medium leading-4">
+                  {measurePoints.length === 0
+                    ? "Klik titik batas ke-1 di atas peta lahan"
+                    : measurePoints.length === 1
+                    ? "Klik titik ke-2 untuk mulai menghubungkan garis"
+                    : toolMode === "area" && measurePoints.length < 3
+                    ? "Klik titik ke-3 untuk membentuk bidang poligon"
+                    : toolMode === "area"
+                    ? "Klik titik selanjutnya atau klik titik awal untuk menutup area"
+                    : "Klik titik berikutnya untuk memperpanjang jalur lintasan"}
+                </span>
               </div>
-            )}
 
-            {/* ACTIONS */}
+              {/* METRICS */}
 
-            <div className="flex items-center justify-between gap-1.5 pt-0.5 sm:gap-2 sm:pt-1">
-              <div className="flex items-center gap-1">
-                {measurePoints.length > 0 && (
+              {measuredMetrics && (
+                <div className="mb-4 border border-[#E0E1DC] bg-[#F7F8F5] p-4">
+                  {toolMode === "area" ? (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="border-r border-[#E7E8E3] pr-3">
+                        <span className={cn(eyebrowClass, "block")}>
+                          Total Luas Lahan
+                        </span>
+
+                        <div className="mt-1.5 flex items-baseline gap-1">
+                          <span className="text-2xl font-bold tracking-[-0.04em] text-[#171717] tabular-nums">
+                            {measuredMetrics.areaHa ?? 0}
+                          </span>
+
+                          <span className="text-xs font-bold text-[#858780]">
+                            ha
+                          </span>
+                        </div>
+
+                        <span className="text-[11px] font-medium tabular-nums text-[#858780]">
+                          {(measuredMetrics.areaM2 ?? 0).toLocaleString(
+                            "id-ID"
+                          )}{" "}
+                          m²
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col justify-between">
+                        <div>
+                          <span className={cn(eyebrowClass, "block")}>
+                            Keliling Batas
+                          </span>
+
+                          <div className="mt-1.5 flex items-baseline gap-1">
+                            <span className="text-lg font-bold tracking-[-0.03em] tabular-nums text-[#171717]">
+                              {(measuredMetrics.perimeterM ?? 0).toLocaleString(
+                                "id-ID"
+                              )}
+                            </span>
+
+                            <span className="text-xs font-bold text-[#858780]">
+                              meter
+                            </span>
+                          </div>
+                        </div>
+
+                        {measuredMetrics.areaHa ? (
+                          <div className="mt-2 flex items-center gap-1.5 border border-[#E0E1DC] bg-white px-2 py-1.5 text-[10px] font-bold text-[#4E504A]">
+                            <Sprout
+                              className="h-3 w-3 shrink-0 text-[#666861]"
+                              strokeWidth={ICON_STROKE}
+                            />
+
+                            <span>Est. Urea:</span>
+
+                            <span className="tabular-nums text-[#171717]">
+                              ±{Math.round(measuredMetrics.areaHa * 250)} kg
+                            </span>
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <span className={cn(eyebrowClass, "block")}>
+                        Total Jarak Lintasan
+                      </span>
+
+                      <div className="mt-1.5 flex flex-wrap items-baseline gap-1.5">
+                        <span className="text-3xl font-bold tracking-[-0.04em] text-[#171717] tabular-nums">
+                          {measuredMetrics.distanceKm}
+                        </span>
+
+                        <span className="text-xs font-bold text-[#858780]">
+                          km
+                        </span>
+
+                        <span className="text-xs font-medium tabular-nums text-[#858780]">
+                          (
+                          {(measuredMetrics.distanceM ?? 0).toLocaleString(
+                            "id-ID"
+                          )}{" "}
+                          meter)
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ACTIONS */}
+
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1">
+                  {measurePoints.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleUndoPoint}
+                      className={hudButtonSecondary}
+                      title="Undo titik terakhir"
+                    >
+                      <Undo2 className="h-3 w-3" strokeWidth={ICON_STROKE} />
+
+                      <span>Undo</span>
+                    </button>
+                  )}
+
                   <button
                     type="button"
-                    onClick={handleUndoPoint}
-                    className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2 py-1 text-[9px] font-bold text-gray-700 shadow-2xs transition hover:bg-gray-50 active:scale-95 sm:rounded-xl sm:px-2.5 sm:py-1.5 sm:text-xs"
-                    title="Undo titik terakhir"
+                    onClick={handleClearMeasurement}
+                    disabled={measurePoints.length === 0}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 border px-3 py-2.5 text-[10px] font-bold uppercase tracking-[0.08em] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#76B900]/40",
+                      measurePoints.length === 0
+                        ? "cursor-not-allowed border-transparent text-[#B0B1AB]"
+                        : "border-transparent text-[#9B3E32] hover:border-[#E7D0CC] hover:bg-[#FFF7F5]"
+                    )}
+                    title="Reset semua titik pengukuran"
                   >
-                    <Undo2 className="h-3 w-3 text-gray-500 sm:h-3.5 sm:w-3.5" />
+                    <Trash2 className="h-3 w-3" strokeWidth={ICON_STROKE} />
 
-                    <span>Undo</span>
+                    <span>Reset</span>
                   </button>
-                )}
+                </div>
 
-                <button
-                  type="button"
-                  onClick={handleClearMeasurement}
-                  disabled={measurePoints.length === 0}
-                  className={`flex items-center gap-1 rounded-lg px-2 py-1 text-[9px] font-bold transition active:scale-95 sm:rounded-xl sm:px-2.5 sm:py-1.5 sm:text-xs ${
-                    measurePoints.length === 0
-                      ? "cursor-not-allowed text-gray-300"
-                      : "border border-transparent text-red-600 hover:border-red-200 hover:bg-red-50"
-                  }`}
-                  title="Reset semua titik pengukuran"
-                >
-                  <Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                <SweepButton onClick={() => setToolMode("none")}>
+                  <Check className="h-3 w-3" strokeWidth={2.5} />
 
-                  <span>Reset</span>
-                </button>
+                  <span>Selesai</span>
+                </SweepButton>
               </div>
-
-              <button
-                type="button"
-                onClick={() => setToolMode("none")}
-                className="flex items-center gap-1 rounded-lg bg-[#123c28] px-2.5 py-1 text-[9px] font-bold text-white shadow-sm transition hover:bg-[#1b4d35] active:scale-95 sm:gap-1.5 sm:rounded-xl sm:px-3.5 sm:py-1.5 sm:text-xs"
-              >
-                <Check className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-
-                <span>Selesai</span>
-              </button>
-            </div>
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* =================================================
             MULTILAYER COMPARISON BAR
         ================================================== */}
 
-        {compareMode && (
-          <div className="absolute left-1/2 top-14 z-50 w-[calc(100%-20px)] max-w-[420px] -translate-x-1/2 rounded-xl border border-emerald-900/10 bg-white/95 p-3 shadow-2xl backdrop-blur-xl transition-all duration-200 animate-in fade-in slide-in-from-top-2 sm:top-16 sm:w-[92vw] sm:rounded-2xl sm:p-4">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-              <h4 className="text-[10px] font-bold text-gray-900 sm:text-xs">
-                Bandingkan Layer Multilayer
-              </h4>
-
-              <button
-                type="button"
-                onClick={handleCloseCompare}
-                className="flex h-5 w-5 items-center justify-center rounded-md text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 sm:h-6 sm:w-6"
-                title="Tutup Perbandingan"
-              >
-                <X className="h-3 w-3 sm:h-4 sm:w-4" />
-              </button>
-            </div>
-
-            <div className="my-2.5 flex items-center gap-1.5 sm:my-3 sm:gap-2">
-              <div className="flex-1">
-                <span className="mb-1 block text-[8px] font-bold uppercase tracking-wider text-gray-400 sm:text-[9px]">
-                  Layer A (Primer)
-                </span>
-
-                <select
-                  value={compareLayerA}
-                  onChange={(e) => setCompareLayerA(e.target.value)}
-                  className="w-full rounded-lg border border-gray-200 bg-gray-50/80 px-2 py-1.5 text-[10px] font-bold text-gray-800 outline-none transition focus:border-[#123c28] focus:bg-white sm:rounded-xl sm:px-2.5 sm:text-xs"
-                >
-                  {mapLayers.map((l) => (
-                    <option key={`a-${l.id}`} value={l.id}>
-                      {l.name}
-                    </option>
-                  ))}
-
-                  <option value="__basemap__">Basemap (Satelit / Jalan)</option>
-                </select>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  const prevA = compareLayerA;
-
-                  const prevB = compareLayerB;
-
-                  setCompareLayerA(prevB);
-
-                  setCompareLayerB(prevA);
-                }}
-                title="Tukar Posisi Layer A & B"
-                className="mt-4 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-[#123c28]/30 hover:bg-[#123c28]/10 hover:text-[#123c28] active:scale-95 shadow-2xs sm:h-8 sm:w-8 sm:rounded-xl"
-              >
-                <ArrowLeftRight className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-              </button>
-
-              <div className="flex-1">
-                <span className="mb-1 block text-[8px] font-bold uppercase tracking-wider text-gray-400 sm:text-[9px]">
-                  Layer B (Pembanding)
-                </span>
-
-                <select
-                  value={compareLayerB}
-                  onChange={(e) => setCompareLayerB(e.target.value)}
-                  className="w-full rounded-lg border border-gray-200 bg-gray-50/80 px-2 py-1.5 text-[10px] font-bold text-gray-800 outline-none transition focus:border-[#123c28] focus:bg-white sm:rounded-xl sm:px-2.5 sm:text-xs"
-                >
-                  {mapLayers.map((l) => (
-                    <option key={`b-${l.id}`} value={l.id}>
-                      {l.name}
-                    </option>
-                  ))}
-
-                  <option value="__basemap__">Basemap (Satelit / Jalan)</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="rounded-lg border border-slate-100 bg-slate-50/70 p-2.5 sm:rounded-xl sm:p-3">
-              <div className="mb-1.5 flex items-center justify-between text-[8px] font-bold sm:text-[10px]">
-                <span className="rounded-md border border-gray-200/60 bg-white px-1.5 py-0.5 text-[#123c28] shadow-2xs sm:px-2">
-                  Layer A: {100 - compareRatio}%
-                </span>
-
-                <span className="rounded-md border border-gray-200/60 bg-white px-1.5 py-0.5 text-emerald-700 shadow-2xs sm:px-2">
-                  Layer B: {compareRatio}%
-                </span>
-              </div>
-
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={compareRatio}
-                onChange={(e) => setCompareRatio(parseInt(e.target.value))}
-                className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 accent-[#123c28] sm:h-2"
+        <AnimatePresence>
+          {compareMode && (
+            <motion.div
+              key="compare-card"
+              {...hudCardMotion}
+              className={cn(
+                hudCardClass,
+                "absolute inset-x-0 top-16 z-50 mx-auto w-[calc(100%-24px)] max-w-[420px]"
+              )}
+            >
+              <HudHeader
+                eyebrow="Compare"
+                title="Bandingkan Layer Multilayer"
+                onClose={handleCloseCompare}
+                closeLabel="Tutup Perbandingan"
               />
 
-              <div className="mt-2 flex items-center gap-1 sm:mt-2.5 sm:gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setCompareRatio(0)}
-                  className={`flex-1 rounded-md border py-1 text-[8px] font-bold transition active:scale-95 sm:rounded-lg sm:py-1.5 sm:text-[10px] ${
-                    compareRatio === 0
-                      ? "border-[#123c28] bg-[#123c28] text-white shadow-2xs"
-                      : "border-gray-200 bg-white text-gray-600 hover:bg-gray-100"
-                  }`}
-                >
-                  100% A
-                </button>
+              <div className="my-4 flex items-center gap-2">
+                <div className="min-w-0 flex-1">
+                  <span className={cn(eyebrowClass, "mb-1.5 block")}>
+                    Layer A (Primer)
+                  </span>
+
+                  <select
+                    value={compareLayerA}
+                    onChange={(e) => setCompareLayerA(e.target.value)}
+                    className={compareSelectClass}
+                  >
+                    {mapLayers.map((l) => (
+                      <option key={`a-${l.id}`} value={l.id}>
+                        {l.name}
+                      </option>
+                    ))}
+
+                    <option value="__basemap__">
+                      Basemap (Satelit / Jalan)
+                    </option>
+                  </select>
+                </div>
 
                 <button
                   type="button"
-                  onClick={() => setCompareRatio(50)}
-                  className={`flex-1 rounded-md border py-1 text-[8px] font-bold transition active:scale-95 sm:rounded-lg sm:py-1.5 sm:text-[10px] ${
-                    compareRatio === 50
-                      ? "border-[#123c28] bg-[#123c28] text-white shadow-2xs"
-                      : "border-gray-200 bg-white text-gray-600 hover:bg-gray-100"
-                  }`}
+                  onClick={() => {
+                    const prevA = compareLayerA;
+
+                    const prevB = compareLayerB;
+
+                    setCompareLayerA(prevB);
+
+                    setCompareLayerB(prevA);
+                  }}
+                  title="Tukar Posisi Layer A & B"
+                  aria-label="Tukar Posisi Layer A & B"
+                  className="mt-5 flex h-9 w-9 shrink-0 items-center justify-center border border-[#E0E1DC] bg-[#FAFAF8] text-[#4E504A] outline-none transition-colors hover:border-[#171717] hover:bg-[#171717] hover:text-white focus-visible:ring-2 focus-visible:ring-[#76B900]/40"
                 >
-                  50 / 50 Blend
+                  <ArrowLeftRight
+                    className="h-3.5 w-3.5"
+                    strokeWidth={ICON_STROKE}
+                  />
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => setCompareRatio(100)}
-                  className={`flex-1 rounded-md border py-1 text-[8px] font-bold transition active:scale-95 sm:rounded-lg sm:py-1.5 sm:text-[10px] ${
-                    compareRatio === 100
-                      ? "border-[#123c28] bg-[#123c28] text-white shadow-2xs"
-                      : "border-gray-200 bg-white text-gray-600 hover:bg-gray-100"
-                  }`}
-                >
-                  100% B
-                </button>
+                <div className="min-w-0 flex-1">
+                  <span className={cn(eyebrowClass, "mb-1.5 block")}>
+                    Layer B (Pembanding)
+                  </span>
+
+                  <select
+                    value={compareLayerB}
+                    onChange={(e) => setCompareLayerB(e.target.value)}
+                    className={compareSelectClass}
+                  >
+                    {mapLayers.map((l) => (
+                      <option key={`b-${l.id}`} value={l.id}>
+                        {l.name}
+                      </option>
+                    ))}
+
+                    <option value="__basemap__">
+                      Basemap (Satelit / Jalan)
+                    </option>
+                  </select>
+                </div>
               </div>
-            </div>
-          </div>
-        )}
+
+              <div className="border border-[#E0E1DC] bg-[#F7F8F5] p-4">
+                <div className="mb-3 flex items-center justify-between text-[10px] font-bold tabular-nums">
+                  <span className="border border-[#E0E1DC] bg-white px-2 py-1 text-[#171717]">
+                    Layer A: {100 - compareRatio}%
+                  </span>
+
+                  <span className="border border-[#E0E1DC] bg-white px-2 py-1 text-[#171717]">
+                    Layer B: {compareRatio}%
+                  </span>
+                </div>
+
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={compareRatio}
+                  aria-label="Rasio perbandingan Layer A dan B"
+                  onChange={(e) => setCompareRatio(parseInt(e.target.value))}
+                  className="h-1.5 w-full cursor-pointer appearance-none bg-[#DCDDD8] accent-[#171717]"
+                />
+
+                <div className="mt-3 flex items-center gap-1">
+                  {[
+                    { value: 0, label: "100% A" },
+                    { value: 50, label: "50 / 50 Blend" },
+                    { value: 100, label: "100% B" },
+                  ].map((preset) => (
+                    <button
+                      key={preset.value}
+                      type="button"
+                      onClick={() => setCompareRatio(preset.value)}
+                      aria-pressed={compareRatio === preset.value}
+                      className={cn(
+                        "flex-1 border py-2 text-[10px] font-bold uppercase tracking-[0.06em] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#76B900]/40",
+                        compareRatio === preset.value
+                          ? "border-[#171717] bg-[#171717] text-white"
+                          : "border-[#DCDDD8] bg-white text-[#858780] hover:bg-[#F8F8F6] hover:text-[#171717]"
+                      )}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* =================================================
             POSTGIS GEODETIC DETAIL HUD CARD
         ================================================== */}
 
-        {postgisCardOpen && spatialInfo && (
-          <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 w-[92vw] max-w-[400px] rounded-2xl border border-emerald-900/10 bg-white/95 p-4 shadow-2xl backdrop-blur-xl transition-all duration-200 animate-in fade-in slide-in-from-top-2">
-            {/* Header */}
-            <div className="flex items-center justify-between pb-2.5 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <img src="/postgis.png" alt="PostGIS Elephant" className="h-6 w-6 shrink-0 object-contain" />
-                <h4 className="text-xs font-bold text-gray-900">
-                  Detail Verifikasi Geodetik PostGIS
-                </h4>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setPostgisCardOpen(false)}
-                className="flex h-5 w-5 items-center justify-center rounded-md text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 sm:h-6 sm:w-6"
-                title="Tutup Detail"
-              >
-                <X className="h-3 w-3 sm:h-4 sm:w-4" />
-              </button>
-            </div>
-
-            {/* Spatial Reference / Info Banner */}
-            <div className="my-2.5 flex items-start sm:items-center gap-2.5 rounded-xl border border-[#123c28]/20 bg-[#123c28]/5 p-2.5 shadow-xs">
-              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-[#123c28] text-white shadow-2xs">
-                <Info className="h-3.5 w-3.5 stroke-[2.3]" />
-              </div>
-              <span className="text-[10.5px] font-medium text-gray-800 leading-snug">
-                Luas lahan terverifikasi dihitung pada ellipsoid{" "}
-                <strong className="font-bold text-[#123c28]">WGS-84 (EPSG:4326)</strong>{" "}
-                menggunakan fungsi geodetik PostGIS backend.
-              </span>
-            </div>
-
-            {/* METRICS */}
-
-            <div className="my-2 rounded-lg border border-gray-200 bg-gray-50/80 p-2.5 shadow-xs sm:my-2.5 sm:rounded-xl sm:p-3">
-              <div className="grid grid-cols-2 gap-2 border-b border-gray-200 pb-2 sm:gap-3 sm:pb-2.5">
-                <div>
-                  <span className="text-[8px] font-medium uppercase tracking-wider text-gray-500 sm:text-[10px]">
-                    Luas Lahan (ha)
+        <AnimatePresence>
+          {postgisCardOpen && spatialInfo && (
+            <motion.div
+              key="postgis-card"
+              {...hudCardMotion}
+              className={cn(
+                hudCardClass,
+                "absolute inset-x-0 top-16 z-50 mx-auto w-[calc(100%-24px)] max-w-[400px]"
+              )}
+            >
+              <HudHeader
+                eyebrow="Geodetic"
+                title="Detail Verifikasi Geodetik PostGIS"
+                onClose={() => setPostgisCardOpen(false)}
+                closeLabel="Tutup Detail"
+                icon={
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center border border-[#E0E1DC] bg-[#F7F8F5]">
+                    <img
+                      src="/postgis.png"
+                      alt=""
+                      className="h-6 w-6 object-contain"
+                    />
                   </span>
+                }
+              />
 
-                  <p className="text-sm font-extrabold text-[#123c28] sm:text-base">
-                    {spatialInfo.area_hectares ?? "-"}{" "}
-                    <span className="text-[9px] font-semibold sm:text-xs">
-                      ha
+              {/* Info banner */}
+              <div className="my-4 flex items-start gap-3 border border-[#E0E1DC] bg-[#F7F8F5] p-3">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center border border-[#E0E1DC] bg-white text-[#666861]">
+                  <Info className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} />
+                </span>
+
+                <span className="text-[11px] font-medium leading-5 text-[#4E504A]">
+                  Luas lahan terverifikasi dihitung pada ellipsoid{" "}
+                  <strong className="font-bold text-[#171717]">
+                    WGS-84 (EPSG:4326)
+                  </strong>{" "}
+                  menggunakan fungsi geodetik PostGIS backend.
+                </span>
+              </div>
+
+              {/* METRICS */}
+
+              <div className="mb-4 border border-[#E0E1DC] bg-[#F7F8F5] p-4">
+                <div className="grid grid-cols-2 gap-4 border-b border-[#E7E8E3] pb-3">
+                  <div>
+                    <span className={cn(eyebrowClass, "block")}>
+                      Luas Lahan (ha)
                     </span>
-                  </p>
+
+                    <p className="mt-1.5 text-lg font-bold tracking-[-0.03em] tabular-nums text-[#171717]">
+                      {spatialInfo.area_hectares ?? "-"}{" "}
+                      <span className="text-xs font-bold text-[#858780]">
+                        ha
+                      </span>
+                    </p>
+                  </div>
+
+                  <div>
+                    <span className={cn(eyebrowClass, "block")}>
+                      Luas Lahan (m²)
+                    </span>
+
+                    <p className="mt-1.5 text-lg font-bold tracking-[-0.03em] tabular-nums text-[#171717]">
+                      {spatialInfo.area_m2
+                        ? spatialInfo.area_m2.toLocaleString("id-ID")
+                        : "-"}{" "}
+                      <span className="text-xs font-bold text-[#858780]">
+                        m²
+                      </span>
+                    </p>
+                  </div>
                 </div>
 
-                <div>
-                  <span className="text-[8px] font-medium uppercase tracking-wider text-gray-500 sm:text-[10px]">
-                    Luas Lahan (m²)
-                  </span>
-
-                  <p className="text-sm font-extrabold text-slate-900 sm:text-base">
-                    {spatialInfo.area_m2
-                      ? spatialInfo.area_m2.toLocaleString("id-ID")
-                      : "-"}{" "}
-                    <span className="text-[9px] font-semibold text-slate-500 sm:text-xs">
-                      m²
+                <div className="grid grid-cols-2 gap-4 pt-3">
+                  <div>
+                    <span className={cn(eyebrowClass, "block")}>
+                      Keliling Batas Lahan
                     </span>
-                  </p>
+
+                    <p className="mt-1.5 text-sm font-bold tabular-nums text-[#171717]">
+                      {spatialInfo.perimeter_meters
+                        ? spatialInfo.perimeter_meters >= 1000
+                          ? `${(spatialInfo.perimeter_meters / 1000).toFixed(
+                              2
+                            )} km`
+                          : `${spatialInfo.perimeter_meters.toFixed(1)} m`
+                        : "-"}
+                    </p>
+
+                    {spatialInfo.perimeter_meters && (
+                      <span className="text-[11px] font-medium tabular-nums text-[#858780]">
+                        ({spatialInfo.perimeter_meters.toLocaleString("id-ID")}{" "}
+                        meter)
+                      </span>
+                    )}
+                  </div>
+
+                  <div>
+                    <span className={cn(eyebrowClass, "block")}>
+                      Titik Pusat (Centroid)
+                    </span>
+
+                    <p className="mt-1.5 text-xs font-bold leading-4 tabular-nums text-[#171717]">
+                      {spatialInfo.centroid
+                        ? `${spatialInfo.centroid[1].toFixed(
+                            5
+                          )}°, ${spatialInfo.centroid[0].toFixed(5)}°`
+                        : "-"}
+                    </p>
+
+                    <span className="text-[11px] font-medium text-[#858780]">
+                      Latitude, Longitude
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 pt-2 sm:gap-3 sm:pt-2.5">
-                <div>
-                  <span className="text-[8px] font-medium uppercase tracking-wider text-gray-500 sm:text-[10px]">
-                    Keliling Batas Lahan
-                  </span>
+              {/* ACTIONS */}
 
-                  <p className="text-xs font-bold text-slate-800 sm:text-sm">
-                    {spatialInfo.perimeter_meters
-                      ? spatialInfo.perimeter_meters >= 1000
-                        ? `${(spatialInfo.perimeter_meters / 1000).toFixed(
-                            2
-                          )} km`
-                        : `${spatialInfo.perimeter_meters.toFixed(1)} m`
-                      : "-"}
-                  </p>
+              <div className="flex items-center justify-between gap-2">
+                <SweepButton
+                  onClick={() => {
+                    const map = mapRef.current;
 
-                  {spatialInfo.perimeter_meters && (
-                    <span className="text-[8px] text-slate-400 sm:text-[10px]">
-                      ({spatialInfo.perimeter_meters.toLocaleString("id-ID")}{" "}
-                      meter)
-                    </span>
-                  )}
-                </div>
+                    if (!map) {
+                      return;
+                    }
 
-                <div>
-                  <span className="text-[8px] font-medium uppercase tracking-wider text-gray-500 sm:text-[10px]">
-                    Titik Pusat (Centroid)
-                  </span>
+                    if (currentMetaRef.current?.bounds) {
+                      const [[south, west], [north, east]] =
+                        currentMetaRef.current.bounds;
 
-                  <p className="text-[10px] font-bold leading-tight text-slate-800 sm:text-xs">
-                    {spatialInfo.centroid
-                      ? `${spatialInfo.centroid[1].toFixed(
-                          5
-                        )}°, ${spatialInfo.centroid[0].toFixed(5)}°`
-                      : "-"}
-                  </p>
+                      map.fitBounds(
+                        [
+                          [west, south],
+                          [east, north],
+                        ],
+                        {
+                          padding: 40,
+                          duration: 800,
+                        }
+                      );
+                    }
+                  }}
+                >
+                  <MousePointer className="h-3 w-3" strokeWidth={ICON_STROKE} />
 
-                  <span className="text-[8px] text-slate-400 sm:text-[10px]">
-                    Latitude, Longitude
-                  </span>
-                </div>
+                  <span>Fokus ke Lahan</span>
+                </SweepButton>
+
+                <button
+                  type="button"
+                  onClick={() => setPostgisCardOpen(false)}
+                  className={hudButtonSecondary}
+                >
+                  Tutup
+                </button>
               </div>
-            </div>
-
-            {/* ACTIONS */}
-
-            <div className="flex items-center justify-between gap-1.5 pt-0.5 sm:gap-2 sm:pt-1">
-              <button
-                type="button"
-                onClick={() => {
-                  const map = mapRef.current;
-
-                  if (!map) {
-                    return;
-                  }
-
-                  if (currentMetaRef.current?.bounds) {
-                    const [[south, west], [north, east]] =
-                      currentMetaRef.current.bounds;
-
-                    map.fitBounds(
-                      [
-                        [west, south],
-                        [east, north],
-                      ],
-                      {
-                        padding: 40,
-                        duration: 800,
-                      }
-                    );
-                  }
-                }}
-                className="flex items-center gap-1 rounded-lg bg-[#123c28] px-2.5 py-1 text-[9px] font-bold text-white shadow-sm transition hover:bg-[#1b4d35] active:scale-95 sm:gap-1.5 sm:rounded-xl sm:px-3.5 sm:py-1.5 sm:text-xs"
-              >
-                <MousePointer className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-
-                <span>Fokus ke Lahan</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setPostgisCardOpen(false)}
-                className="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-[9px] font-semibold text-gray-700 transition hover:bg-gray-50 active:scale-95 sm:rounded-xl sm:px-3.5 sm:py-1.5 sm:text-xs"
-              >
-                Tutup
-              </button>
-            </div>
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* =================================================
             INSPEKSI PETAK
@@ -3419,7 +3494,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             const containerH = cEl?.clientHeight || 600;
 
             const isSmall = containerW < 640;
-            const cardWidth = isSmall ? 260 : 300;
+            const cardWidth = isSmall ? 224 : 248;
 
             // Safe margins from viewport edges:
             // SAFE_TOP = 64px keeps clear of top toolbar (toolbar is at top-2/top-3)
@@ -3429,12 +3504,16 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             const SAFE_RIGHT = 12;
 
             // Max allowed height inside viewport to never overflow vertically
-            const maxAllowedH = Math.max(220, containerH - SAFE_TOP - SAFE_BOTTOM);
+            const maxAllowedH = Math.max(
+              220,
+              containerH - SAFE_TOP - SAFE_BOTTOM
+            );
             const currentCardH = Math.min(popupHeight, maxAllowedH);
 
             // Decide placement:
             const spaceAbove = petakScreenPos.y - 14 - SAFE_TOP;
-            const spaceBelow = containerH - SAFE_BOTTOM - (petakScreenPos.y + 14);
+            const spaceBelow =
+              containerH - SAFE_BOTTOM - (petakScreenPos.y + 14);
 
             let isAbove = false;
             if (spaceAbove >= currentCardH) {
@@ -3471,7 +3550,164 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             );
 
             // Arrow direction: if petak center is below the card midpoint, arrow sits at bottom
-            const arrowAtBottom = petakScreenPos.y >= (clampedTop + currentCardH / 2);
+            const arrowAtBottom =
+              petakScreenPos.y >= clampedTop + currentCardH / 2;
+
+            /* ---------- data tampilan petak ---------- */
+
+            const activeAnalysisLayer = mapLayers.find(
+              (l) => l.is_visible && l.layer_type?.toLowerCase() !== "ortho"
+            );
+
+            const layerTitle =
+              activeAnalysisLayer?.name ||
+              selectedPetak.layer_type?.toUpperCase() ||
+              "Analisis Spasial";
+
+            const isNDVI = (
+              activeAnalysisLayer?.layer_type ||
+              selectedPetak.layer_type ||
+              ""
+            )
+              .toLowerCase()
+              .includes("ndvi");
+
+            const isDSM = (
+              activeAnalysisLayer?.layer_type ||
+              selectedPetak.layer_type ||
+              ""
+            )
+              .toLowerCase()
+              .includes("dsm");
+
+            const isNutrient = ["nitrogen", "phosphorus", "kalium"].some((k) =>
+              (
+                activeAnalysisLayer?.layer_type ||
+                selectedPetak.layer_type ||
+                ""
+              )
+                .toLowerCase()
+                .includes(k)
+            );
+
+            const unit = isDSM ? "mdpl" : isNutrient ? "mg/kg" : "";
+
+            const summaryText = (() => {
+              const lt = (selectedPetak.layer_type || "").toLowerCase();
+
+              const val = selectedPetak.value_mean;
+              const status = selectedPetak.status;
+
+              if (lt.includes("ndvi") || lt.includes("vari")) {
+                if (val !== undefined) {
+                  const currentStatus =
+                    status ||
+                    (val >= 0.42
+                      ? "Tinggi"
+                      : val >= 0.22
+                      ? "Sedang"
+                      : val >= 0.11
+                      ? "Rendah"
+                      : "Non Vegetasi");
+
+                  if (
+                    val >= 0.42 ||
+                    currentStatus.toLowerCase().includes("tinggi")
+                  ) {
+                    return `${currentStatus} (NDVI ≥ 0.42). Kerapatan tajuk dan aktivitas fotosintesis vegetasi sangat optimal. (Ref: Rahaldi et al., 2013)`;
+                  }
+
+                  if (
+                    val >= 0.22 ||
+                    currentStatus.toLowerCase().includes("sedang")
+                  ) {
+                    return `${currentStatus} (NDVI 0.22–0.42). Kondisi tanaman wajar dengan kerapatan tajuk sedang/berjarak. (Ref: Rahaldi et al., 2013)`;
+                  }
+
+                  if (
+                    val >= 0.11 ||
+                    currentStatus.toLowerCase().includes("rendah")
+                  ) {
+                    return `${currentStatus} (NDVI 0.11–0.22). Vegetasi terindikasi mengalami stres, kekurangan hara, atau kerusakan tajuk. (Ref: Rahaldi et al., 2013)`;
+                  }
+
+                  return `${currentStatus} (NDVI < 0.11). Area lahan terbuka, tanah gundul, bebatuan, atau jalan kebun. (Ref: Rahaldi et al., 2013)`;
+                }
+              } else if (lt.includes("nitrogen")) {
+                if (val !== undefined) {
+                  const s =
+                    status ||
+                    (val >= 70
+                      ? "Tinggi / Berlebih"
+                      : val >= 35
+                      ? "Optimal / Cukup"
+                      : "Defisit Rendah");
+                  return `${s} (${val} mg/kg). ${
+                    val < 35
+                      ? "Ketersediaan unsur hara nitrogen rendah, disarankan pemupukan N."
+                      : val <= 70
+                      ? "Ketersediaan unsur hara N dalam rentang optimal."
+                      : "Kandungan hara N tinggi pada tajuk tanaman."
+                  }`;
+                }
+              } else if (lt.includes("phosphorus") || lt.includes("fosfor")) {
+                if (val !== undefined) {
+                  const s =
+                    status ||
+                    (val >= 30
+                      ? "Tinggi"
+                      : val >= 15
+                      ? "Optimal / Cukup"
+                      : "Defisit Rendah");
+                  return `${s} (${val} mg/kg). ${
+                    val < 15
+                      ? "Ketersediaan unsur hara fosfor rendah, disarankan suplementasi P."
+                      : val <= 30
+                      ? "Ketersediaan unsur hara fosfor dalam rentang optimal."
+                      : "Kandungan hara fosfor tinggi pada lahan."
+                  }`;
+                }
+              } else if (lt.includes("kalium")) {
+                if (val !== undefined) {
+                  const s =
+                    status ||
+                    (val >= 150
+                      ? "Tinggi"
+                      : val >= 80
+                      ? "Optimal / Cukup"
+                      : "Defisit Rendah");
+                  return `${s} (${val} mg/kg). ${
+                    val < 80
+                      ? "Ketersediaan unsur hara kalium rendah, disarankan pemupukan K."
+                      : val <= 150
+                      ? "Ketersediaan unsur hara K optimal untuk ketahanan tanaman."
+                      : "Kandungan hara kalium tinggi pada lahan."
+                  }`;
+                }
+              } else if (lt.includes("dsm")) {
+                return `Elevasi permukaan tanah berada pada ketinggian rata-rata ${
+                  val ?? "-"
+                } mdpl.`;
+              } else if (status) {
+                return `Kondisi petak berstatus ${status} dengan nilai rata-rata ${
+                  val ?? "-"
+                } berdasarkan pembacaan raster sensor drone.`;
+              }
+
+              return "Data saintifik diekstraksi langsung dari berkas GeoTIFF drone resolusi tinggi.";
+            })();
+
+            const analysisRows = [
+              { key: "ndvi", label: "NDVI (Vegetasi)" },
+              { key: "nitrogen", label: "Nitrogen (N)" },
+              { key: "phosphorus", label: "Fosfor (P)" },
+              { key: "kalium", label: "Kalium (K)" },
+              { key: "dsm", label: "DSM (Elevasi)" },
+            ];
+
+            const availableCount = analysisRows.filter(({ key }) =>
+              mapLayers.some((l) => (l.layer_type || "").toLowerCase() === key)
+            ).length;
 
             return (
               <div
@@ -3483,17 +3719,10 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                     }
                   }
                 }}
-                className={`
-                  absolute
-                  z-30
-                  ${isSmall ? "w-[260px]" : "w-[300px]"}
-                  pointer-events-auto
-                  transition-all
-                  duration-75
-                  ease-out
-                  flex
-                  flex-col
-                `}
+                className={cn(
+                  "pointer-events-auto absolute z-30 flex flex-col transition-all duration-75 ease-out",
+                  isSmall ? "w-[224px]" : "w-[248px]"
+                )}
                 style={{
                   left: `${clampedLeft}px`,
                   top: `${clampedTop}px`,
@@ -3502,351 +3731,211 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               >
                 {arrowAtBottom ? (
                   <div
-                    className="absolute -bottom-1.5 h-3 w-3 -translate-x-1/2 rotate-45 border-r border-b border-gray-200/80 bg-white shadow-xs"
+                    className="absolute -bottom-1.5 h-3 w-3 -translate-x-1/2 rotate-45 border-b border-r border-[#DCDDD8] bg-white"
                     style={{
                       left: `${arrowX}px`,
                     }}
                   />
                 ) : (
                   <div
-                    className="absolute -top-1.5 h-3 w-3 -translate-x-1/2 rotate-45 border-l border-t border-gray-200/80 bg-white shadow-xs"
+                    className="absolute -top-1.5 h-3 w-3 -translate-x-1/2 rotate-45 border-l border-t border-[#DCDDD8] bg-white"
                     style={{
                       left: `${arrowX}px`,
                     }}
                   />
                 )}
 
-                <div className="relative flex flex-col rounded-xl border border-gray-200/90 bg-white/95 p-2.5 shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150 sm:rounded-2xl sm:p-3.5 max-h-[inherit] overflow-y-auto">
-                  <div className="flex items-center justify-between border-b border-gray-100 pb-1.5 sm:pb-2">
-                    <h4 className="text-[11px] font-bold text-gray-900 sm:text-xs">
-                      Petak {selectedPetak.block_id}
-                    </h4>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.97 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.18, ease: EASE }}
+                  className="relative flex max-h-[inherit] flex-col overflow-y-auto border border-[#DCDDD8] bg-white/95 shadow-[0_20px_45px_rgba(0,0,0,0.12)] backdrop-blur-md"
+                >
+                  {/* HEADER */}
+
+                  <div className="flex items-center justify-between gap-2 px-3 pt-3">
+                    <div className="min-w-0">
+                      <p className={eyebrowClass}>Inspeksi petak</p>
+
+                      <h4 className="mt-0.5 truncate text-[13px] font-bold tracking-[-0.02em] text-[#171717]">
+                        Petak {selectedPetak.block_id}
+                      </h4>
+                    </div>
 
                     <button
                       type="button"
                       onClick={() => setSelectedPetak(null)}
-                      className="cursor-pointer rounded-full p-0.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 sm:p-1"
+                      aria-label="Tutup inspeksi petak"
+                      className="flex h-7 w-7 shrink-0 items-center justify-center border border-[#E0E1DC] bg-[#FAFAF8] text-[#777972] outline-none transition-colors hover:bg-[#F2F3EF] hover:text-[#171717] focus-visible:ring-2 focus-visible:ring-[#76B900]/40"
                     >
-                      <X className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                      <X className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} />
                     </button>
                   </div>
 
-                  <div className="mt-2 space-y-2 sm:mt-2.5 sm:space-y-2.5">
+                  <div className="space-y-2 p-3">
                     {/* PRIMARY */}
 
-                    {(() => {
-                      const activeAnalysisLayer = mapLayers.find(
-                        (l) =>
-                          l.is_visible &&
-                          l.layer_type?.toLowerCase() !== "ortho"
-                      );
+                    <div className="relative overflow-hidden bg-[#171717] px-3 py-2.5 text-white">
+                      <div className="absolute inset-x-0 top-0 h-[2px] bg-[#76B900]" />
 
-                      const layerTitle =
-                        activeAnalysisLayer?.name ||
-                        selectedPetak.layer_type?.toUpperCase() ||
-                        "Analisis Spasial";
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate text-[9px] font-bold uppercase tracking-[0.14em] text-white/50">
+                          {layerTitle}
+                        </span>
 
-                      const isNDVI = (
-                        activeAnalysisLayer?.layer_type ||
-                        selectedPetak.layer_type ||
-                        ""
-                      )
-                        .toLowerCase()
-                        .includes("ndvi");
-
-                      const isDSM = (
-                        activeAnalysisLayer?.layer_type ||
-                        selectedPetak.layer_type ||
-                        ""
-                      )
-                        .toLowerCase()
-                        .includes("dsm");
-
-                      const isNutrient = [
-                        "nitrogen",
-                        "phosphorus",
-                        "kalium",
-                      ].some((k) =>
-                        (
-                          activeAnalysisLayer?.layer_type ||
-                          selectedPetak.layer_type ||
-                          ""
-                        )
-                          .toLowerCase()
-                          .includes(k)
-                      );
-
-                      const unit = isDSM
-                        ? "mdpl"
-                        : isNutrient
-                        ? "mg/kg"
-                        : "";
-
-                      return (
-                        <div className="rounded-lg bg-[#123C28] p-2 sm:rounded-xl sm:p-3 text-white shadow-sm">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[8px] font-bold uppercase tracking-wider text-white/70 sm:text-[10px]">
-                              {layerTitle}
-                            </span>
-
-                            {selectedPetak.status && (
-                              <span
-                                className="rounded-full px-1.5 py-0.5 text-[8px] font-bold text-white shadow-xs sm:px-2 sm:text-[9.5px]"
-                                style={{
-                                  backgroundColor:
-                                    selectedPetak.color || "#16a34a",
-                                }}
-                              >
-                                {selectedPetak.status}
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="mt-1 flex items-baseline gap-1.5 sm:mt-1.5 sm:gap-2">
-                            <span className="text-xl font-black text-white sm:text-2xl">
-                              {selectedPetak.value_mean !== undefined
-                                ? selectedPetak.value_mean
-                                : "-"}
-                            </span>
-
-                            {unit && (
-                              <span className="text-[9px] font-semibold text-emerald-200/80 sm:text-[11px]">
-                                {unit}
-                              </span>
-                            )}
-                          </div>
-
-                          {selectedPetak.value_min !== undefined &&
-                            selectedPetak.value_max !== undefined && (
-                              <div className="mt-1 flex items-center justify-between border-t border-white/15 pt-1 text-[8px] text-white/80 sm:mt-2 sm:pt-1.5 sm:text-[10.5px]">
-                                <span>
-                                  Min: <b className="text-white">{selectedPetak.value_min}</b>
-                                </span>
-
-                                <span className="text-white/40">•</span>
-
-                                <span>
-                                  Rerata: <b className="text-white">{selectedPetak.value_mean}</b>
-                                </span>
-
-                                <span className="text-white/40">•</span>
-
-                                <span>
-                                  Maks: <b className="text-white">{selectedPetak.value_max}</b>
-                                </span>
-                              </div>
-                            )}
-                        </div>
-                      );
-                    })()}
-
-                    {/* SUMMARY */}
-
-                    <div className="rounded-lg border border-gray-100 bg-gray-50/80 p-2 text-[9px] sm:rounded-xl sm:p-2.5 sm:text-xs">
-                      <p className="mb-1 text-[8px] font-bold uppercase tracking-wider text-gray-400 sm:text-[10px]">
-                        Ringkasan Kondisi Petak
-                      </p>
-
-                      <p className="text-[9px] leading-relaxed text-gray-700 sm:text-[11px]">
-                        {(() => {
-                          const lt = (
-                            selectedPetak.layer_type || ""
-                          ).toLowerCase();
-
-                          const val = selectedPetak.value_mean;
-                          const status = selectedPetak.status;
-
-                          if (lt.includes("ndvi") || lt.includes("vari")) {
-                            if (val !== undefined) {
-                              const currentStatus =
-                                status ||
-                                (val >= 0.42
-                                  ? "Tinggi"
-                                  : val >= 0.22
-                                  ? "Sedang"
-                                  : val >= 0.11
-                                  ? "Rendah"
-                                  : "Non Vegetasi");
-
-                              if (
-                                val >= 0.42 ||
-                                currentStatus.toLowerCase().includes("tinggi")
-                              ) {
-                                return `${currentStatus} (NDVI ≥ 0.42). Kerapatan tajuk dan aktivitas fotosintesis vegetasi sangat optimal. (Ref: Rahaldi et al., 2013)`;
-                              }
-
-                              if (
-                                val >= 0.22 ||
-                                currentStatus.toLowerCase().includes("sedang")
-                              ) {
-                                return `${currentStatus} (NDVI 0.22–0.42). Kondisi tanaman wajar dengan kerapatan tajuk sedang/berjarak. (Ref: Rahaldi et al., 2013)`;
-                              }
-
-                              if (
-                                val >= 0.11 ||
-                                currentStatus.toLowerCase().includes("rendah")
-                              ) {
-                                return `${currentStatus} (NDVI 0.11–0.22). Vegetasi terindikasi mengalami stres, kekurangan hara, atau kerusakan tajuk. (Ref: Rahaldi et al., 2013)`;
-                              }
-
-                              return `${currentStatus} (NDVI < 0.11). Area lahan terbuka, tanah gundul, bebatuan, atau jalan kebun. (Ref: Rahaldi et al., 2013)`;
-                            }
-                          } else if (lt.includes("nitrogen")) {
-                            if (val !== undefined) {
-                              const s =
-                                status ||
-                                (val >= 70
-                                  ? "Tinggi / Berlebih"
-                                  : val >= 35
-                                  ? "Optimal / Cukup"
-                                  : "Defisit Rendah");
-                              return `${s} (${val} mg/kg). ${
-                                val < 35
-                                  ? "Ketersediaan unsur hara nitrogen rendah, disarankan pemupukan N."
-                                  : val <= 70
-                                  ? "Ketersediaan unsur hara N dalam rentang optimal."
-                                  : "Kandungan hara N tinggi pada tajuk tanaman."
-                              }`;
-                            }
-                          } else if (
-                            lt.includes("phosphorus") ||
-                            lt.includes("fosfor")
-                          ) {
-                            if (val !== undefined) {
-                              const s =
-                                status ||
-                                (val >= 30
-                                  ? "Tinggi"
-                                  : val >= 15
-                                  ? "Optimal / Cukup"
-                                  : "Defisit Rendah");
-                              return `${s} (${val} mg/kg). ${
-                                val < 15
-                                  ? "Ketersediaan unsur hara fosfor rendah, disarankan suplementasi P."
-                                  : val <= 30
-                                  ? "Ketersediaan unsur hara fosfor dalam rentang optimal."
-                                  : "Kandungan hara fosfor tinggi pada lahan."
-                              }`;
-                            }
-                          } else if (lt.includes("kalium")) {
-                            if (val !== undefined) {
-                              const s =
-                                status ||
-                                (val >= 150
-                                  ? "Tinggi"
-                                  : val >= 80
-                                  ? "Optimal / Cukup"
-                                  : "Defisit Rendah");
-                              return `${s} (${val} mg/kg). ${
-                                val < 80
-                                  ? "Ketersediaan unsur hara kalium rendah, disarankan pemupukan K."
-                                  : val <= 150
-                                  ? "Ketersediaan unsur hara K optimal untuk ketahanan tanaman."
-                                  : "Kandungan hara kalium tinggi pada lahan."
-                              }`;
-                            }
-                          } else if (lt.includes("dsm")) {
-                            return `Elevasi permukaan tanah berada pada ketinggian rata-rata ${
-                              val ?? "-"
-                            } mdpl.`;
-                          } else if (status) {
-                            return `Kondisi petak berstatus ${status} dengan nilai rata-rata ${
-                              val ?? "-"
-                            } berdasarkan pembacaan raster sensor drone.`;
-                          }
-
-                          return "Data saintifik diekstraksi langsung dari berkas GeoTIFF drone resolusi tinggi.";
-                        })()}
-                      </p>
-                    </div>
-
-                    {/* LAYER STATUS */}
-
-                    <div className="space-y-1 rounded-lg border border-gray-100 bg-white p-2 text-[9px] sm:rounded-xl sm:p-2.5 sm:text-xs">
-                      <p className="mb-1 text-[8px] font-bold uppercase tracking-wider text-gray-400 sm:text-[10px]">
-                        Daftar Layer Analisis Lahan
-                      </p>
-
-                      {[
-                        {
-                          key: "ndvi",
-                          label: "NDVI (Kesehatan Vegetasi)",
-                        },
-                        {
-                          key: "nitrogen",
-                          label: "Nitrogen (N)",
-                        },
-                        {
-                          key: "phosphorus",
-                          label: "Fosfor (P)",
-                        },
-                        {
-                          key: "kalium",
-                          label: "Kalium (K)",
-                        },
-                        {
-                          key: "dsm",
-                          label: "DSM (Elevasi Lahan)",
-                        },
-                      ].map(({ key, label }) => {
-                        const activeAnalysis = mapLayers.find(
-                          (l) =>
-                            l.is_visible &&
-                            l.layer_type?.toLowerCase() !== "ortho"
-                        );
-
-                        const isCurrent =
-                          (activeAnalysis?.layer_type || "").toLowerCase() ===
-                          key;
-
-                        const layerItem = mapLayers.find(
-                          (l) => (l.layer_type || "").toLowerCase() === key
-                        );
-
-                        return (
-                          <div
-                            key={key}
-                            className={`flex items-center justify-between rounded-md px-1.5 py-1 text-[9px] sm:rounded-lg sm:px-2 sm:text-[11px] ${
-                              isCurrent
-                                ? "border border-[#123C28]/20 bg-[#123C28]/10 font-bold text-[#123C28]"
-                                : "text-gray-600 hover:bg-gray-50"
-                            }`}
+                        {selectedPetak.status && (
+                          <span
+                            className="shrink-0 px-1.5 py-0.5 text-[9px] font-bold text-white"
+                            style={{
+                              backgroundColor: selectedPetak.color || "#16a34a",
+                            }}
                           >
-                            <span className="flex min-w-0 items-center gap-1">
-                              <span
-                                className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                                  isCurrent
-                                    ? "bg-[#123C28]"
-                                    : layerItem
-                                    ? "bg-blue-500"
-                                    : "bg-gray-300"
-                                }`}
-                              />
+                            {selectedPetak.status}
+                          </span>
+                        )}
+                      </div>
 
-                              <span className="truncate">{label}</span>
-                            </span>
+                      <div className="mt-1 flex items-baseline gap-1.5">
+                        <span className="text-2xl font-bold tracking-[-0.04em] tabular-nums text-white">
+                          {selectedPetak.value_mean !== undefined
+                            ? selectedPetak.value_mean
+                            : "-"}
+                        </span>
 
-                            {isCurrent ? (
-                              <span className="ml-1 shrink-0 font-mono font-bold text-[#123C28]">
-                                {selectedPetak.value_mean !== undefined
-                                  ? selectedPetak.value_mean
-                                  : "Aktif"}
-                              </span>
-                            ) : layerItem ? (
-                              <span className="ml-1 shrink-0 rounded bg-blue-50 px-1 py-0.5 text-[8px] font-semibold text-blue-700 sm:px-1.5 sm:text-[10px]">
-                                Tersedia di Peta
-                              </span>
-                            ) : (
-                              <span className="ml-1 shrink-0 text-[8px] italic text-gray-400 sm:text-[10px]">
-                                Belum diunggah
-                              </span>
-                            )}
+                        {unit && (
+                          <span className="text-[10px] font-bold text-white/50">
+                            {unit}
+                          </span>
+                        )}
+                      </div>
+
+                      {selectedPetak.value_min !== undefined &&
+                        selectedPetak.value_max !== undefined && (
+                          <div className="mt-2 grid grid-cols-3 border-t border-white/10 pt-1.5 text-center tabular-nums">
+                            <div>
+                              <p className="text-[9px] font-medium text-white/45">
+                                Min
+                              </p>
+
+                              <p className="text-[11px] font-bold text-white">
+                                {selectedPetak.value_min}
+                              </p>
+                            </div>
+
+                            <div className="border-x border-white/10">
+                              <p className="text-[9px] font-medium text-white/45">
+                                Rerata
+                              </p>
+
+                              <p className="text-[11px] font-bold text-white">
+                                {selectedPetak.value_mean}
+                              </p>
+                            </div>
+
+                            <div>
+                              <p className="text-[9px] font-medium text-white/45">
+                                Maks
+                              </p>
+
+                              <p className="text-[11px] font-bold text-white">
+                                {selectedPetak.value_max}
+                              </p>
+                            </div>
                           </div>
-                        );
-                      })}
+                        )}
                     </div>
+
+                    {/* SUMMARY (DROPDOWN) */}
+
+                    <AccordionRow
+                      title="Ringkasan kondisi"
+                      open={petakSection === "summary"}
+                      onToggle={() =>
+                        setPetakSection((prev) =>
+                          prev === "summary" ? null : "summary"
+                        )
+                      }
+                    >
+                      <p className="text-[11px] font-medium leading-[1.55] text-[#4E504A]">
+                        {summaryText}
+                      </p>
+                    </AccordionRow>
+
+                    {/* LAYER STATUS (DROPDOWN) */}
+
+                    <AccordionRow
+                      title="Layer analisis lahan"
+                      badge={`${availableCount}/${analysisRows.length}`}
+                      open={petakSection === "layers"}
+                      onToggle={() =>
+                        setPetakSection((prev) =>
+                          prev === "layers" ? null : "layers"
+                        )
+                      }
+                    >
+                      <div className="space-y-0.5">
+                        {analysisRows.map(({ key, label }) => {
+                          const activeAnalysis = mapLayers.find(
+                            (l) =>
+                              l.is_visible &&
+                              l.layer_type?.toLowerCase() !== "ortho"
+                          );
+
+                          const isCurrent =
+                            (activeAnalysis?.layer_type || "").toLowerCase() ===
+                            key;
+
+                          const layerItem = mapLayers.find(
+                            (l) => (l.layer_type || "").toLowerCase() === key
+                          );
+
+                          return (
+                            <div
+                              key={key}
+                              className={cn(
+                                "flex items-center justify-between gap-2 border px-2 py-1 text-[11px]",
+                                isCurrent
+                                  ? "border-[#171717] bg-[#F7F8F5] font-bold text-[#171717]"
+                                  : "border-transparent text-[#858780]"
+                              )}
+                            >
+                              <span className="flex min-w-0 items-center gap-1.5">
+                                <span
+                                  className={cn(
+                                    "h-1.5 w-1.5 shrink-0",
+                                    isCurrent
+                                      ? "bg-[#76B900]"
+                                      : layerItem
+                                      ? "bg-[#171717]"
+                                      : "bg-[#DCDDD8]"
+                                  )}
+                                />
+
+                                <span className="truncate">{label}</span>
+                              </span>
+
+                              {isCurrent ? (
+                                <span className="shrink-0 font-bold tabular-nums text-[#171717]">
+                                  {selectedPetak.value_mean !== undefined
+                                    ? selectedPetak.value_mean
+                                    : "Aktif"}
+                                </span>
+                              ) : layerItem ? (
+                                <span className="shrink-0 border border-[#E0E1DC] bg-[#F7F8F5] px-1.5 py-0.5 text-[9px] font-bold text-[#4E504A]">
+                                  Tersedia
+                                </span>
+                              ) : (
+                                <span className="shrink-0 text-[10px] font-medium text-[#B0B1AB]">
+                                  Belum ada
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </AccordionRow>
                   </div>
-                </div>
+                </motion.div>
               </div>
             );
           })()}
@@ -3865,22 +3954,24 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             BOTTOM-LEFT CONTROLS
         ================================================== */}
 
-        <div className="pointer-events-none absolute bottom-3 left-2 z-20 flex flex-col items-start gap-2 sm:bottom-6 sm:left-4 sm:gap-2.5">
-          <div className="pointer-events-auto flex items-center gap-0.5 rounded-full border border-gray-200/90 bg-white/95 p-1 shadow-md backdrop-blur-md sm:gap-1 sm:p-1.5">
+        <div className="pointer-events-none absolute bottom-3 left-2 z-20 flex flex-col items-start gap-2 sm:bottom-6 sm:left-4">
+          <div className="pointer-events-auto flex items-center gap-0.5 border border-[#DCDDD8] bg-white/95 p-1 shadow-[0_12px_30px_rgba(0,0,0,0.08)] backdrop-blur-md">
             <button
               type="button"
               onClick={handleRotateLeft}
               title="Putar -45°"
-              className="flex h-6 w-6 items-center justify-center rounded-full text-gray-500 transition hover:bg-gray-100 hover:text-gray-800 sm:h-7 sm:w-7"
+              aria-label="Putar kiri 45 derajat"
+              className={controlButtonClass}
             >
-              <RotateCcw className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+              <RotateCcw className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} />
             </button>
 
             <button
               type="button"
               onClick={handleResetNorth}
               title="Reset ke Utara"
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-gray-50 transition hover:bg-gray-100 sm:h-9 sm:w-9"
+              aria-label="Reset ke Utara"
+              className="flex h-9 w-9 items-center justify-center border border-[#E0E1DC] bg-[#F7F8F5] outline-none transition-colors hover:bg-[#EEEFEA] focus-visible:ring-2 focus-visible:ring-[#76B900]/40"
             >
               <div
                 className="flex h-full w-full items-center justify-center"
@@ -3888,10 +3979,10 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                   transform: `rotate(${-bearing}deg)`,
                 }}
               >
-                <div className="relative flex h-4 w-1.5 flex-col items-center sm:h-5 sm:w-2">
-                  <div className="h-2 w-0 border-x-[2.5px] border-x-transparent border-b-[8px] border-b-red-600 sm:h-2.5 sm:border-x-[3.5px] sm:border-b-[10px]" />
+                <div className="relative flex h-5 w-2 flex-col items-center">
+                  <div className="h-2.5 w-0 border-x-[3.5px] border-b-[10px] border-x-transparent border-b-red-600" />
 
-                  <div className="h-2 w-0 border-x-[2.5px] border-x-transparent border-t-[8px] border-t-gray-300 sm:h-2.5 sm:border-x-[3.5px] sm:border-t-[10px]" />
+                  <div className="h-2.5 w-0 border-x-[3.5px] border-t-[10px] border-x-transparent border-t-[#B0B1AB]" />
                 </div>
               </div>
             </button>
@@ -3900,17 +3991,18 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               type="button"
               onClick={handleRotateRight}
               title="Putar +45°"
-              className="flex h-6 w-6 items-center justify-center rounded-full text-gray-500 transition hover:bg-gray-100 hover:text-gray-800 sm:h-7 sm:w-7"
+              aria-label="Putar kanan 45 derajat"
+              className={controlButtonClass}
             >
-              <RotateCw className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+              <RotateCw className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} />
             </button>
 
-            <span className="pl-0.5 pr-1 text-[8px] font-bold text-gray-700 sm:pl-1 sm:pr-1.5 sm:text-[10px]">
+            <span className="min-w-[48px] px-1.5 text-center text-[10px] font-bold tabular-nums text-[#4E504A]">
               {bearing}° {getDirection(bearing)}
             </span>
 
             {/* DIVIDER */}
-            <div className="mx-0.5 h-4 w-px bg-gray-200 sm:mx-1 sm:h-5" />
+            <div className="mx-0.5 h-5 w-px bg-[#E7E8E3]" />
 
             {/* ZOOM IN */}
             <button
@@ -3918,9 +4010,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               onClick={handleZoomIn}
               title="Perbesar Peta (Zoom In)"
               aria-label="Zoom In"
-              className="flex h-6 w-6 items-center justify-center rounded-full text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 sm:h-7 sm:w-7"
+              className={controlButtonClass}
             >
-              <ZoomIn className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+              <ZoomIn className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} />
             </button>
 
             {/* ZOOM OUT */}
@@ -3929,9 +4021,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               onClick={handleZoomOut}
               title="Perkecil Peta (Zoom Out)"
               aria-label="Zoom Out"
-              className="flex h-6 w-6 items-center justify-center rounded-full text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 sm:h-7 sm:w-7"
+              className={controlButtonClass}
             >
-              <ZoomOut className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+              <ZoomOut className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} />
             </button>
 
             {/* FULLSCREEN */}
@@ -3940,12 +4032,12 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               onClick={handleToggleFullscreen}
               title={isFullscreen ? "Keluar Layar Penuh" : "Layar Penuh"}
               aria-label={isFullscreen ? "Keluar Layar Penuh" : "Layar Penuh"}
-              className="flex h-6 w-6 items-center justify-center rounded-full text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 sm:h-7 sm:w-7"
+              className={controlButtonClass}
             >
               {isFullscreen ? (
-                <Minimize2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                <Minimize2 className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} />
               ) : (
-                <Maximize2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                <Maximize2 className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} />
               )}
             </button>
           </div>
@@ -3955,7 +4047,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             MAP CONTAINER
         ================================================== */}
 
-        <div ref={containerRef} className="h-full w-full bg-[#eef2ec]" />
+        <div ref={containerRef} className="h-full w-full bg-[#F4F5F2]" />
       </div>
     );
   }
