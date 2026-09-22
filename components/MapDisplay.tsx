@@ -8,7 +8,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 
 import * as maplibregl from "maplibre-gl";
@@ -36,6 +35,7 @@ import {
   Minimize2,
   Sprout,
   ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 
 import LayerControlPanel from "@/components/LayerControlPanel";
@@ -61,7 +61,9 @@ if (typeof window !== "undefined") {
   if (!pmtilesRegistered) {
     try {
       const protocol = new pmtiles.Protocol();
+
       maplibregl.addProtocol("pmtiles", protocol.tile);
+
       pmtilesRegistered = true;
     } catch {
       // Protocol already registered.
@@ -149,7 +151,7 @@ const UAV_RASTER_LAYER_ID = "uav-raster-layer";
 const UAV_IMAGE_SOURCE_ID = "uav-image";
 const UAV_IMAGE_LAYER_ID = "uav-image-layer";
 
-/* Warna aksen tema (dipakai juga di garis ukur & marker peta) */
+/* Warna aksen tema */
 const INK = "#171717";
 const ACCENT = "#76B900";
 
@@ -160,40 +162,59 @@ const ACCENT = "#76B900";
 const BASEMAPS = {
   satellite: {
     name: "Satelit Bumi",
+
     tiles:
       "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+
     labels:
       "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+
     maxzoom: 18,
+
     attribution:
       "Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
   },
 
   street: {
     name: "Peta Jalan (OSM)",
+
     tiles: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+
     labels: null,
+
     maxzoom: 19,
+
     attribution: "© OpenStreetMap contributors",
   },
 };
 
 /* =========================================================
    SHARED UI BITS
-   ---------------------------------------------------------
-   Gaya mengikuti halaman Subscription: sudut kotak, border
-   #DCDDD8, eyebrow #999B94, chip #F7F8F5, aksen hijau tipis,
-   dan tombol utama dengan efek sweep.
 ========================================================= */
 
 const eyebrowClass =
   "text-[10px] font-bold uppercase tracking-[0.16em] text-[#999B94]";
 
 const hudCardMotion = {
-  initial: { opacity: 0, y: -8 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -8 },
-  transition: { duration: 0.25, ease: EASE },
+  initial: {
+    opacity: 0,
+    y: -8,
+  },
+
+  animate: {
+    opacity: 1,
+    y: 0,
+  },
+
+  exit: {
+    opacity: 0,
+    y: -8,
+  },
+
+  transition: {
+    duration: 0.25,
+    ease: EASE,
+  },
 } as const;
 
 const hudCardClass =
@@ -201,43 +222,45 @@ const hudCardClass =
 
 function ToolbarButton({
   active,
-  onClick,
   title,
   label,
+  onClick,
   children,
 }: {
-  active: boolean;
-  onClick: () => void;
-  title: string;
+  active?: boolean;
+  title?: string;
   label: string;
+  onClick: () => void;
   children: React.ReactNode;
 }) {
   return (
-    <motion.button
+    <button
       type="button"
-      whileTap={{ scale: 0.97 }}
       onClick={onClick}
-      title={title}
-      aria-label={title}
-      aria-pressed={active}
+      title={title || label}
+      aria-label={label}
       className={cn(
-        "relative flex shrink-0 items-center justify-center gap-1.5 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.08em] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#76B900]/40",
+        "group relative flex h-9 w-9 shrink-0 items-center justify-center border outline-none transition-all duration-150",
+        "focus-visible:ring-2 focus-visible:ring-[#76B900]/40",
         active
-          ? "bg-[#171717] text-white"
-          : "text-[#4E504A] hover:bg-[#F7F8F5] hover:text-[#171717]"
+          ? "border-[#171717] bg-[#171717] text-white"
+          : "border-transparent bg-white text-[#555750] hover:border-[#DCDDD8] hover:bg-[#F7F8F5] hover:text-[#171717]"
       )}
     >
       {children}
 
-      <span className="hidden sm:inline">{label}</span>
-
-      {active && (
-        <span
-          aria-hidden="true"
-          className="absolute inset-x-0 bottom-0 h-[2px] bg-[#76B900]"
-        />
-      )}
-    </motion.button>
+      {/* TOOLTIP */}
+      <span
+        className={cn(
+          "pointer-events-none absolute left-1/2 top-[calc(100%+6px)] z-[100] -translate-x-1/2 whitespace-nowrap",
+          "border border-[#DCDDD8] bg-[#171717] px-2 py-1 text-[10px] font-medium text-white",
+          "translate-y-[-2px] opacity-0 shadow-[0_8px_18px_rgba(0,0,0,0.10)] transition-all duration-150",
+          "group-hover:translate-y-0 group-hover:opacity-100"
+        )}
+      >
+        {label}
+      </span>
+    </button>
   );
 }
 
@@ -287,7 +310,10 @@ function HudHeader({
   );
 }
 
-/* Tombol utama: warna hijau menyapu dari kiri ke kanan saat hover */
+/* =========================================================
+   SWEEP BUTTON
+========================================================= */
+
 function SweepButton({
   children,
   onClick,
@@ -316,7 +342,10 @@ function SweepButton({
   );
 }
 
-/* Baris dropdown ringkas (dipakai di kartu Inspeksi Petak) */
+/* =========================================================
+   ACCORDION ROW
+========================================================= */
+
 function AccordionRow({
   title,
   badge,
@@ -420,7 +449,6 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     const [currentMeta, setCurrentMeta] = useState<BoundsResponse | null>(null);
 
     const [mapLayers, setMapLayers] = useState<MapLayerItem[]>([]);
-    const [legendHost, setLegendHost] = useState<HTMLDivElement | null>(null);
 
     const [bearing, setBearing] = useState(0);
 
@@ -538,8 +566,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     }, [currentMeta]);
 
     /* =====================================================
-       BAKING POLL — auto-refresh layer status while any
-       layer is pending/processing, hide from MapLibre
+       BAKING POLL
     ====================================================== */
 
     useEffect(() => {
@@ -548,56 +575,85 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
           l.conversion_status === "pending" ||
           l.conversion_status === "processing"
       );
-      if (!hasBaking || !mapId) return;
+
+      if (!hasBaking || !mapId) {
+        return;
+      }
 
       const baseUrl =
         process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
+
       let cancelled = false;
 
       const poll = async () => {
         try {
           const headers: Record<string, string> = {};
-          if (tokenRef.current)
+
+          if (tokenRef.current) {
             headers.Authorization = `Bearer ${tokenRef.current}`;
+          }
+
           const res = await fetch(`${baseUrl}/maps/${mapId}/layers`, {
             headers,
           });
-          if (!res.ok || cancelled) return;
+
+          if (!res.ok || cancelled) {
+            return;
+          }
+
           const fresh: MapLayerItem[] = await res.json();
 
-          // Update state with fresh statuses
           setMapLayers((prev) =>
             prev.map((l) => {
               const updated = fresh.find((f) => f.id === l.id);
-              return updated ? { ...l, ...updated } : l;
+
+              return updated
+                ? {
+                    ...l,
+                    ...updated,
+                  }
+                : l;
             })
           );
+
           mapLayersRef.current = mapLayersRef.current.map((l) => {
             const updated = fresh.find((f) => f.id === l.id);
-            return updated ? { ...l, ...updated } : l;
+
+            return updated
+              ? {
+                  ...l,
+                  ...updated,
+                }
+              : l;
           });
 
-          // For any layer that just completed, add it to MapLibre
           const map = mapRef.current;
+
           if (map && currentMetaRef.current) {
             fresh.forEach((fl) => {
               if (fl.conversion_status === "completed" && fl.pmtiles_url) {
                 const sourceId = `layer-source-${fl.id}`;
+
                 const layerId = `layer-render-${fl.id}`;
+
                 if (!map.getSource(sourceId)) {
                   const apiOrigin = baseUrl.replace(/\/api\/?$/, "");
+
                   map.addSource(sourceId, {
                     type: "raster",
                     url: `pmtiles://${apiOrigin}${fl.pmtiles_url}`,
                     tileSize: 256,
                   });
                 }
+
                 if (!map.getLayer(layerId)) {
                   map.addLayer({
                     id: layerId,
                     type: "raster",
                     source: sourceId,
-                    layout: { visibility: fl.is_visible ? "visible" : "none" },
+                    layout: {
+                      visibility: fl.is_visible ? "visible" : "none",
+                    },
                     paint: {
                       "raster-opacity": fl.default_opacity,
                       "raster-resampling": "linear",
@@ -609,12 +665,14 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             });
           }
         } catch {
-          // network error — keep polling, don't clear
+          // network error — keep polling
         }
       };
 
       poll();
+
       const timer = setInterval(poll, 3000);
+
       return () => {
         cancelled = true;
         clearInterval(timer);
@@ -972,12 +1030,12 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             : undefined;
 
           currentLayers.forEach((layer) => {
-            // Skip baking layers — not renderable yet
             if (
               layer.conversion_status === "pending" ||
               layer.conversion_status === "processing"
-            )
+            ) {
               return;
+            }
 
             const sourceId = `layer-source-${layer.id}`;
 
@@ -1152,9 +1210,12 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         });
 
         let data: BoundsResponse | null = null;
+
         if (response.ok) {
           data = (await response.json()) as BoundsResponse;
+
           setCurrentMeta(data);
+
           currentMetaRef.current = data;
         } else {
           console.warn(
@@ -1165,7 +1226,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         try {
           const layersRes = await fetch(
             `${baseUrl}/maps/${activeMapId}/layers`,
-            { headers }
+            {
+              headers,
+            }
           );
 
           if (layersRes.ok) {
@@ -1175,7 +1238,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
             mapLayersRef.current = lData;
 
-            setupUavLayer(data, lData);
+            setupUavLayer(data as BoundsResponse, lData);
           } else if (data) {
             setupUavLayer(data);
           }
@@ -1186,7 +1249,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         }
 
         if (response.ok) {
-          fetch(`${baseUrl}/maps/${activeMapId}/spatial-info`, { headers })
+          fetch(`${baseUrl}/maps/${activeMapId}/spatial-info`, {
+            headers,
+          })
             .then((res) => (res.ok ? res.json() : null))
             .then((sData) => {
               if (sData) {
@@ -1349,39 +1414,11 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       map.addControl(
         new maplibregl.NavigationControl({
           showCompass: false,
-
           showZoom: false,
-
           visualizePitch: true,
         }),
         "top-left"
       );
-
-      /* =====================================================
-         MAPLIBRE GL JS LEGEND CONTROL (NATIVE ICONTROL)
-      ====================================================== */
-      const legendIControl: maplibregl.IControl = {
-        onAdd: () => {
-          const div = document.createElement("div");
-          div.className =
-            "maplibregl-ctrl maplibregl-ctrl-legend mb-2 mr-1.5 sm:mb-3 sm:mr-3";
-          div.addEventListener("mousedown", (e) => e.stopPropagation());
-          div.addEventListener("dblclick", (e) => e.stopPropagation());
-          div.addEventListener("wheel", (e) => e.stopPropagation());
-          div.addEventListener("touchstart", (e) => e.stopPropagation(), {
-            passive: true,
-          });
-          div.addEventListener("pointerdown", (e) => e.stopPropagation());
-          setLegendHost(div);
-          return div;
-        },
-        onRemove: () => {
-          setLegendHost(null);
-        },
-        getDefaultPosition: () => "bottom-right",
-      };
-
-      map.addControl(legendIControl, "bottom-right");
 
       map.once("load", () => {
         setupInitialBasemaps();
@@ -1498,7 +1535,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         try {
           const res = await fetch(
             `${baseUrl}/maps/layers/${activeAnalysisLayer.id}/grid`,
-            { headers }
+            {
+              headers,
+            }
           );
 
           if (res.ok) {
@@ -2035,6 +2074,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
           setMeasuredMetrics({
             distanceM: Math.round(lenM),
+
             distanceKm: +(lenM / 1000).toFixed(2),
           });
         } catch (err) {
@@ -2052,7 +2092,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
           setMeasuredMetrics({
             areaM2: Math.round(areaM2),
+
             areaHa: +(areaM2 / 10000).toFixed(4),
+
             perimeterM: Math.round(perimM),
           });
         } catch (err) {
@@ -2090,6 +2132,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
       const lineGeoJson: GeoJSON.FeatureCollection = {
         type: "FeatureCollection",
+
         features:
           lineCoords.length >= 2
             ? [
@@ -2109,6 +2152,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
       const polyGeoJson: GeoJSON.FeatureCollection = {
         type: "FeatureCollection",
+
         features:
           toolMode === "area" && measurePoints.length >= 3
             ? [
@@ -2499,11 +2543,15 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     }, []);
 
     const handleZoomIn = useCallback(() => {
-      mapRef.current?.zoomIn({ duration: 400 });
+      mapRef.current?.zoomIn({
+        duration: 400,
+      });
     }, []);
 
     const handleZoomOut = useCallback(() => {
-      mapRef.current?.zoomOut({ duration: 400 });
+      mapRef.current?.zoomOut({
+        duration: 400,
+      });
     }, []);
 
     const handleToggle3D = useCallback(() => {
@@ -2523,21 +2571,32 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     return (
       <div className="relative h-full w-full overflow-hidden bg-[#F4F5F2]">
         {/* =================================================
-            LOADING
+              LOADING
         ================================================== */}
-
         <AnimatePresence>
           {loading && (
             <motion.div
               key="map-loading"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-              transition={{ duration: 0.25, ease: EASE }}
+              initial={{
+                opacity: 0,
+                y: 8,
+              }}
+              animate={{
+                opacity: 1,
+                y: 0,
+              }}
+              exit={{
+                opacity: 0,
+                y: 8,
+              }}
+              transition={{
+                duration: 0.25,
+                ease: EASE,
+              }}
               role="status"
-              className="pointer-events-none absolute inset-x-0 bottom-4 z-40 mx-auto w-fit sm:bottom-6"
+              className="pointer-events-none absolute inset-x-0 bottom-2 z-40 mx-auto w-fit sm:bottom-3"
             >
-              <div className="flex items-center gap-2.5 border border-[#DCDDD8] bg-white/95 px-4 py-2.5 text-[11px] font-semibold text-[#4E504A] shadow-[0_12px_30px_rgba(0,0,0,0.08)] backdrop-blur-md">
+              <div className="flex items-center gap-1.5 border border-[#DCDDD8] bg-white/95 px-2 py-1.5 text-[10px] font-semibold text-[#4E504A] shadow-[0_8px_18px_rgba(0,0,0,0.06)] backdrop-blur-md">
                 <span className="h-1.5 w-1.5 animate-pulse bg-[#76B900] motion-reduce:animate-none" />
 
                 <span>Memuat data geospasial...</span>
@@ -2547,9 +2606,8 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         </AnimatePresence>
 
         {/* =================================================
-            LAYER CONTROL PANEL
+              LAYER CONTROL PANEL
         ================================================== */}
-
         <LayerControlPanel
           mapId={mapId}
           layers={mapLayers}
@@ -2717,13 +2775,21 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
           }}
           onRetryConvert={async (layerId) => {
             const activeMapId = mapIdRef.current;
+
             const activeToken = tokenRef.current;
-            if (!activeMapId) return;
+
+            if (!activeMapId) {
+              return;
+            }
 
             const baseUrl =
               process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
+
             const headers: Record<string, string> = {};
-            if (activeToken) headers.Authorization = `Bearer ${activeToken}`;
+
+            if (activeToken) {
+              headers.Authorization = `Bearer ${activeToken}`;
+            }
 
             try {
               const res = await fetch(
@@ -2733,6 +2799,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                   headers,
                 }
               );
+
               if (res.ok) {
                 setMapLayers((prev) =>
                   prev.map((l) =>
@@ -2745,6 +2812,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                       : l
                   )
                 );
+
                 mapLayersRef.current = mapLayersRef.current.map((l) =>
                   l.id === layerId
                     ? {
@@ -2762,29 +2830,35 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
           token={tokenRef.current ?? undefined}
           onReorderLayers={async (newLayers) => {
             const activeMapId = mapIdRef.current;
-            const activeToken = tokenRef.current;
-            if (!activeMapId) return;
 
-            // Berikan nilai display_order baru berurutan sesuai urutan drag
+            const activeToken = tokenRef.current;
+
+            if (!activeMapId) {
+              return;
+            }
+
             const updated = newLayers.map((layer, idx) => ({
               ...layer,
               display_order: idx,
             }));
 
-            // Update visual state seketika
             setMapLayers(updated);
+
             mapLayersRef.current = updated;
 
-            // Update MapLibre layer z-order secara instan
             const map = mapRef.current;
+
             if (map) {
               updated.forEach((l, i) => {
                 const mlId = `layer-render-${l.id}`;
+
                 if (map.getLayer(mlId)) {
                   const nextLayer = updated[i + 1];
+
                   const beforeId = nextLayer
                     ? `layer-render-${nextLayer.id}`
                     : undefined;
+
                   if (beforeId && map.getLayer(beforeId)) {
                     map.moveLayer(mlId, beforeId);
                   } else {
@@ -2794,13 +2868,16 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               });
             }
 
-            // Persist ke database di backend
             const baseUrl =
               process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
+
             const headers: Record<string, string> = {
               "Content-Type": "application/json",
             };
-            if (activeToken) headers.Authorization = `Bearer ${activeToken}`;
+
+            if (activeToken) {
+              headers.Authorization = `Bearer ${activeToken}`;
+            }
 
             try {
               await Promise.all(
@@ -2820,30 +2897,40 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
           }}
           onSetBaseLayer={async (layerId) => {
             const activeMapId = mapIdRef.current;
-            const activeToken = tokenRef.current;
-            if (!activeMapId) return;
 
-            // Update visual state seketika
+            const activeToken = tokenRef.current;
+
+            if (!activeMapId) {
+              return;
+            }
+
             const updated = mapLayersRef.current.map((l) => ({
               ...l,
               is_base_layer: l.id === layerId,
             }));
+
             setMapLayers(updated);
+
             mapLayersRef.current = updated;
 
-            // Persist ke backend
             const baseUrl =
               process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
+
             const headers: Record<string, string> = {
               "Content-Type": "application/json",
             };
-            if (activeToken) headers.Authorization = `Bearer ${activeToken}`;
+
+            if (activeToken) {
+              headers.Authorization = `Bearer ${activeToken}`;
+            }
 
             try {
               await fetch(`${baseUrl}/maps/${activeMapId}/layers/${layerId}`, {
                 method: "PATCH",
                 headers,
-                body: JSON.stringify({ is_base_layer: true }),
+                body: JSON.stringify({
+                  is_base_layer: true,
+                }),
               });
             } catch (err) {
               console.error("Gagal mengubah base layer:", err);
@@ -2852,12 +2939,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         />
 
         {/* =================================================
-            PRECISION FARMING TOOLBAR
+              PRECISION FARMING TOOLBAR
         ================================================== */}
-
-        <div className="absolute inset-x-0 top-3 z-50 mx-auto flex w-fit max-w-[calc(100%-24px)] translate-x-10 items-center gap-0.5 overflow-x-auto whitespace-nowrap border border-[#DCDDD8] bg-white/95 p-1 shadow-[0_12px_30px_rgba(0,0,0,0.08)] backdrop-blur-md">
-          {/* NAVIGASI */}
-
+        <div className="absolute inset-x-0 top-2 z-50 mx-auto flex w-fit max-w-[calc(100%-12px)] translate-x-8 items-center gap-1 border border-[#DCDDD8] bg-white/95 p-1 shadow-[0_10px_24px_rgba(0,0,0,0.07)] backdrop-blur-md sm:top-2.5">
           <ToolbarButton
             active={isPlainNavigation}
             title="Navigasi Standar"
@@ -2872,18 +2956,13 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               setPostgisCardOpen(false);
             }}
           >
-            <MousePointer
-              className="h-3.5 w-3.5 shrink-0"
-              strokeWidth={ICON_STROKE}
-            />
+            <MousePointer className="h-4 w-4" strokeWidth={ICON_STROKE} />
           </ToolbarButton>
-
-          {/* POSTGIS */}
 
           {spatialInfo?.has_spatial_geometry && spatialInfo.area_hectares && (
             <ToolbarButton
               active={postgisCardOpen}
-              title={`Klik untuk melihat detail verifikasi geodetik PostGIS (${spatialInfo.area_hectares} ha)`}
+              title="Verifikasi Geodetik PostGIS"
               label="PostGIS"
               onClick={() => {
                 const next = !postgisCardOpen;
@@ -2901,19 +2980,11 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             >
               <img
                 src="/postgis.png"
-                alt=""
-                className="-my-1 h-6 w-6 shrink-0 object-contain"
+                alt="PostGIS"
+                className="h-5 w-5 shrink-0 object-contain"
               />
-
-              <span className="tabular-nums normal-case tracking-normal">
-                {typeof spatialInfo.area_hectares === "number"
-                  ? `${Number(spatialInfo.area_hectares.toFixed(2))} ha`
-                  : `${spatialInfo.area_hectares} ha`}
-              </span>
             </ToolbarButton>
           )}
-
-          {/* UKUR JARAK */}
 
           <ToolbarButton
             active={toolMode === "distance"}
@@ -2931,14 +3002,12 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               handleClearMeasurement();
             }}
           >
-            <Ruler className="h-3.5 w-3.5 shrink-0" strokeWidth={ICON_STROKE} />
+            <Ruler className="h-4 w-4" strokeWidth={ICON_STROKE} />
           </ToolbarButton>
-
-          {/* BANDINGKAN */}
 
           <ToolbarButton
             active={compareMode}
-            title="Bandingkan Layer Multilayer"
+            title="Bandingkan Layer"
             label="Bandingkan"
             onClick={() => {
               handleClearMeasurement();
@@ -2965,16 +3034,12 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             }}
           >
             <SplitSquareVertical
-              className="h-3.5 w-3.5 shrink-0"
+              className="h-4 w-4"
               strokeWidth={ICON_STROKE}
             />
           </ToolbarButton>
 
-          {/* DIVIDER */}
-
           <div className="mx-0.5 h-5 w-px shrink-0 bg-[#E7E8E3]" />
-
-          {/* PETAK */}
 
           <ToolbarButton
             active={gridEnabled}
@@ -2984,14 +3049,13 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               setGridEnabled((prev) => !prev);
             }}
           >
-            <Grid className="h-3.5 w-3.5 shrink-0" strokeWidth={ICON_STROKE} />
+            <Grid className="h-4 w-4" strokeWidth={ICON_STROKE} />
           </ToolbarButton>
         </div>
 
         {/* =================================================
-            MEASUREMENT STATUS CARD
+              MEASUREMENT STATUS CARD
         ================================================== */}
-
         <AnimatePresence>
           {toolMode !== "none" && (
             <motion.div
@@ -2999,11 +3063,11 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               {...hudCardMotion}
               className={cn(
                 hudCardClass,
-                "absolute inset-x-0 top-16 z-50 mx-auto w-[calc(100%-24px)] max-w-[380px]"
+                "absolute inset-x-0 top-16 z-50 mx-auto w-[calc(100%-16px)] max-w-[310px]"
               )}
             >
               <HudHeader
-                eyebrow="Pengukuran"
+                eyebrow=""
                 title={
                   toolMode === "area"
                     ? "Ukur Area Lahan"
@@ -3013,18 +3077,16 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                 closeLabel="Tutup Pengukuran"
                 meta={
                   measurePoints.length > 0 ? (
-                    <span className="border border-[#E0E1DC] bg-[#F7F8F5] px-2 py-1 text-[10px] font-bold tabular-nums text-[#666861]">
+                    <span className="border border-[#E0E1DC] bg-[#F7F8F5] px-1 py-0.5 text-[10px] font-bold tabular-nums text-[#666861]">
                       {measurePoints.length} titik
                     </span>
                   ) : undefined
                 }
               />
 
-              {/* HINT */}
-
-              <div className="my-4 flex items-center gap-2.5 border border-[#E0E1DC] bg-[#F7F8F5] px-3 py-2.5 text-[11px] text-[#666861]">
+              <div className="my-1.5 flex items-center gap-1.5 border border-[#E0E1DC] bg-[#F7F8F5] px-2 py-1.5 text-[10px] text-[#666861]">
                 <MousePointer
-                  className="h-3.5 w-3.5 shrink-0 text-[#171717]"
+                  className="h-2.5 w-2.5 shrink-0 text-[#171717]"
                   strokeWidth={ICON_STROKE}
                 />
 
@@ -3041,28 +3103,26 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                 </span>
               </div>
 
-              {/* METRICS */}
-
               {measuredMetrics && (
-                <div className="mb-4 border border-[#E0E1DC] bg-[#F7F8F5] p-4">
+                <div className="mb-1.5 border border-[#E0E1DC] bg-[#F7F8F5] p-2">
                   {toolMode === "area" ? (
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="border-r border-[#E7E8E3] pr-3">
-                        <span className={cn(eyebrowClass, "block")}>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="border-r border-[#E7E8E3] pr-2">
+                        <span className={cn(eyebrowClass, "block text-[10px]")}>
                           Total Luas Lahan
                         </span>
 
-                        <div className="mt-1.5 flex items-baseline gap-1">
-                          <span className="text-2xl font-bold tracking-[-0.04em] text-[#171717] tabular-nums">
+                        <div className="mt-0.5 flex items-baseline gap-1">
+                          <span className="text-[10px] font-bold tabular-nums text-[#171717]">
                             {measuredMetrics.areaHa ?? 0}
                           </span>
 
-                          <span className="text-xs font-bold text-[#858780]">
+                          <span className="text-[10px] font-medium text-[#858780]">
                             ha
                           </span>
                         </div>
 
-                        <span className="text-[11px] font-medium tabular-nums text-[#858780]">
+                        <span className="text-[10px] font-medium tabular-nums text-[#858780]">
                           {(measuredMetrics.areaM2 ?? 0).toLocaleString(
                             "id-ID"
                           )}{" "}
@@ -3072,33 +3132,35 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
                       <div className="flex flex-col justify-between">
                         <div>
-                          <span className={cn(eyebrowClass, "block")}>
+                          <span
+                            className={cn(eyebrowClass, "block text-[10px]")}
+                          >
                             Keliling Batas
                           </span>
 
-                          <div className="mt-1.5 flex items-baseline gap-1">
-                            <span className="text-lg font-bold tracking-[-0.03em] tabular-nums text-[#171717]">
+                          <div className="mt-0.5 flex items-baseline gap-1">
+                            <span className="text-[10px] font-bold tabular-nums text-[#171717]">
                               {(measuredMetrics.perimeterM ?? 0).toLocaleString(
                                 "id-ID"
                               )}
                             </span>
 
-                            <span className="text-xs font-bold text-[#858780]">
+                            <span className="text-[10px] font-medium text-[#858780]">
                               meter
                             </span>
                           </div>
                         </div>
 
                         {measuredMetrics.areaHa ? (
-                          <div className="mt-2 flex items-center gap-1.5 border border-[#E0E1DC] bg-white px-2 py-1.5 text-[10px] font-bold text-[#4E504A]">
+                          <div className="mt-1 flex items-center gap-1 border border-[#E0E1DC] bg-white px-1.5 py-1 text-[10px] font-medium text-[#4E504A]">
                             <Sprout
-                              className="h-3 w-3 shrink-0 text-[#666861]"
+                              className="h-2.5 w-2.5 shrink-0 text-[#666861]"
                               strokeWidth={ICON_STROKE}
                             />
 
                             <span>Est. Urea:</span>
 
-                            <span className="tabular-nums text-[#171717]">
+                            <span className="font-bold tabular-nums text-[#171717]">
                               ±{Math.round(measuredMetrics.areaHa * 250)} kg
                             </span>
                           </div>
@@ -3107,20 +3169,20 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                     </div>
                   ) : (
                     <div>
-                      <span className={cn(eyebrowClass, "block")}>
+                      <span className={cn(eyebrowClass, "block text-[10px]")}>
                         Total Jarak Lintasan
                       </span>
 
-                      <div className="mt-1.5 flex flex-wrap items-baseline gap-1.5">
-                        <span className="text-3xl font-bold tracking-[-0.04em] text-[#171717] tabular-nums">
+                      <div className="mt-0.5 flex flex-wrap items-baseline gap-1">
+                        <span className="text-[10px] font-bold tabular-nums text-[#171717]">
                           {measuredMetrics.distanceKm}
                         </span>
 
-                        <span className="text-xs font-bold text-[#858780]">
+                        <span className="text-[10px] font-medium text-[#858780]">
                           km
                         </span>
 
-                        <span className="text-xs font-medium tabular-nums text-[#858780]">
+                        <span className="text-[10px] font-medium tabular-nums text-[#858780]">
                           (
                           {(measuredMetrics.distanceM ?? 0).toLocaleString(
                             "id-ID"
@@ -3133,10 +3195,8 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                 </div>
               )}
 
-              {/* ACTIONS */}
-
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1">
+              <div className="flex items-center justify-between gap-1">
+                <div className="flex items-center gap-0.5">
                   {measurePoints.length > 0 && (
                     <button
                       type="button"
@@ -3144,7 +3204,10 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                       className={hudButtonSecondary}
                       title="Undo titik terakhir"
                     >
-                      <Undo2 className="h-3 w-3" strokeWidth={ICON_STROKE} />
+                      <Undo2
+                        className="h-2.5 w-2.5"
+                        strokeWidth={ICON_STROKE}
+                      />
 
                       <span>Undo</span>
                     </button>
@@ -3155,21 +3218,21 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                     onClick={handleClearMeasurement}
                     disabled={measurePoints.length === 0}
                     className={cn(
-                      "inline-flex items-center gap-1.5 border px-3 py-2.5 text-[10px] font-bold uppercase tracking-[0.08em] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#76B900]/40",
+                      "inline-flex items-center gap-1 border px-1.5 py-1 text-[10px] font-bold uppercase tracking-[0.05em] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#76B900]/40",
                       measurePoints.length === 0
                         ? "cursor-not-allowed border-transparent text-[#B0B1AB]"
                         : "border-transparent text-[#9B3E32] hover:border-[#E7D0CC] hover:bg-[#FFF7F5]"
                     )}
                     title="Reset semua titik pengukuran"
                   >
-                    <Trash2 className="h-3 w-3" strokeWidth={ICON_STROKE} />
+                    <Trash2 className="h-2.5 w-2.5" strokeWidth={ICON_STROKE} />
 
                     <span>Reset</span>
                   </button>
                 </div>
 
                 <SweepButton onClick={() => setToolMode("none")}>
-                  <Check className="h-3 w-3" strokeWidth={2.5} />
+                  <Check className="h-2.5 w-2.5" strokeWidth={2.5} />
 
                   <span>Selesai</span>
                 </SweepButton>
@@ -3179,9 +3242,8 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         </AnimatePresence>
 
         {/* =================================================
-            MULTILAYER COMPARISON BAR
+              MULTILAYER COMPARISON
         ================================================== */}
-
         <AnimatePresence>
           {compareMode && (
             <motion.div
@@ -3189,125 +3251,126 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               {...hudCardMotion}
               className={cn(
                 hudCardClass,
-                "absolute inset-x-0 top-16 z-50 mx-auto w-[calc(100%-24px)] max-w-[420px]"
+                "absolute inset-x-0 top-16 z-50 mx-auto w-[calc(100%-16px)] max-w-[325px]"
               )}
             >
               <HudHeader
-                eyebrow="Compare"
+                eyebrow=""
                 title="Bandingkan Layer Multilayer"
                 onClose={handleCloseCompare}
                 closeLabel="Tutup Perbandingan"
               />
 
-              <div className="my-4 flex items-center gap-2">
-                <div className="min-w-0 flex-1">
-                  <span className={cn(eyebrowClass, "mb-1.5 block")}>
-                    Layer A (Primer)
-                  </span>
-
-                  <select
-                    value={compareLayerA}
-                    onChange={(e) => setCompareLayerA(e.target.value)}
-                    className={compareSelectClass}
-                  >
-                    {mapLayers.map((l) => (
-                      <option key={`a-${l.id}`} value={l.id}>
-                        {l.name}
-                      </option>
-                    ))}
-
-                    <option value="__basemap__">
-                      Basemap (Satelit / Jalan)
-                    </option>
-                  </select>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    const prevA = compareLayerA;
-
-                    const prevB = compareLayerB;
-
-                    setCompareLayerA(prevB);
-
-                    setCompareLayerB(prevA);
-                  }}
-                  title="Tukar Posisi Layer A & B"
-                  aria-label="Tukar Posisi Layer A & B"
-                  className="mt-5 flex h-9 w-9 shrink-0 items-center justify-center border border-[#E0E1DC] bg-[#FAFAF8] text-[#4E504A] outline-none transition-colors hover:border-[#171717] hover:bg-[#171717] hover:text-white focus-visible:ring-2 focus-visible:ring-[#76B900]/40"
-                >
-                  <ArrowLeftRight
-                    className="h-3.5 w-3.5"
-                    strokeWidth={ICON_STROKE}
-                  />
-                </button>
-
-                <div className="min-w-0 flex-1">
-                  <span className={cn(eyebrowClass, "mb-1.5 block")}>
-                    Layer B (Pembanding)
-                  </span>
-
-                  <select
-                    value={compareLayerB}
-                    onChange={(e) => setCompareLayerB(e.target.value)}
-                    className={compareSelectClass}
-                  >
-                    {mapLayers.map((l) => (
-                      <option key={`b-${l.id}`} value={l.id}>
-                        {l.name}
-                      </option>
-                    ))}
-
-                    <option value="__basemap__">
-                      Basemap (Satelit / Jalan)
-                    </option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="border border-[#E0E1DC] bg-[#F7F8F5] p-4">
-                <div className="mb-3 flex items-center justify-between text-[10px] font-bold tabular-nums">
-                  <span className="border border-[#E0E1DC] bg-white px-2 py-1 text-[#171717]">
-                    Layer A: {100 - compareRatio}%
-                  </span>
-
-                  <span className="border border-[#E0E1DC] bg-white px-2 py-1 text-[#171717]">
-                    Layer B: {compareRatio}%
-                  </span>
-                </div>
-
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={compareRatio}
-                  aria-label="Rasio perbandingan Layer A dan B"
-                  onChange={(e) => setCompareRatio(parseInt(e.target.value))}
-                  className="h-1.5 w-full cursor-pointer appearance-none bg-[#DCDDD8] accent-[#171717]"
-                />
-
-                <div className="mt-3 flex items-center gap-1">
-                  {[
-                    { value: 0, label: "100% A" },
-                    { value: 50, label: "50 / 50 Blend" },
-                    { value: 100, label: "100% B" },
-                  ].map((preset) => (
-                    <button
-                      key={preset.value}
-                      type="button"
-                      onClick={() => setCompareRatio(preset.value)}
-                      aria-pressed={compareRatio === preset.value}
-                      className={cn(
-                        "flex-1 border py-2 text-[10px] font-bold uppercase tracking-[0.06em] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#76B900]/40",
-                        compareRatio === preset.value
-                          ? "border-[#171717] bg-[#171717] text-white"
-                          : "border-[#DCDDD8] bg-white text-[#858780] hover:bg-[#F8F8F6] hover:text-[#171717]"
-                      )}
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1">
+                  <div className="min-w-0 flex-1">
+                    <select
+                      value={compareLayerA}
+                      onChange={(e) => setCompareLayerA(e.target.value)}
+                      className={compareSelectClass}
+                      aria-label="Layer A"
                     >
-                      {preset.label}
-                    </button>
-                  ))}
+                      {mapLayers.map((l) => (
+                        <option key={`a-${l.id}`} value={l.id}>
+                          {l.name}
+                        </option>
+                      ))}
+
+                      <option value="__basemap__">
+                        Basemap (Satelit / Jalan)
+                      </option>
+                    </select>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const prevA = compareLayerA;
+
+                      const prevB = compareLayerB;
+
+                      setCompareLayerA(prevB);
+
+                      setCompareLayerB(prevA);
+                    }}
+                    title="Tukar Posisi Layer A & B"
+                    aria-label="Tukar Posisi Layer A & B"
+                    className="flex h-7 w-7 shrink-0 items-center justify-center border border-[#E0E1DC] bg-[#FAFAF8] text-[#4E504A] outline-none transition-colors hover:border-[#171717] hover:bg-[#171717] hover:text-white focus-visible:ring-2 focus-visible:ring-[#76B900]/40"
+                  >
+                    <ArrowLeftRight
+                      className="h-2.5 w-2.5"
+                      strokeWidth={ICON_STROKE}
+                    />
+                  </button>
+
+                  <div className="min-w-0 flex-1">
+                    <select
+                      value={compareLayerB}
+                      onChange={(e) => setCompareLayerB(e.target.value)}
+                      className={compareSelectClass}
+                      aria-label="Layer B"
+                    >
+                      {mapLayers.map((l) => (
+                        <option key={`b-${l.id}`} value={l.id}>
+                          {l.name}
+                        </option>
+                      ))}
+
+                      <option value="__basemap__">
+                        Basemap (Satelit / Jalan)
+                      </option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="border border-[#E0E1DC] bg-[#F7F8F5] p-2">
+                  <div className="mb-1 flex items-center justify-between text-[10px] font-semibold tabular-nums text-[#666861]">
+                    <span>Layer A {100 - compareRatio}%</span>
+
+                    <span>Layer B {compareRatio}%</span>
+                  </div>
+
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={compareRatio}
+                    aria-label="Rasio perbandingan Layer A dan B"
+                    onChange={(e) => setCompareRatio(parseInt(e.target.value))}
+                    className="h-1 w-full cursor-pointer appearance-none bg-[#DCDDD8] accent-[#171717]"
+                  />
+
+                  <div className="mt-1 flex items-center gap-px">
+                    {[
+                      {
+                        value: 0,
+                        label: "100% A",
+                      },
+                      {
+                        value: 50,
+                        label: "50 / 50",
+                      },
+                      {
+                        value: 100,
+                        label: "100% B",
+                      },
+                    ].map((preset) => (
+                      <button
+                        key={preset.value}
+                        type="button"
+                        onClick={() => setCompareRatio(preset.value)}
+                        aria-pressed={compareRatio === preset.value}
+                        className={cn(
+                          "flex-1 border py-1 text-[10px] font-semibold uppercase tracking-[0.02em] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#76B900]/40",
+                          compareRatio === preset.value
+                            ? "border-[#171717] bg-[#171717] text-white"
+                            : "border-[#DCDDD8] bg-white text-[#858780] hover:bg-[#F8F8F6] hover:text-[#171717]"
+                        )}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -3315,9 +3378,8 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         </AnimatePresence>
 
         {/* =================================================
-            POSTGIS GEODETIC DETAIL HUD CARD
+              POSTGIS GEODETIC DETAIL HUD CARD
         ================================================== */}
-
         <AnimatePresence>
           {postgisCardOpen && spatialInfo && (
             <motion.div
@@ -3325,235 +3387,245 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               {...hudCardMotion}
               className={cn(
                 hudCardClass,
-                "absolute inset-x-0 top-16 z-50 mx-auto w-[calc(100%-24px)] max-w-[400px]"
+                "absolute inset-x-0 top-16 z-50 mx-auto w-[calc(100%-16px)] max-w-[325px]"
               )}
             >
               <HudHeader
-                eyebrow="Geodetic"
-                title="Detail Verifikasi Geodetik PostGIS"
+                eyebrow=""
+                title="Detail Verifikasi Geodetik"
                 onClose={() => setPostgisCardOpen(false)}
                 closeLabel="Tutup Detail"
                 icon={
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center border border-[#E0E1DC] bg-[#F7F8F5]">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center border border-[#E0E1DC] bg-[#F7F8F5]">
                     <img
                       src="/postgis.png"
                       alt=""
-                      className="h-6 w-6 object-contain"
+                      className="h-4 w-4 object-contain"
                     />
                   </span>
                 }
               />
 
-              {/* Info banner */}
-              <div className="my-4 flex items-start gap-3 border border-[#E0E1DC] bg-[#F7F8F5] p-3">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center border border-[#E0E1DC] bg-white text-[#666861]">
-                  <Info className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} />
-                </span>
+              <div className="space-y-1.5">
+                <details className="group border border-[#E0E1DC] bg-[#F7F8F5]">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-2 py-1.5 outline-none [&::-webkit-details-marker]:hidden">
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.05em] text-[#999B94]">
+                        Verifikasi Geodetik
+                      </p>
 
-                <span className="text-[11px] font-medium leading-5 text-[#4E504A]">
-                  Luas lahan terverifikasi dihitung pada ellipsoid{" "}
-                  <strong className="font-bold text-[#171717]">
-                    WGS-84 (EPSG:4326)
-                  </strong>{" "}
-                  menggunakan fungsi geodetik PostGIS backend.
-                </span>
-              </div>
+                      <p className="mt-0.5 truncate text-[10px] font-bold text-[#171717]">
+                        Luas & dimensi lahan
+                      </p>
+                    </div>
 
-              {/* METRICS */}
-
-              <div className="mb-4 border border-[#E0E1DC] bg-[#F7F8F5] p-4">
-                <div className="grid grid-cols-2 gap-4 border-b border-[#E7E8E3] pb-3">
-                  <div>
-                    <span className={cn(eyebrowClass, "block")}>
-                      Luas Lahan (ha)
-                    </span>
-
-                    <p className="mt-1.5 text-lg font-bold tracking-[-0.03em] tabular-nums text-[#171717]">
-                      {spatialInfo.area_hectares ?? "-"}{" "}
-                      <span className="text-xs font-bold text-[#858780]">
-                        ha
+                    <div className="flex items-center gap-1.5">
+                      <span className="shrink-0 text-[10px] font-bold tabular-nums text-[#171717]">
+                        {spatialInfo.area_hectares ?? "-"} ha
                       </span>
-                    </p>
-                  </div>
 
-                  <div>
-                    <span className={cn(eyebrowClass, "block")}>
-                      Luas Lahan (m²)
-                    </span>
+                      <ChevronRight
+                        className="h-2.5 w-2.5 shrink-0 text-[#999B94] transition-transform duration-200 group-open:rotate-90"
+                        strokeWidth={ICON_STROKE}
+                      />
+                    </div>
+                  </summary>
 
-                    <p className="mt-1.5 text-lg font-bold tracking-[-0.03em] tabular-nums text-[#171717]">
-                      {spatialInfo.area_m2
-                        ? spatialInfo.area_m2.toLocaleString("id-ID")
-                        : "-"}{" "}
-                      <span className="text-xs font-bold text-[#858780]">
-                        m²
+                  <div className="border-t border-[#E7E8E3] px-2 py-2">
+                    <div className="mb-1.5 flex items-start gap-1.5 border border-[#E0E1DC] bg-white p-1.5">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center border border-[#E0E1DC] bg-[#F7F8F5] text-[#666861]">
+                        <Info
+                          className="h-2.5 w-2.5"
+                          strokeWidth={ICON_STROKE}
+                        />
                       </span>
-                    </p>
+
+                      <span className="text-[10px] font-medium leading-4 text-[#4E504A]">
+                        Luas lahan terverifikasi dihitung pada ellipsoid{" "}
+                        <strong className="font-bold text-[#171717]">
+                          WGS-84 (EPSG:4326)
+                        </strong>{" "}
+                        menggunakan fungsi geodetik PostGIS backend.
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-1.5 border border-[#E0E1DC] bg-white p-1.5">
+                      <div>
+                        <span className="block text-[10px] font-medium text-[#999B94]">
+                          Luas Lahan (ha)
+                        </span>
+
+                        <p className="mt-0.5 text-[10px] font-bold tabular-nums text-[#171717]">
+                          {spatialInfo.area_hectares ?? "-"}{" "}
+                          <span className="font-medium text-[#858780]">ha</span>
+                        </p>
+                      </div>
+
+                      <div>
+                        <span className="block text-[10px] font-medium text-[#999B94]">
+                          Luas Lahan (m²)
+                        </span>
+
+                        <p className="mt-0.5 text-[10px] font-bold tabular-nums text-[#171717]">
+                          {spatialInfo.area_m2
+                            ? spatialInfo.area_m2.toLocaleString("id-ID")
+                            : "-"}{" "}
+                          <span className="font-medium text-[#858780]">m²</span>
+                        </p>
+                      </div>
+
+                      <div className="border-t border-[#E7E8E3] pt-1.5">
+                        <span className="block text-[10px] font-medium text-[#999B94]">
+                          Keliling Batas Lahan
+                        </span>
+
+                        <p className="mt-0.5 text-[10px] font-bold tabular-nums text-[#171717]">
+                          {spatialInfo.perimeter_meters
+                            ? spatialInfo.perimeter_meters >= 1000
+                              ? `${(
+                                  spatialInfo.perimeter_meters / 1000
+                                ).toFixed(2)} km`
+                              : `${spatialInfo.perimeter_meters.toFixed(1)} m`
+                            : "-"}
+                        </p>
+
+                        {spatialInfo.perimeter_meters && (
+                          <span className="text-[10px] font-medium tabular-nums text-[#858780]">
+                            (
+                            {spatialInfo.perimeter_meters.toLocaleString(
+                              "id-ID"
+                            )}{" "}
+                            meter)
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="border-t border-[#E7E8E3] pt-1.5">
+                        <span className="block text-[10px] font-medium text-[#999B94]">
+                          Titik Pusat (Centroid)
+                        </span>
+
+                        <p className="mt-0.5 text-[10px] font-bold leading-4 tabular-nums text-[#171717]">
+                          {spatialInfo.centroid
+                            ? `${spatialInfo.centroid[1].toFixed(
+                                5
+                              )}°, ${spatialInfo.centroid[0].toFixed(5)}°`
+                            : "-"}
+                        </p>
+
+                        <span className="text-[10px] font-medium text-[#858780]">
+                          Latitude, Longitude
+                        </span>
+                      </div>
+                    </div>
                   </div>
+                </details>
+
+                <div className="flex items-center justify-between gap-1">
+                  <SweepButton
+                    onClick={() => {
+                      const map = mapRef.current;
+
+                      if (!map) {
+                        return;
+                      }
+
+                      if (currentMetaRef.current?.bounds) {
+                        const [[south, west], [north, east]] =
+                          currentMetaRef.current.bounds;
+
+                        map.fitBounds(
+                          [
+                            [west, south],
+                            [east, north],
+                          ],
+                          {
+                            padding: 40,
+                            duration: 800,
+                          }
+                        );
+                      }
+                    }}
+                  >
+                    <MousePointer
+                      className="h-2.5 w-2.5"
+                      strokeWidth={ICON_STROKE}
+                    />
+
+                    <span>Fokus ke Lahan</span>
+                  </SweepButton>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4 pt-3">
-                  <div>
-                    <span className={cn(eyebrowClass, "block")}>
-                      Keliling Batas Lahan
-                    </span>
-
-                    <p className="mt-1.5 text-sm font-bold tabular-nums text-[#171717]">
-                      {spatialInfo.perimeter_meters
-                        ? spatialInfo.perimeter_meters >= 1000
-                          ? `${(spatialInfo.perimeter_meters / 1000).toFixed(
-                              2
-                            )} km`
-                          : `${spatialInfo.perimeter_meters.toFixed(1)} m`
-                        : "-"}
-                    </p>
-
-                    {spatialInfo.perimeter_meters && (
-                      <span className="text-[11px] font-medium tabular-nums text-[#858780]">
-                        ({spatialInfo.perimeter_meters.toLocaleString("id-ID")}{" "}
-                        meter)
-                      </span>
-                    )}
-                  </div>
-
-                  <div>
-                    <span className={cn(eyebrowClass, "block")}>
-                      Titik Pusat (Centroid)
-                    </span>
-
-                    <p className="mt-1.5 text-xs font-bold leading-4 tabular-nums text-[#171717]">
-                      {spatialInfo.centroid
-                        ? `${spatialInfo.centroid[1].toFixed(
-                            5
-                          )}°, ${spatialInfo.centroid[0].toFixed(5)}°`
-                        : "-"}
-                    </p>
-
-                    <span className="text-[11px] font-medium text-[#858780]">
-                      Latitude, Longitude
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* ACTIONS */}
-
-              <div className="flex items-center justify-between gap-2">
-                <SweepButton
-                  onClick={() => {
-                    const map = mapRef.current;
-
-                    if (!map) {
-                      return;
-                    }
-
-                    if (currentMetaRef.current?.bounds) {
-                      const [[south, west], [north, east]] =
-                        currentMetaRef.current.bounds;
-
-                      map.fitBounds(
-                        [
-                          [west, south],
-                          [east, north],
-                        ],
-                        {
-                          padding: 40,
-                          duration: 800,
-                        }
-                      );
-                    }
-                  }}
-                >
-                  <MousePointer className="h-3 w-3" strokeWidth={ICON_STROKE} />
-
-                  <span>Fokus ke Lahan</span>
-                </SweepButton>
-
-                <button
-                  type="button"
-                  onClick={() => setPostgisCardOpen(false)}
-                  className={hudButtonSecondary}
-                >
-                  Tutup
-                </button>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
         {/* =================================================
-            INSPEKSI PETAK
+              INSPEKSI PETAK
         ================================================== */}
-
         {selectedPetak &&
           petakScreenPos &&
           (() => {
             const cEl = containerRef.current;
 
             const containerW = cEl?.clientWidth || 800;
+
             const containerH = cEl?.clientHeight || 600;
 
             const isSmall = containerW < 640;
-            const cardWidth = isSmall ? 224 : 248;
 
-            // Safe margins from viewport edges:
-            // SAFE_TOP = 64px keeps clear of top toolbar (toolbar is at top-2/top-3)
-            const SAFE_TOP = 64;
-            const SAFE_BOTTOM = 16;
-            const SAFE_LEFT = 12;
-            const SAFE_RIGHT = 12;
+            const cardWidth = isSmall ? 188 : 208;
 
-            // Max allowed height inside viewport to never overflow vertically
+            const SAFE_TOP = 54;
+            const SAFE_BOTTOM = 10;
+            const SAFE_LEFT = 8;
+            const SAFE_RIGHT = 8;
+
             const maxAllowedH = Math.max(
-              220,
+              190,
               containerH - SAFE_TOP - SAFE_BOTTOM
             );
+
             const currentCardH = Math.min(popupHeight, maxAllowedH);
 
-            // Decide placement:
-            const spaceAbove = petakScreenPos.y - 14 - SAFE_TOP;
+            const spaceAbove = petakScreenPos.y - 10 - SAFE_TOP;
+
             const spaceBelow =
-              containerH - SAFE_BOTTOM - (petakScreenPos.y + 14);
+              containerH - SAFE_BOTTOM - (petakScreenPos.y + 10);
 
             let isAbove = false;
+
             if (spaceAbove >= currentCardH) {
               isAbove = true;
             } else if (spaceBelow >= currentCardH) {
               isAbove = false;
             } else {
-              // Choose whichever side has more room
               isAbove = spaceAbove >= spaceBelow;
             }
 
-            // Ideal top position before clamping
             const rawTop = isAbove
-              ? petakScreenPos.y - 14 - currentCardH
-              : petakScreenPos.y + 14;
+              ? petakScreenPos.y - 10 - currentCardH
+              : petakScreenPos.y + 10;
 
-            // Strict boundary clamping (Bound to Layout)
             const clampedTop = Math.max(
               SAFE_TOP,
               Math.min(containerH - SAFE_BOTTOM - currentCardH, rawTop)
             );
 
-            // Strict horizontal clamping
             const rawLeft = petakScreenPos.x - cardWidth / 2;
+
             const clampedLeft = Math.max(
               SAFE_LEFT,
               Math.min(containerW - SAFE_RIGHT - cardWidth, rawLeft)
             );
 
-            // Arrow position pointing at petak center (in pixels relative to card)
             const arrowX = Math.max(
-              20,
-              Math.min(cardWidth - 20, petakScreenPos.x - clampedLeft)
+              16,
+              Math.min(cardWidth - 16, petakScreenPos.x - clampedLeft)
             );
 
-            // Arrow direction: if petak center is below the card midpoint, arrow sits at bottom
             const arrowAtBottom =
               petakScreenPos.y >= clampedTop + currentCardH / 2;
-
-            /* ---------- data tampilan petak ---------- */
 
             const activeAnalysisLayer = mapLayers.find(
               (l) => l.is_visible && l.layer_type?.toLowerCase() !== "ortho"
@@ -3596,6 +3668,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               const lt = (selectedPetak.layer_type || "").toLowerCase();
 
               const val = selectedPetak.value_mean;
+
               const status = selectedPetak.status;
 
               if (lt.includes("ndvi") || lt.includes("vari")) {
@@ -3642,6 +3715,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                       : val >= 35
                       ? "Optimal / Cukup"
                       : "Defisit Rendah");
+
                   return `${s} (${val} mg/kg). ${
                     val < 35
                       ? "Ketersediaan unsur hara nitrogen rendah, disarankan pemupukan N."
@@ -3659,6 +3733,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                       : val >= 15
                       ? "Optimal / Cukup"
                       : "Defisit Rendah");
+
                   return `${s} (${val} mg/kg). ${
                     val < 15
                       ? "Ketersediaan unsur hara fosfor rendah, disarankan suplementasi P."
@@ -3676,6 +3751,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                       : val >= 80
                       ? "Optimal / Cukup"
                       : "Defisit Rendah");
+
                   return `${s} (${val} mg/kg). ${
                     val < 80
                       ? "Ketersediaan unsur hara kalium rendah, disarankan pemupukan K."
@@ -3698,11 +3774,26 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             })();
 
             const analysisRows = [
-              { key: "ndvi", label: "NDVI (Vegetasi)" },
-              { key: "nitrogen", label: "Nitrogen (N)" },
-              { key: "phosphorus", label: "Fosfor (P)" },
-              { key: "kalium", label: "Kalium (K)" },
-              { key: "dsm", label: "DSM (Elevasi)" },
+              {
+                key: "ndvi",
+                label: "NDVI (Vegetasi)",
+              },
+              {
+                key: "nitrogen",
+                label: "Nitrogen (N)",
+              },
+              {
+                key: "phosphorus",
+                label: "Fosfor (P)",
+              },
+              {
+                key: "kalium",
+                label: "Kalium (K)",
+              },
+              {
+                key: "dsm",
+                label: "DSM (Elevasi)",
+              },
             ];
 
             const availableCount = analysisRows.filter(({ key }) =>
@@ -3714,6 +3805,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                 ref={(node) => {
                   if (node) {
                     const h = node.offsetHeight;
+
                     if (h > 50 && Math.abs(h - popupHeight) > 10) {
                       setPopupHeight(h);
                     }
@@ -3721,7 +3813,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                 }}
                 className={cn(
                   "pointer-events-auto absolute z-30 flex flex-col transition-all duration-75 ease-out",
-                  isSmall ? "w-[224px]" : "w-[248px]"
+                  isSmall ? "w-[188px]" : "w-[208px]"
                 )}
                 style={{
                   left: `${clampedLeft}px`,
@@ -3746,18 +3838,27 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                 )}
 
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.97 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.18, ease: EASE }}
-                  className="relative flex max-h-[inherit] flex-col overflow-y-auto border border-[#DCDDD8] bg-white/95 shadow-[0_20px_45px_rgba(0,0,0,0.12)] backdrop-blur-md"
+                  initial={{
+                    opacity: 0,
+                    scale: 0.97,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    scale: 1,
+                  }}
+                  transition={{
+                    duration: 0.18,
+                    ease: EASE,
+                  }}
+                  className="relative flex max-h-[inherit] flex-col overflow-y-auto border border-[#DCDDD8] bg-white/95 shadow-[0_12px_28px_rgba(0,0,0,0.09)] backdrop-blur-md"
                 >
-                  {/* HEADER */}
-
-                  <div className="flex items-center justify-between gap-2 px-3 pt-3">
+                  <div className="flex items-center justify-between gap-1.5 px-2 pt-2">
                     <div className="min-w-0">
-                      <p className={eyebrowClass}>Inspeksi petak</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.04em] text-[#999B94]">
+                        Inspeksi petak
+                      </p>
 
-                      <h4 className="mt-0.5 truncate text-[13px] font-bold tracking-[-0.02em] text-[#171717]">
+                      <h4 className="mt-0.5 truncate text-[10px] font-bold text-[#171717]">
                         Petak {selectedPetak.block_id}
                       </h4>
                     </div>
@@ -3766,26 +3867,24 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                       type="button"
                       onClick={() => setSelectedPetak(null)}
                       aria-label="Tutup inspeksi petak"
-                      className="flex h-7 w-7 shrink-0 items-center justify-center border border-[#E0E1DC] bg-[#FAFAF8] text-[#777972] outline-none transition-colors hover:bg-[#F2F3EF] hover:text-[#171717] focus-visible:ring-2 focus-visible:ring-[#76B900]/40"
+                      className="flex h-6 w-6 shrink-0 items-center justify-center border border-[#E0E1DC] bg-[#FAFAF8] text-[#777972] outline-none transition-colors hover:bg-[#F2F3EF] hover:text-[#171717] focus-visible:ring-2 focus-visible:ring-[#76B900]/40"
                     >
-                      <X className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} />
+                      <X className="h-2.5 w-2.5" strokeWidth={ICON_STROKE} />
                     </button>
                   </div>
 
-                  <div className="space-y-2 p-3">
-                    {/* PRIMARY */}
-
-                    <div className="relative overflow-hidden bg-[#171717] px-3 py-2.5 text-white">
+                  <div className="space-y-1 p-2">
+                    <div className="relative overflow-hidden bg-[#171717] px-2 py-1.5 text-white">
                       <div className="absolute inset-x-0 top-0 h-[2px] bg-[#76B900]" />
 
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="truncate text-[9px] font-bold uppercase tracking-[0.14em] text-white/50">
+                      <div className="flex items-center justify-between gap-1.5">
+                        <span className="truncate text-[10px] font-semibold uppercase tracking-[0.04em] text-white/50">
                           {layerTitle}
                         </span>
 
                         {selectedPetak.status && (
                           <span
-                            className="shrink-0 px-1.5 py-0.5 text-[9px] font-bold text-white"
+                            className="shrink-0 px-1 py-0.5 text-[10px] font-bold text-white"
                             style={{
                               backgroundColor: selectedPetak.color || "#16a34a",
                             }}
@@ -3795,15 +3894,15 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                         )}
                       </div>
 
-                      <div className="mt-1 flex items-baseline gap-1.5">
-                        <span className="text-2xl font-bold tracking-[-0.04em] tabular-nums text-white">
+                      <div className="mt-0.5 flex items-baseline gap-1">
+                        <span className="text-[10px] font-bold tabular-nums text-white">
                           {selectedPetak.value_mean !== undefined
                             ? selectedPetak.value_mean
                             : "-"}
                         </span>
 
                         {unit && (
-                          <span className="text-[10px] font-bold text-white/50">
+                          <span className="text-[10px] font-medium text-white/50">
                             {unit}
                           </span>
                         )}
@@ -3811,41 +3910,39 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
                       {selectedPetak.value_min !== undefined &&
                         selectedPetak.value_max !== undefined && (
-                          <div className="mt-2 grid grid-cols-3 border-t border-white/10 pt-1.5 text-center tabular-nums">
+                          <div className="mt-1 grid grid-cols-3 border-t border-white/10 pt-1 text-center tabular-nums">
                             <div>
-                              <p className="text-[9px] font-medium text-white/45">
+                              <p className="text-[10px] font-medium text-white/45">
                                 Min
                               </p>
 
-                              <p className="text-[11px] font-bold text-white">
+                              <p className="text-[10px] font-bold text-white">
                                 {selectedPetak.value_min}
                               </p>
                             </div>
 
                             <div className="border-x border-white/10">
-                              <p className="text-[9px] font-medium text-white/45">
+                              <p className="text-[10px] font-medium text-white/45">
                                 Rerata
                               </p>
 
-                              <p className="text-[11px] font-bold text-white">
+                              <p className="text-[10px] font-bold text-white">
                                 {selectedPetak.value_mean}
                               </p>
                             </div>
 
                             <div>
-                              <p className="text-[9px] font-medium text-white/45">
+                              <p className="text-[10px] font-medium text-white/45">
                                 Maks
                               </p>
 
-                              <p className="text-[11px] font-bold text-white">
+                              <p className="text-[10px] font-bold text-white">
                                 {selectedPetak.value_max}
                               </p>
                             </div>
                           </div>
                         )}
                     </div>
-
-                    {/* SUMMARY (DROPDOWN) */}
 
                     <AccordionRow
                       title="Ringkasan kondisi"
@@ -3856,12 +3953,10 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                         )
                       }
                     >
-                      <p className="text-[11px] font-medium leading-[1.55] text-[#4E504A]">
+                      <p className="text-[10px] font-medium leading-4 text-[#4E504A]">
                         {summaryText}
                       </p>
                     </AccordionRow>
-
-                    {/* LAYER STATUS (DROPDOWN) */}
 
                     <AccordionRow
                       title="Layer analisis lahan"
@@ -3893,7 +3988,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                             <div
                               key={key}
                               className={cn(
-                                "flex items-center justify-between gap-2 border px-2 py-1 text-[11px]",
+                                "flex items-center justify-between gap-1.5 border px-1 py-0.5 text-[10px]",
                                 isCurrent
                                   ? "border-[#171717] bg-[#F7F8F5] font-bold text-[#171717]"
                                   : "border-transparent text-[#858780]"
@@ -3902,7 +3997,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                               <span className="flex min-w-0 items-center gap-1.5">
                                 <span
                                   className={cn(
-                                    "h-1.5 w-1.5 shrink-0",
+                                    "h-1 w-1 shrink-0",
                                     isCurrent
                                       ? "bg-[#76B900]"
                                       : layerItem
@@ -3921,7 +4016,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                                     : "Aktif"}
                                 </span>
                               ) : layerItem ? (
-                                <span className="shrink-0 border border-[#E0E1DC] bg-[#F7F8F5] px-1.5 py-0.5 text-[9px] font-bold text-[#4E504A]">
+                                <span className="shrink-0 border border-[#E0E1DC] bg-[#F7F8F5] px-1 py-0.5 text-[10px] font-semibold text-[#4E504A]">
                                   Tersedia
                                 </span>
                               ) : (
@@ -3941,21 +4036,21 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
           })()}
 
         {/* =================================================
-            MAP LEGEND / COLOR SCALE BAR (NATIVE MAPLIBRE ICONTROL)
+              MAP LEGEND — BOTTOM CENTER DRAWER
         ================================================== */}
-
-        {legendHost &&
-          createPortal(
-            <MapLegend layers={mapLayers} gridEnabled={gridEnabled} />,
-            legendHost
-          )}
+        <MapLegend layers={mapLayers} gridEnabled={gridEnabled} />
 
         {/* =================================================
-            BOTTOM-LEFT CONTROLS
-        ================================================== */}
-
-        <div className="pointer-events-none absolute bottom-3 left-2 z-20 flex flex-col items-start gap-2 sm:bottom-6 sm:left-4">
-          <div className="pointer-events-auto flex items-center gap-0.5 border border-[#DCDDD8] bg-white/95 p-1 shadow-[0_12px_30px_rgba(0,0,0,0.08)] backdrop-blur-md">
+      BOTTOM-LEFT CONTROLS
+================================================== */}
+        <div
+          className="pointer-events-none absolute bottom-2 z-20 flex flex-col items-start gap-1 sm:bottom-3"
+          style={{
+            left: "calc(var(--map-ui-left, 8px) + 4px)",
+            transition: "left 300ms ease-out",
+          }}
+        >
+          <div className="pointer-events-auto flex items-center gap-px border border-[#DCDDD8] bg-white/95 p-px shadow-[0_8px_18px_rgba(0,0,0,0.06)] backdrop-blur-md">
             <button
               type="button"
               onClick={handleRotateLeft}
@@ -3963,7 +4058,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               aria-label="Putar kiri 45 derajat"
               className={controlButtonClass}
             >
-              <RotateCcw className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} />
+              <RotateCcw className="h-2.5 w-2.5" strokeWidth={ICON_STROKE} />
             </button>
 
             <button
@@ -3971,7 +4066,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               onClick={handleResetNorth}
               title="Reset ke Utara"
               aria-label="Reset ke Utara"
-              className="flex h-9 w-9 items-center justify-center border border-[#E0E1DC] bg-[#F7F8F5] outline-none transition-colors hover:bg-[#EEEFEA] focus-visible:ring-2 focus-visible:ring-[#76B900]/40"
+              className="flex h-7 w-7 items-center justify-center border border-[#E0E1DC] bg-[#F7F8F5] outline-none transition-colors hover:bg-[#EEEFEA] focus-visible:ring-2 focus-visible:ring-[#76B900]/40"
             >
               <div
                 className="flex h-full w-full items-center justify-center"
@@ -3979,10 +4074,10 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                   transform: `rotate(${-bearing}deg)`,
                 }}
               >
-                <div className="relative flex h-5 w-2 flex-col items-center">
-                  <div className="h-2.5 w-0 border-x-[3.5px] border-b-[10px] border-x-transparent border-b-red-600" />
+                <div className="relative flex h-3.5 w-1.5 flex-col items-center">
+                  <div className="h-2 w-0 border-x-[2.5px] border-b-[7px] border-x-transparent border-b-red-600" />
 
-                  <div className="h-2.5 w-0 border-x-[3.5px] border-t-[10px] border-x-transparent border-t-[#B0B1AB]" />
+                  <div className="h-2 w-0 border-x-[2.5px] border-t-[7px] border-x-transparent border-t-[#B0B1AB]" />
                 </div>
               </div>
             </button>
@@ -3994,17 +4089,15 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               aria-label="Putar kanan 45 derajat"
               className={controlButtonClass}
             >
-              <RotateCw className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} />
+              <RotateCw className="h-2.5 w-2.5" strokeWidth={ICON_STROKE} />
             </button>
 
-            <span className="min-w-[48px] px-1.5 text-center text-[10px] font-bold tabular-nums text-[#4E504A]">
+            <span className="min-w-[36px] px-0.5 text-center text-[10px] font-semibold tabular-nums text-[#4E504A]">
               {bearing}° {getDirection(bearing)}
             </span>
 
-            {/* DIVIDER */}
-            <div className="mx-0.5 h-5 w-px bg-[#E7E8E3]" />
+            <div className="mx-px h-3.5 w-px bg-[#E7E8E3]" />
 
-            {/* ZOOM IN */}
             <button
               type="button"
               onClick={handleZoomIn}
@@ -4012,10 +4105,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               aria-label="Zoom In"
               className={controlButtonClass}
             >
-              <ZoomIn className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} />
+              <ZoomIn className="h-2.5 w-2.5" strokeWidth={ICON_STROKE} />
             </button>
 
-            {/* ZOOM OUT */}
             <button
               type="button"
               onClick={handleZoomOut}
@@ -4023,10 +4115,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               aria-label="Zoom Out"
               className={controlButtonClass}
             >
-              <ZoomOut className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} />
+              <ZoomOut className="h-2.5 w-2.5" strokeWidth={ICON_STROKE} />
             </button>
 
-            {/* FULLSCREEN */}
             <button
               type="button"
               onClick={handleToggleFullscreen}
@@ -4035,18 +4126,17 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               className={controlButtonClass}
             >
               {isFullscreen ? (
-                <Minimize2 className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} />
+                <Minimize2 className="h-2.5 w-2.5" strokeWidth={ICON_STROKE} />
               ) : (
-                <Maximize2 className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} />
+                <Maximize2 className="h-2.5 w-2.5" strokeWidth={ICON_STROKE} />
               )}
             </button>
           </div>
         </div>
 
         {/* =================================================
-            MAP CONTAINER
+              MAP CONTAINER
         ================================================== */}
-
         <div ref={containerRef} className="h-full w-full bg-[#F4F5F2]" />
       </div>
     );

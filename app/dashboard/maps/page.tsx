@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -10,9 +10,9 @@ import { useUserRole } from "@/context/UserRoleContext";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
 
+import React from "react";
 import {
   Map as MapIcon,
-  Layers,
   Search,
   Download,
   X,
@@ -23,11 +23,12 @@ import {
   AlertTriangle,
   CheckCircle2,
   ArrowUpRight,
+  ArrowLeft,
   Calendar,
   MapPin,
   ScanLine,
   Lock,
-  Gem,
+  ChevronRight,
 } from "lucide-react";
 
 import type { MapHandle } from "@/components/MapDisplay";
@@ -83,7 +84,7 @@ interface MapData {
 }
 
 /* =========================================================
-   3D ISOMETRIC WIREFRAME (dipakai di modal Premium)
+   3D ISOMETRIC WIREFRAME
 ========================================================= */
 
 type Block = {
@@ -122,7 +123,12 @@ type BuiltScene = {
   region: string;
   grid: string;
   floor: string;
-  blocks: { top: string; left: string; right: string; levels: string }[];
+  blocks: {
+    top: string;
+    left: string;
+    right: string;
+    levels: string;
+  }[];
 };
 
 function buildScene({ grid: n, blocks }: SceneConfig): BuiltScene {
@@ -190,13 +196,21 @@ function buildScene({ grid: n, blocks }: SceneConfig): BuiltScene {
         )} `;
       }
 
-      return { top, left, right, levels };
+      return {
+        top,
+        left,
+        right,
+        levels,
+      };
     });
 
   const pad = 6;
+
   const minX = Math.min(...xs) - pad;
   const minY = Math.min(...ys) - pad;
+
   const width = Math.max(...xs) - Math.min(...xs) + pad * 2;
+
   const height = Math.max(...ys) - Math.min(...ys) + pad * 2;
 
   return {
@@ -213,7 +227,9 @@ function buildScene({ grid: n, blocks }: SceneConfig): BuiltScene {
 
 const WIREFRAME_SCENE = buildScene(WIREFRAME_CONFIG);
 
-const NON_SCALING = { vectorEffect: "non-scaling-stroke" as const };
+const NON_SCALING = {
+  vectorEffect: "non-scaling-stroke" as const,
+};
 
 function PlanGeometry({
   dark = false,
@@ -257,12 +273,15 @@ function PlanGeometry({
       />
 
       <path d={scene.grid} strokeOpacity={0.5} {...NON_SCALING} />
+
       <path d={scene.floor} {...NON_SCALING} />
 
       {scene.blocks.map((block, index) => (
         <g key={index}>
           <path d={block.left} fill={surface} {...NON_SCALING} />
+
           <path d={block.right} fill={surface} {...NON_SCALING} />
+
           <path d={block.top} fill={surface} {...NON_SCALING} />
 
           <path
@@ -366,10 +385,11 @@ const formatSize = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(2)} MB`;
 
 const overviewContainer: Variants = {
   hidden: {},
+
   show: {
     transition: {
-      staggerChildren: 0.07,
-      delayChildren: 0.12,
+      staggerChildren: 0.06,
+      delayChildren: 0.05,
     },
   },
 };
@@ -379,11 +399,12 @@ const overviewItem: Variants = {
     opacity: 0,
     y: 6,
   },
+
   show: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.4,
+      duration: 0.35,
       ease: [0.22, 1, 0.36, 1],
     },
   },
@@ -401,13 +422,41 @@ export default function MapsPage() {
   ========================================================== */
 
   const [maps, setMaps] = useState<MapData[]>([]);
+
   const [selectedLayer, setSelectedLayer] = useState("");
+
   const [searchQuery, setSearchQuery] = useState("");
+
+  const [activeCategory, setActiveCategory] = useState("Semua");
+
   const [isLayerPanelOpen, setIsLayerPanelOpen] = useState(true);
+
+  const [panelView, setPanelView] = useState<"list" | "detail">("list");
+
   const [isMinSearchFocused, setIsMinSearchFocused] = useState(false);
 
   const [loading, setLoading] = useState(true);
+
   const [error, setError] = useState("");
+
+  /* =========================================================
+     SIDEBAR STATE
+  ========================================================== */
+
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  /*
+   * Sidebar:
+   *
+   * Normal:
+   * 12px margin + 258px width + 12px gap
+   * = 282px
+   *
+   * Collapsed:
+   * 12px margin + 76px width + 12px gap
+   * = 100px
+   */
+  const mapPanelLeft = sidebarCollapsed ? 100 : 282;
 
   /* Premium modal */
   const [toastMessage, setToastMessage] = useState("");
@@ -424,6 +473,7 @@ export default function MapsPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
+
   const mapRef = useRef<MapHandle>(null);
 
   /* Metadata */
@@ -452,10 +502,45 @@ export default function MapsPage() {
 
   /* Delete */
   const [deletingMap, setDeletingMap] = useState<MapData | null>(null);
+
   const [isDeleting, setIsDeleting] = useState(false);
 
   /* Download analysis */
   const [isDownloadingAnalysis, setIsDownloadingAnalysis] = useState(false);
+
+  /* =========================================================
+     SIDEBAR SYNC
+  ========================================================== */
+
+  useEffect(() => {
+    const syncSidebar = () => {
+      const stored = localStorage.getItem("sidebar:collapsed");
+
+      setSidebarCollapsed(stored === "true");
+    };
+
+    syncSidebar();
+
+    const handleSidebarToggle = (event: Event) => {
+      const customEvent = event as CustomEvent<{
+        collapsed?: boolean;
+      }>;
+
+      if (typeof customEvent.detail?.collapsed === "boolean") {
+        setSidebarCollapsed(customEvent.detail.collapsed);
+
+        return;
+      }
+
+      syncSidebar();
+    };
+
+    window.addEventListener("sidebar:toggle", handleSidebarToggle);
+
+    return () => {
+      window.removeEventListener("sidebar:toggle", handleSidebarToggle);
+    };
+  }, []);
 
   /* =========================================================
      NOTICE
@@ -569,24 +654,38 @@ export default function MapsPage() {
     locked: map.locked_for_free && !isAdmin && user?.tier === "free",
     format: map.file_format,
     size: (map.file_size / 1024 / 1024).toFixed(2),
+    mapType: map.map_type?.trim() || "Umum",
   }));
 
   /* =========================================================
-     SEARCH
+     CATEGORY CHIPS
+  ========================================================== */
+
+  const categoryChips = useMemo(() => {
+    const seen = new Set<string>();
+
+    mapLayers.forEach((layer) => seen.add(layer.mapType));
+
+    return ["Semua", ...Array.from(seen)];
+  }, [mapLayers]);
+
+  /* =========================================================
+     SEARCH + FILTER
   ========================================================== */
 
   const filteredMapLayers = mapLayers.filter((layer) => {
     const query = searchQuery.trim().toLowerCase();
 
-    if (!query) {
-      return true;
-    }
-
-    return (
+    const matchesQuery =
+      !query ||
       layer.name.toLowerCase().includes(query) ||
       layer.location.toLowerCase().includes(query) ||
-      layer.format.toLowerCase().includes(query)
-    );
+      layer.format.toLowerCase().includes(query);
+
+    const matchesCategory =
+      activeCategory === "Semua" || layer.mapType === activeCategory;
+
+    return matchesQuery && matchesCategory;
   });
 
   const selectedMap = mapLayers.find((layer) => layer.id === selectedLayer);
@@ -612,24 +711,6 @@ export default function MapsPage() {
   /* =========================================================
      MAP ACTIONS
   ========================================================== */
-
-  const handleZoomIn = () => {
-    if (mapRef.current?.zoomIn) {
-      mapRef.current.zoomIn();
-      return;
-    }
-
-    showNotice("Zoom in memerlukan pembaruan pada MapDisplay.", "error");
-  };
-
-  const handleZoomOut = () => {
-    if (mapRef.current?.zoomOut) {
-      mapRef.current.zoomOut();
-      return;
-    }
-
-    showNotice("Zoom out memerlukan pembaruan pada MapDisplay.", "error");
-  };
 
   const handleFullscreen = async () => {
     if (!mapContainerRef.current) {
@@ -691,8 +772,11 @@ export default function MapsPage() {
       const textArea = document.createElement("textarea");
 
       textArea.value = shareUrl;
+
       textArea.style.position = "fixed";
+
       textArea.style.left = "-9999px";
+
       textArea.style.top = "0";
 
       document.body.appendChild(textArea);
@@ -813,7 +897,9 @@ export default function MapsPage() {
       const anchor = document.createElement("a");
 
       anchor.href = downloadUrl;
+
       anchor.download = filename;
+
       anchor.style.display = "none";
 
       document.body.appendChild(anchor);
@@ -894,6 +980,7 @@ export default function MapsPage() {
 
     if (Object.keys(errors).length > 0) {
       setEditErrors(errors);
+
       return;
     }
 
@@ -951,6 +1038,8 @@ export default function MapsPage() {
 
       if (selectedLayer === deletingMap.id) {
         setSelectedLayer("");
+
+        setPanelView("list");
       }
 
       closeDeleteConfirm();
@@ -964,719 +1053,676 @@ export default function MapsPage() {
   };
 
   /* =========================================================
+     PANEL / SELECTION HELPERS
+  ========================================================== */
+
+  const handlePickLayer = (layer: (typeof mapLayers)[number]) => {
+    if (layer.locked) {
+      triggerToast(
+        "Peta ini terkunci untuk Member Free. Silakan Upgrade Tier Anda."
+      );
+
+      return;
+    }
+
+    if (selectedLayer === layer.id) {
+      mapRef.current?.resetView();
+    } else {
+      setSelectedLayer(layer.id);
+    }
+
+    setPanelView("detail");
+  };
+
+  const closeLayerPanel = () => {
+    setIsLayerPanelOpen(false);
+  };
+
+  /* =========================================================
+     DETAIL ACTIONS
+  ========================================================== */
+
+  const canManage =
+    Boolean(selectedMapRaw) && (isAdmin || !selectedMap?.locked);
+
+  const detailActions = selectedMapRaw
+    ? [
+        {
+          key: "share",
+          icon: ArrowUpRight,
+          label: "Bagikan",
+          onClick: () => handleShare(),
+        },
+
+        {
+          key: "download",
+          icon: isDownloadingAnalysis
+            ? Loader2
+            : isDownloadLocked
+            ? Lock
+            : Download,
+
+          label: isDownloadingAnalysis ? "Memuat" : "Unduh",
+
+          onClick: () => handleDownloadAnalysis(),
+
+          spin: isDownloadingAnalysis,
+
+          disabled: isDownloadingAnalysis,
+        },
+
+        {
+          key: "metadata",
+          icon: ScanLine,
+          label: "Metadata",
+          onClick: () => setMetadataMap(selectedMapRaw),
+        },
+
+        ...(canManage
+          ? [
+              {
+                key: "edit",
+                icon: Pencil,
+                label: "Edit",
+
+                onClick: (event?: React.MouseEvent) =>
+                  openEditModal(selectedMapRaw, event),
+              },
+
+              {
+                key: "delete",
+                icon: Trash2,
+                label: "Hapus",
+
+                onClick: (event?: React.MouseEvent) =>
+                  openDeleteConfirm(selectedMapRaw, event),
+
+                danger: true,
+              },
+            ]
+          : []),
+      ]
+    : [];
+
+  /* =========================================================
      RENDER
   ========================================================== */
 
   return (
-    <main className="min-h-screen bg-[#F4F5F2] text-[#151515]">
-      <div className="mx-auto max-w-[1440px] px-3 py-5 sm:px-6 sm:py-7 lg:px-10 lg:py-10">
-        {/* ===================================================
-            PAGE HEADER
-        ==================================================== */}
+    <main className="fixed inset-0 z-10 overflow-hidden bg-[#F4F5F2] text-[#151515]">
+      {/* ===================================================
+          MAP — FULL VIEWPORT
+      ==================================================== */}
 
-        <motion.header
+      <div ref={mapContainerRef} className="absolute inset-0">
+        <Map
+          ref={mapRef}
+          mapId={selectedMap?.id}
+          token={
+            typeof window !== "undefined"
+              ? localStorage.getItem("token") || undefined
+              : undefined
+          }
+          mapFormat={selectedMap?.format}
+          mapTitle={selectedMap?.name}
+          mapLocation={selectedMap?.location}
+          isFullscreen={isFullscreen}
+          onToggleFullscreen={handleFullscreen}
+        />
+      </div>
+
+      {/* ===================================================
+          BUTTON — CARI PETA
+          Ikut bergerak mengikuti sidebar
+      ==================================================== */}
+
+      {!isFullscreen && !isLayerPanelOpen && (
+        <button
+          type="button"
+          onClick={() => setIsLayerPanelOpen(true)}
+          className="absolute top-2 z-40 flex items-center gap-2 border border-[#DCDDD8] bg-white px-3 py-2.5 text-[10px] font-bold uppercase tracking-[0.07em] text-[#171717] shadow-[0_12px_30px_rgba(0,0,0,0.10)] transition-[left,color,background-color,border-color] duration-300 ease-out hover:border-[#171717] hover:bg-[#171717] hover:text-white sm:top-3"
+          style={{
+            left: `${mapPanelLeft}px`,
+          }}
+        >
+          <Search className="h-3.5 w-3.5" strokeWidth={1.8} />
+
+          <span>Cari Peta</span>
+
+          <span className="border border-[#E0E1DC] bg-[#F7F8F5] px-1.5 py-0.5 text-[9px] font-extrabold text-[#171717]">
+            {maps.length}
+          </span>
+        </button>
+      )}
+
+      {/* ===================================================
+          LEFT PANEL — SEARCH / LIST / DETAIL
+          Ikut bergerak mengikuti sidebar
+      ==================================================== */}
+
+      {!isFullscreen && isLayerPanelOpen && (
+        <motion.aside
           initial={{
             opacity: 0,
-            y: 12,
+            x: -8,
           }}
           animate={{
             opacity: 1,
-            y: 0,
+            x: 0,
           }}
           transition={{
-            duration: 0.5,
+            duration: 0.25,
             ease: [0.22, 1, 0.36, 1],
           }}
-          className="mb-5 sm:mb-8"
+          className="absolute top-2 z-40 flex max-h-[58vh] w-[calc(100%-16px)] max-w-[300px] flex-col overflow-hidden border border-[#DCDDD8] bg-white shadow-[0_16px_36px_rgba(0,0,0,0.08)] transition-[left] duration-300 ease-out sm:top-3 sm:max-h-[62vh] sm:w-[300px]"
+          style={{
+            left: `${mapPanelLeft}px`,
+          }}
         >
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between lg:gap-6">
-            <div className="min-w-0">
-              <h1 className="max-w-3xl text-[28px] font-bold leading-[1.08] tracking-[-0.045em] text-[#111111] sm:text-[34px] lg:text-[42px]">
-                Peta &amp; Analisis{" "}
-                <span className="text-[#171717]">Geospasial</span>
-              </h1>
+          {panelView === "list" ? (
+            <>
+              {/* =========================================================
+                    LIST VIEW
+                ========================================================= */}
 
-              <p className="mt-2.5 max-w-2xl text-[11px] font-medium leading-[1.7] text-[#767871] sm:mt-3 sm:text-sm sm:leading-6">
-                Jelajahi hasil pemetaan drone, lihat metadata raster, dan unduh
-                hasil analisis berdasarkan cakupan wilayah Anda.
-              </p>
-            </div>
+              <div className="border-b border-[#E7E8E3] px-3 py-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <h2 className="text-[12px] font-bold tracking-[-0.02em] text-[#171717] sm:text-[13px]">
+                      Telusuri Peta Anda
+                    </h2>
+                  </div>
 
-            <div className="flex w-full flex-wrap items-center gap-2 sm:gap-3 lg:w-auto">
-              <span className="inline-flex min-w-0 flex-1 items-center justify-center gap-2 border border-[#D8DAD4] bg-white px-3 py-2.5 text-[9px] font-bold uppercase tracking-[0.07em] text-[#595B55] sm:flex-none sm:px-3.5 sm:text-[11px] sm:tracking-[0.08em]">
-                <Gem className="h-3.5 w-3.5 text-[#666861]" strokeWidth={1.8} />
-                <span className="truncate">{tierBadgeLabel}</span>
-              </span>
-
-              <span className="inline-flex shrink-0 items-center justify-center border border-[#D8DAD4] bg-white px-3 py-2.5 text-[9px] font-bold uppercase tracking-[0.07em] text-[#777972] sm:px-3.5 sm:text-[11px] sm:tracking-[0.08em]">
-                {maps.length} Peta
-              </span>
-            </div>
-          </div>
-        </motion.header>
-
-        {/* ===================================================
-            ACTIVE MAP SUMMARY
-        ==================================================== */}
-
-        <motion.section
-          initial={{
-            opacity: 0,
-            y: 10,
-          }}
-          animate={{
-            opacity: 1,
-            y: 0,
-          }}
-          transition={{
-            duration: 0.45,
-            ease: [0.22, 1, 0.36, 1],
-          }}
-          aria-label="Ringkasan peta aktif"
-          className="relative mb-4 overflow-hidden rounded-none border border-[#DCDDD8] bg-white sm:mb-5"
-        >
-          {/* accent bar kiri */}
-
-          <motion.span
-            aria-hidden="true"
-            initial={{
-              scaleY: 0,
-            }}
-            animate={{
-              scaleY: 1,
-            }}
-            transition={{
-              duration: 0.6,
-              delay: 0.15,
-              ease: [0.22, 1, 0.36, 1],
-            }}
-            style={{
-              originY: 0,
-            }}
-            className={`absolute inset-y-0 left-0 w-[3px] ${
-              selectedMap ? "bg-[#76B900]" : "bg-[#C5C7C1]"
-            }`}
-          />
-
-          {/* garis tipis atas */}
-
-          {selectedMap && (
-            <motion.span
-              aria-hidden="true"
-              initial={{
-                scaleX: 0,
-              }}
-              animate={{
-                scaleX: 1,
-              }}
-              transition={{
-                duration: 0.9,
-                delay: 0.2,
-                ease: [0.22, 1, 0.36, 1],
-              }}
-              style={{
-                originX: 0,
-              }}
-              className="absolute inset-x-0 top-0 h-px bg-[#76B900]/70"
-            />
-          )}
-
-          <motion.div
-            variants={overviewContainer}
-            initial="hidden"
-            animate="show"
-            className="flex flex-wrap items-center py-4 pl-5 pr-4 sm:py-4 sm:pl-6 sm:pr-5 lg:flex-nowrap"
-          >
-            {/* IDENTITY */}
-
-            <motion.div
-              variants={overviewItem}
-              className="order-1 flex min-w-0 max-w-full items-center gap-3"
-            >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center border border-[#E0E1DC] bg-[#F7F8F5] sm:h-10 sm:w-10">
-                <ScanLine
-                  className="h-4 w-4 text-[#666861]"
-                  strokeWidth={1.8}
-                />
-              </span>
-
-              <div className="min-w-0">
-                <p className="text-[10px] font-medium text-[#8A8C85] sm:text-[11px]">
-                  Peta aktif
-                </p>
-
-                <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-2">
-                  <p className="max-w-[calc(100vw-135px)] truncate text-[13px] font-semibold text-[#171717] sm:max-w-[400px] sm:text-sm lg:max-w-[360px]">
-                    {selectedMap ? selectedMap.name : "Belum ada layer dipilih"}
-                  </p>
-
-                  <span
-                    className={`inline-flex h-5 shrink-0 items-center rounded-none px-2 text-[9px] font-bold uppercase tracking-[0.1em] sm:text-[10px] sm:tracking-[0.12em] ${
-                      selectedMap
-                        ? "bg-[#76B900] text-[#0F1A00]"
-                        : "bg-[#EEEFEA] text-[#666861]"
-                    }`}
+                  <button
+                    type="button"
+                    onClick={closeLayerPanel}
+                    className="flex h-7 w-7 shrink-0 items-center justify-center border border-[#E0E1DC] bg-[#FAFAF8] text-[#777972] transition-colors hover:bg-[#F2F3EF] hover:text-[#171717]"
+                    title="Sembunyikan panel"
                   >
-                    {selectedMap
-                      ? selectedMap.format?.toUpperCase() || "UNKNOWN"
-                      : "Kosong"}
-                  </span>
+                    <X className="h-3 w-3" strokeWidth={1.8} />
+                  </button>
                 </div>
-              </div>
-            </motion.div>
 
-            {/* DOWNLOAD */}
+                {/* SEARCH */}
 
-            <motion.div
-              variants={overviewItem}
-              className="order-2 ml-auto mt-3 w-full lg:order-3 lg:ml-6 lg:mt-0 lg:w-auto"
-            >
-              {isDownloadLocked ? (
-                <button
-                  type="button"
-                  onClick={handleDownloadAnalysis}
-                  disabled={isDownloadingAnalysis}
-                  className="inline-flex h-10 w-full cursor-not-allowed items-center justify-center gap-2 border border-[#DCDDD8] bg-[#F4F5F2] px-4 text-[9px] font-bold uppercase tracking-[0.08em] text-[#A0A19C] transition-colors hover:border-[#C8CAC4] sm:text-[10px] lg:w-auto"
-                >
-                  <Lock className="h-3.5 w-3.5" strokeWidth={1.8} />
-                  Download Analisa
-                </button>
-              ) : (
-                <SweepButton
-                  onClick={handleDownloadAnalysis}
-                  disabled={isDownloadingAnalysis}
-                  sizing="h-10 w-full gap-2 px-4 lg:w-auto"
-                >
-                  {isDownloadingAnalysis ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Download className="h-3.5 w-3.5" strokeWidth={1.8} />
-                  )}
-
-                  {isDownloadingAnalysis ? "Menyiapkan..." : "Download Analisa"}
-                </SweepButton>
-              )}
-            </motion.div>
-
-            {/* DETAILS */}
-
-            <dl className="order-3 mt-3 grid w-full grid-cols-2 gap-x-4 gap-y-3 border-t border-[#EEEFEA] pt-3 sm:grid-cols-3 sm:gap-x-6 lg:order-2 lg:ml-8 lg:mt-0 lg:w-auto lg:flex-1 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
-              <motion.div
-                variants={overviewItem}
-                className="col-span-2 min-w-0 sm:col-span-1"
-              >
-                <dt className="text-[10px] font-medium text-[#8A8C85] sm:text-[11px]">
-                  Lokasi
-                </dt>
-
-                <dd className="mt-0.5 truncate text-[13px] font-semibold text-[#171717] sm:text-sm">
-                  {selectedMap?.location || "—"}
-                </dd>
-              </motion.div>
-
-              <motion.div
-                variants={overviewItem}
-                className="min-w-0 lg:border-l lg:border-[#EEEFEA] lg:pl-6"
-              >
-                <dt className="text-[10px] font-medium text-[#8A8C85] sm:text-[11px]">
-                  Ukuran file
-                </dt>
-
-                <dd className="mt-0.5 truncate text-[13px] font-semibold tabular-nums text-[#171717] sm:text-sm">
-                  {selectedMap ? `${selectedMap.size} MB` : "—"}
-                </dd>
-              </motion.div>
-
-              <motion.div
-                variants={overviewItem}
-                className="min-w-0 lg:border-l lg:border-[#EEEFEA] lg:pl-6"
-              >
-                <dt className="text-[10px] font-medium text-[#8A8C85] sm:text-[11px]">
-                  Tanggal survey
-                </dt>
-
-                <dd className="mt-0.5 truncate text-[13px] font-semibold tabular-nums text-[#171717] sm:text-sm">
-                  {selectedMap ? selectedMap.date : "—"}
-                </dd>
-              </motion.div>
-            </dl>
-          </motion.div>
-        </motion.section>
-
-        {/* ===================================================
-            SEARCH RESULT INFO
-        ==================================================== */}
-
-        {searchQuery && (
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 px-0.5 sm:mb-4">
-            <p className="text-[11px] font-medium text-[#858780] sm:text-xs">
-              Menampilkan{" "}
-              <span className="font-bold text-[#171717]">
-                {filteredMapLayers.length}
-              </span>{" "}
-              dari{" "}
-              <span className="font-bold text-[#171717]">{maps.length}</span>{" "}
-              peta
-            </p>
-
-            <button
-              type="button"
-              onClick={() => setSearchQuery("")}
-              className="text-[11px] font-bold text-[#171717] transition-colors hover:text-[#76B900] sm:text-xs"
-            >
-              Hapus pencarian
-            </button>
-          </div>
-        )}
-
-        {/* ===================================================
-            MAP WORKSPACE
-        ==================================================== */}
-
-        <motion.section
-          initial={{
-            opacity: 0,
-            y: 12,
-          }}
-          animate={{
-            opacity: 1,
-            y: 0,
-          }}
-          transition={{
-            duration: 0.45,
-            delay: 0.08,
-            ease: [0.22, 1, 0.36, 1],
-          }}
-          className="overflow-hidden border border-[#DCDDD8] bg-white shadow-[0_8px_25px_rgba(0,0,0,0.025)]"
-        >
-          {/* =================================================
-              MAP & FLOATING MAP LAYERS
-          ================================================== */}
-
-          <div
-            ref={mapContainerRef}
-            className={`relative w-full bg-[#E8ECE5] ${
-              isFullscreen
-                ? "h-screen w-screen"
-                : "h-[500px] sm:h-[560px] lg:h-[620px]"
-            }`}
-          >
-            <Map
-              ref={mapRef}
-              mapId={selectedMap?.id}
-              token={
-                typeof window !== "undefined"
-                  ? localStorage.getItem("token") || undefined
-                  : undefined
-              }
-              mapFormat={selectedMap?.format}
-              mapTitle={selectedMap?.name}
-              mapLocation={selectedMap?.location}
-              isFullscreen={isFullscreen}
-              onToggleFullscreen={handleFullscreen}
-            />
-
-            {/* =================================================
-                FLOATING TOGGLE
-            ================================================== */}
-
-            {!isLayerPanelOpen && (
-              <div className="absolute left-2 top-2 z-30 flex items-center gap-2 sm:left-3 sm:top-3">
-                <button
-                  type="button"
-                  onClick={() => setIsLayerPanelOpen(true)}
-                  className="group/toggle inline-flex shrink-0 items-center gap-2 border border-[#DCDDD8] bg-white px-2.5 py-2.5 text-[9px] font-bold uppercase tracking-[0.07em] text-[#171717] shadow-[0_12px_30px_rgba(0,0,0,0.10)] transition-colors duration-200 hover:border-[#171717] hover:bg-[#171717] hover:text-white sm:px-3.5 sm:text-[10px] sm:tracking-[0.08em]"
-                  title="Buka daftar peta (Maximize)"
-                >
-                  <Layers
-                    className="h-3.5 w-3.5 text-[#666861] transition-colors group-hover/toggle:text-white"
+                <div className="relative mt-2.5 flex items-center">
+                  <Search
+                    className="pointer-events-none absolute left-2.5 h-3 w-3 text-[#A0A29B]"
                     strokeWidth={1.8}
                   />
 
-                  <span>Daftar Peta</span>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onFocus={() => setIsMinSearchFocused(true)}
+                    onBlur={() => setIsMinSearchFocused(false)}
+                    placeholder="Cari nama, lokasi, atau format..."
+                    className={`h-[34px] w-full border bg-[#FAFAF8] pl-8 pr-8 text-[10px] font-medium text-[#171717] outline-none transition-all placeholder:text-[#A0A29B] focus:bg-white sm:h-9 sm:text-[11px] ${
+                      isMinSearchFocused
+                        ? "border-[#BFC4B8] ring-4 ring-black/[0.03]"
+                        : "border-[#DCDDD8]"
+                    }`}
+                  />
 
-                  <span className="border border-[#E0E1DC] bg-[#F7F8F5] px-1.5 py-0.5 text-[9px] font-extrabold text-[#171717] sm:text-[10px]">
-                    {maps.length}
-                  </span>
-                </button>
-              </div>
-            )}
-
-            {/* =================================================
-                FLOATING MAP LAYERS PANEL
-            ================================================== */}
-
-            {isLayerPanelOpen && (
-              <motion.aside
-                initial={{
-                  opacity: 0,
-                  x: -8,
-                }}
-                animate={{
-                  opacity: 1,
-                  x: 0,
-                }}
-                transition={{
-                  duration: 0.25,
-                  ease: [0.22, 1, 0.36, 1],
-                }}
-                className="absolute left-2 top-2 z-30 flex max-h-[calc(100%-16px)] w-[calc(100%-16px)] max-w-[320px] flex-col overflow-hidden border border-[#DCDDD8] bg-white shadow-[0_20px_45px_rgba(0,0,0,0.10)] sm:left-3 sm:top-3 sm:max-h-[calc(100%-100px)] sm:w-[300px]"
-              >
-                {/* PANEL HEADER */}
-
-                <div className="border-b border-[#E7E8E3] px-3.5 py-3.5 sm:px-4 sm:py-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#999B94] sm:text-[10px] sm:tracking-[0.16em]">
-                        Layer
-                      </p>
-
-                      <h2 className="mt-1 text-[13px] font-bold tracking-[-0.02em] text-[#171717] sm:text-sm">
-                        Pilih Peta Anda
-                      </h2>
-                    </div>
-
-                    <div className="flex items-center gap-1.5 sm:gap-2">
-                      <span className="hidden shrink-0 text-[10px] font-semibold tabular-nums text-[#858780] min-[430px]:inline sm:text-[11px]">
-                        {searchQuery
-                          ? `${filteredMapLayers.length} / ${maps.length}`
-                          : `${maps.length} Peta`}
-                      </span>
-
-                      <button
-                        type="button"
-                        onClick={() => setIsLayerPanelOpen(false)}
-                        className="flex h-8 w-8 items-center justify-center border border-[#E0E1DC] bg-[#FAFAF8] text-[#777972] transition-colors hover:bg-[#F2F3EF] hover:text-[#171717]"
-                        title="Sembunyikan daftar peta (Minimize)"
-                      >
-                        <X className="h-3.5 w-3.5" strokeWidth={1.8} />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* SEARCH INPUT */}
-
-                  <div className="relative mt-3 flex items-center">
-                    <Search
-                      className="pointer-events-none absolute left-3 h-3.5 w-3.5 text-[#A0A29B]"
-                      strokeWidth={1.8}
-                    />
-
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onFocus={() => setIsMinSearchFocused(true)}
-                      onBlur={() => setIsMinSearchFocused(false)}
-                      placeholder="Cari peta..."
-                      className={`h-9 w-full border bg-[#FAFAF8] pl-9 pr-9 text-[11px] font-medium text-[#171717] outline-none transition-all placeholder:text-[#A0A29B] focus:bg-white sm:h-10 sm:text-xs ${
-                        isMinSearchFocused
-                          ? "border-[#BFC4B8] ring-4 ring-black/[0.03]"
-                          : "border-[#DCDDD8]"
-                      }`}
-                    />
-
-                    {searchQuery && (
-                      <button
-                        type="button"
-                        onClick={() => setSearchQuery("")}
-                        className="absolute right-2 flex h-6 w-6 items-center justify-center text-[#A0A29B] transition-colors hover:text-[#171717]"
-                        title="Hapus pencarian"
-                      >
-                        <X className="h-3 w-3" strokeWidth={1.8} />
-                      </button>
-                    )}
-                  </div>
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-1.5 flex h-6 w-6 items-center justify-center text-[#A0A29B] transition-colors hover:text-[#171717]"
+                      title="Hapus pencarian"
+                    >
+                      <X className="h-2.5 w-2.5" strokeWidth={1.8} />
+                    </button>
+                  )}
                 </div>
+              </div>
 
-                {/* LAYERS LIST */}
+              {/* =========================================================
+                    MAP LIST
+                ========================================================= */}
 
-                <div className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-[#FAFAF8] p-2 overscroll-contain sm:p-2.5">
-                  {/* LOADING */}
+              <div className="min-h-0 flex-1 space-y-1 overflow-y-auto bg-[#FAFAF8] p-1.5 overscroll-contain sm:p-2">
+                {/* LOADING */}
 
-                  {loading && (
-                    <div className="flex items-center justify-center gap-3 border border-[#DCDDD8] bg-white px-4 py-7 text-[#555750] sm:py-8">
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                {loading && (
+                  <div className="flex items-center justify-center gap-2.5 border border-[#DCDDD8] bg-white px-3 py-5 text-[#555750] sm:py-6">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
 
-                      <span className="text-[11px] font-medium sm:text-xs">
-                        Memuat data peta...
-                      </span>
-                    </div>
-                  )}
+                    <span className="text-[10px] font-medium sm:text-[11px]">
+                      Memuat data peta...
+                    </span>
+                  </div>
+                )}
 
-                  {/* ERROR */}
+                {/* ERROR */}
 
-                  {!loading && error && (
-                    <div className="flex items-start gap-3 border border-[#E7D0CC] bg-[#FFF7F5] px-3.5 py-3 text-[11px] font-medium leading-5 text-[#9B3E32] sm:px-4 sm:py-3.5 sm:text-xs">
-                      <AlertTriangle
-                        className="mt-0.5 h-4 w-4 shrink-0"
-                        strokeWidth={1.75}
+                {!loading && error && (
+                  <div className="flex items-start gap-2 border border-[#E7D0CC] bg-[#FFF7F5] px-2.5 py-2.5 text-[10px] font-medium leading-4.5 text-[#9B3E32] sm:px-3 sm:py-3 sm:text-[11px]">
+                    <AlertTriangle
+                      className="mt-0.5 h-3.5 w-3.5 shrink-0"
+                      strokeWidth={1.75}
+                    />
+
+                    <span className="min-w-0 flex-1">{error}</span>
+                  </div>
+                )}
+
+                {/* EMPTY */}
+
+                {!loading && !error && maps.length === 0 && (
+                  <div className="border border-dashed border-[#DCDDD8] bg-white px-3 py-6 text-center sm:py-7">
+                    <div className="mx-auto flex h-8 w-8 items-center justify-center border border-[#E1E2DD] bg-[#F8F9F6]">
+                      <MapIcon
+                        className="h-3.5 w-3.5 text-[#777972]"
+                        strokeWidth={1.7}
                       />
-
-                      <span className="min-w-0 flex-1">{error}</span>
                     </div>
-                  )}
 
-                  {/* EMPTY */}
+                    <p className="mt-2.5 text-[11px] font-bold text-[#1B1B1B] sm:text-xs">
+                      Belum ada peta
+                    </p>
 
-                  {!loading && !error && maps.length === 0 && (
-                    <div className="border border-dashed border-[#DCDDD8] bg-white px-4 py-7 text-center sm:py-8">
-                      <div className="mx-auto flex h-10 w-10 items-center justify-center border border-[#E1E2DD] bg-[#F8F9F6]">
-                        <MapIcon
-                          className="h-4 w-4 text-[#777972]"
+                    <p className="mt-1 text-[9px] font-medium leading-4 text-[#858780] sm:text-[10px]">
+                      Upload peta pertama Anda untuk mulai melakukan analisis.
+                    </p>
+                  </div>
+                )}
+
+                {/* SEARCH EMPTY */}
+
+                {!loading &&
+                  !error &&
+                  maps.length > 0 &&
+                  filteredMapLayers.length === 0 && (
+                    <div className="border border-dashed border-[#DCDDD8] bg-white px-3 py-6 text-center sm:py-7">
+                      <div className="mx-auto flex h-8 w-8 items-center justify-center border border-[#E1E2DD] bg-[#F8F9F6]">
+                        <Search
+                          className="h-3.5 w-3.5 text-[#777972]"
                           strokeWidth={1.7}
                         />
                       </div>
 
-                      <p className="mt-3 text-[13px] font-bold text-[#1B1B1B] sm:text-sm">
-                        Belum ada peta
+                      <p className="mt-2.5 text-[11px] font-bold text-[#1B1B1B] sm:text-xs">
+                        Peta tidak ditemukan
                       </p>
 
-                      <p className="mt-1.5 text-[11px] font-medium leading-5 text-[#858780] sm:text-xs">
-                        Upload peta pertama Anda untuk mulai melakukan analisis.
+                      <p className="mt-1 text-[9px] font-medium leading-4 text-[#858780] sm:text-[10px]">
+                        Coba kata kunci atau kategori lain.
                       </p>
                     </div>
                   )}
 
-                  {/* SEARCH EMPTY */}
+                {/* MAP ROWS */}
 
-                  {!loading &&
-                    !error &&
-                    maps.length > 0 &&
-                    filteredMapLayers.length === 0 && (
-                      <div className="border border-dashed border-[#DCDDD8] bg-white px-4 py-7 text-center sm:py-8">
-                        <div className="mx-auto flex h-10 w-10 items-center justify-center border border-[#E1E2DD] bg-[#F8F9F6]">
-                          <Search
-                            className="h-4 w-4 text-[#777972]"
-                            strokeWidth={1.7}
-                          />
-                        </div>
+                {filteredMapLayers.map((layer) => {
+                  const active = selectedLayer === layer.id;
 
-                        <p className="mt-3 text-[13px] font-bold text-[#1B1B1B] sm:text-sm">
-                          Peta tidak ditemukan
-                        </p>
+                  return (
+                    <div
+                      key={layer.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => handlePickLayer(layer)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
 
-                        <p className="mt-1.5 text-[11px] font-medium leading-5 text-[#858780] sm:text-xs">
-                          Coba gunakan kata kunci lain untuk pencarian.
-                        </p>
-                      </div>
-                    )}
+                          handlePickLayer(layer);
+                        }
+                      }}
+                      aria-pressed={active}
+                      className={cn(
+                        "flex items-center gap-2 border p-2 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#76B900]/40 sm:p-2.5",
 
-                  {/* LAYER LIST */}
+                        active
+                          ? "border-[#171717] border-l-[3px] border-l-[#76B900] bg-[#171717] text-white"
+                          : "border-[#DCDDD8] bg-white text-[#171717] hover:border-[#C8CAC4]",
 
-                  {filteredMapLayers.map((layer) => {
-                    const raw = maps.find((map) => map.id === layer.id)!;
-
-                    const active = selectedLayer === layer.id;
-
-                    return (
-                      <div
-                        key={layer.id}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => {
-                          if (layer.locked) {
-                            triggerToast(
-                              "Peta ini terkunci untuk Member Free. Silakan Upgrade Tier Anda."
-                            );
-                          } else {
-                            if (selectedLayer === layer.id) {
-                              mapRef.current?.resetView();
-                            } else {
-                              setSelectedLayer(layer.id);
-                            }
-                          }
-                        }}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter" || event.key === " ") {
-                            event.preventDefault();
-
-                            if (layer.locked) {
-                              triggerToast(
-                                "Peta ini terkunci untuk Member Free. Silakan Upgrade Tier Anda."
-                              );
-                            } else {
-                              if (selectedLayer === layer.id) {
-                                mapRef.current?.resetView();
-                              } else {
-                                setSelectedLayer(layer.id);
-                              }
-                            }
-                          }
-                        }}
-                        aria-pressed={active}
+                        layer.locked ? "cursor-not-allowed" : "cursor-pointer"
+                      )}
+                    >
+                      <span
                         className={cn(
-                          "group relative select-none overflow-hidden border p-3.5 transition-all duration-300 sm:p-4",
-                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#76B900]/40",
-                          {
-                            "border-[#171717] border-l-[3px] border-l-[#76B900] bg-[#171717] text-white shadow-[0_12px_30px_rgba(0,0,0,0.10)]":
-                              active,
-                            "border-[#DCDDD8] bg-white text-[#171717] shadow-[0_8px_25px_rgba(0,0,0,0.025)]":
-                              !active,
-                            "cursor-not-allowed": layer.locked,
-                            "cursor-pointer": !layer.locked,
-                            "hover:-translate-y-0.5 hover:border-[#C8CAC4] hover:shadow-[0_16px_35px_rgba(0,0,0,0.06)]":
-                              !layer.locked && !active,
-                          }
+                          "flex h-7 w-7 shrink-0 items-center justify-center border",
+
+                          active
+                            ? "border-white/15 bg-white/10"
+                            : "border-[#E0E1DC] bg-[#F7F8F5]"
                         )}
                       >
-                        {/* Card Header */}
+                        {layer.locked ? (
+                          <Lock className="h-3 w-3" strokeWidth={1.8} />
+                        ) : (
+                          <MapIcon className="h-3 w-3" strokeWidth={1.8} />
+                        )}
+                      </span>
 
-                        <div className="relative z-10 flex items-start justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              <h3
-                                className={cn(
-                                  "whitespace-normal break-words text-[13px] font-bold leading-snug tracking-[-0.01em] sm:text-sm",
-                                  active ? "text-white" : "text-[#171717]"
-                                )}
-                              >
-                                {layer.name}
-                              </h3>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[11px] font-bold leading-tight sm:text-[12px]">
+                          {layer.name}
+                        </p>
 
-                              {layer.locked && (
-                                <span className="inline-flex shrink-0 items-center gap-1 border border-[#E0E2DC] bg-[#F7F8F5] px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.08em] text-[#666861] sm:px-2 sm:text-[9px] sm:tracking-[0.1em]">
-                                  <Lock
-                                    className="h-3 w-3"
-                                    strokeWidth={1.8}
-                                    aria-hidden="true"
-                                  />
-                                  Pro
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Actions */}
-
-                          {(isAdmin || !layer.locked) && (
-                            <div className="flex shrink-0 items-center gap-0.5 opacity-100 transition-opacity duration-200 sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100">
-                              <button
-                                type="button"
-                                onClick={(event) => openEditModal(raw, event)}
-                                className={cn(
-                                  "flex h-8 w-8 items-center justify-center border border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2",
-                                  active
-                                    ? "text-white/75 hover:border-white/15 hover:bg-white/10 hover:text-white focus-visible:ring-white/30"
-                                    : "text-[#858780] hover:border-[#E0E1DC] hover:bg-[#F7F8F5] hover:text-[#171717] focus-visible:ring-[#76B900]/20"
-                                )}
-                                title="Edit peta"
-                              >
-                                <Pencil
-                                  className="h-4 w-4"
-                                  strokeWidth={1.6}
-                                  aria-hidden="true"
-                                />
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={(event) =>
-                                  openDeleteConfirm(raw, event)
-                                }
-                                className={cn(
-                                  "flex h-8 w-8 items-center justify-center border border-transparent transition-colors hover:border-[#E7D0CC] hover:bg-[#FFF7F5] hover:text-[#9B3E32] focus-visible:outline-none focus-visible:ring-2",
-                                  active
-                                    ? "text-white/75 focus-visible:ring-white/30"
-                                    : "text-[#858780] focus-visible:ring-[#E7D0CC]"
-                                )}
-                                title="Hapus peta"
-                              >
-                                <Trash2
-                                  className="h-4 w-4"
-                                  strokeWidth={1.6}
-                                  aria-hidden="true"
-                                />
-                              </button>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* META */}
-
-                        <div
-                          aria-hidden="true"
+                        <p
                           className={cn(
-                            "relative my-2.5 h-px sm:my-3",
-                            active ? "bg-white/10" : "bg-[#E7E8E3]"
-                          )}
-                        />
-
-                        <div
-                          className={cn(
-                            "relative flex flex-col gap-1.5 text-[10px] font-medium sm:text-xs",
-                            active ? "text-white/70" : "text-[#858780]"
+                            "mt-0.5 truncate text-[9px] font-medium leading-tight sm:text-[10px]",
+                            active ? "text-white/65" : "text-[#858780]"
                           )}
                         >
-                          {/* DATE */}
-
-                          <div className="flex items-center gap-2">
-                            <Calendar
-                              className={cn(
-                                "h-3.5 w-3.5 shrink-0",
-                                active ? "text-white/55" : "text-[#A0A29B]"
-                              )}
-                              strokeWidth={1.7}
-                              aria-hidden="true"
-                            />
-
-                            <span className="whitespace-normal break-words font-mono tabular-nums">
-                              {layer.date}
-                            </span>
-                          </div>
-
-                          {/* LOCATION */}
-
-                          <div className="flex items-start gap-2">
-                            <MapPin
-                              className={cn(
-                                "mt-0.5 h-3.5 w-3.5 shrink-0",
-                                active ? "text-white/55" : "text-[#A0A29B]"
-                              )}
-                              strokeWidth={1.7}
-                              aria-hidden="true"
-                            />
-
-                            <span className="whitespace-normal break-words leading-tight">
-                              {layer.location}
-                            </span>
-                          </div>
-                        </div>
+                          {layer.location} • {layer.date}
+                        </p>
                       </div>
-                    );
-                  })}
+
+                      <span
+                        className={cn(
+                          "shrink-0 border px-1 py-0.5 text-[7px] font-bold uppercase tracking-[0.06em] sm:text-[8px]",
+
+                          active
+                            ? "border-white/20 text-white/80"
+                            : "border-[#E0E1DC] bg-[#F7F8F5] text-[#666861]"
+                        )}
+                      >
+                        {layer.format}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <>
+              {/* =========================================================
+                    DETAIL HEADER
+                ========================================================= */}
+
+              <div className="flex items-center gap-1.5 border-b border-[#E7E8E3] px-3 py-2.5">
+                <button
+                  type="button"
+                  onClick={() => setPanelView("list")}
+                  className="flex h-7 w-7 shrink-0 items-center justify-center border border-[#E0E1DC] bg-[#FAFAF8] text-[#777972] transition-colors hover:bg-[#F2F3EF] hover:text-[#171717]"
+                  title="Kembali ke daftar"
+                >
+                  <ArrowLeft className="h-3 w-3" strokeWidth={1.8} />
+                </button>
+
+                <div className="min-w-0 flex-1">
+                  <p className="text-[8px] font-bold uppercase tracking-[0.12em] text-[#999B94] sm:text-[9px]">
+                    Detail peta
+                  </p>
+
+                  <h2 className="mt-0.5 truncate text-[12px] font-bold tracking-[-0.01em] text-[#171717] sm:text-[13px]">
+                    {selectedMap?.name || "Belum ada layer dipilih"}
+                  </h2>
                 </div>
-              </motion.aside>
-            )}
-          </div>
 
-          {/* =================================================
-              FOOTER
-          ================================================== */}
+                <button
+                  type="button"
+                  onClick={closeLayerPanel}
+                  className="flex h-7 w-7 shrink-0 items-center justify-center border border-[#E0E1DC] bg-[#FAFAF8] text-[#777972] transition-colors hover:bg-[#F2F3EF] hover:text-[#171717]"
+                  title="Sembunyikan panel"
+                >
+                  <X className="h-3 w-3" strokeWidth={1.8} />
+                </button>
+              </div>
 
-          <div className="flex flex-col gap-3 border-t border-[#E7E8E3] bg-white px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4">
-            <p className="min-w-0 text-[11px] font-medium text-[#858780] sm:text-xs">
-              <span className="font-bold tabular-nums text-[#171717]">
-                {maps.length}
-              </span>{" "}
-              peta tersimpan
-            </p>
+              {/* =========================================================
+                    DETAIL CONTENT
+                ========================================================= */}
 
-            <button
-              type="button"
-              onClick={() => setMetadataMap(selectedMapRaw)}
-              disabled={!selectedMapRaw}
-              className="group inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-none border border-[#DCDDD8] bg-white px-3 text-[11px] font-semibold text-[#3F413B] transition-colors duration-200 hover:border-[#171717] hover:bg-[#171717] hover:text-white disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-[#DCDDD8] disabled:hover:bg-white disabled:hover:text-[#3F413B] sm:h-8 sm:w-auto sm:text-xs"
-            >
-              Lihat Metadata
-              <ArrowUpRight
-                className="h-3.5 w-3.5 transition-transform duration-300 group-hover:-translate-y-px group-hover:translate-x-px"
-                strokeWidth={1.8}
-              />
-            </button>
-          </div>
-        </motion.section>
-      </div>
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                {!selectedMapRaw ? (
+                  <div className="px-3 py-7 text-center">
+                    <p className="text-[10px] font-medium text-[#858780]">
+                      Pilih peta dari daftar untuk melihat detail.
+                    </p>
+                  </div>
+                ) : (
+                  <motion.div
+                    variants={overviewContainer}
+                    initial="hidden"
+                    animate="show"
+                  >
+                    {/* FORMAT + LOCATION */}
+
+                    <motion.div variants={overviewItem} className="px-3 py-2.5">
+                      <span className="inline-flex h-[18px] items-center bg-[#76B900] px-1.5 text-[8px] font-bold uppercase tracking-[0.08em] text-[#0F1A00]">
+                        {selectedMap?.format?.toUpperCase() || "UNKNOWN"}
+                      </span>
+
+                      <p className="mt-2 flex items-start gap-1 text-[10px] font-medium leading-4.5 text-[#4E504A] sm:text-[11px]">
+                        <MapPin
+                          className="mt-0.5 h-3 w-3 shrink-0 text-[#A0A29B]"
+                          strokeWidth={1.7}
+                        />
+
+                        <span className="min-w-0">{selectedMap?.location}</span>
+                      </p>
+                    </motion.div>
+
+                    {/* MAIN ACTIONS */}
+
+                    <motion.div
+                      variants={overviewItem}
+                      className="space-y-1.5 px-3 pb-3"
+                    >
+                      {/* DOWNLOAD */}
+
+                      {isDownloadLocked ? (
+                        <button
+                          type="button"
+                          onClick={handleDownloadAnalysis}
+                          disabled={isDownloadingAnalysis}
+                          className="inline-flex h-[42px] w-full items-center justify-center gap-2 border border-[#DCDDD8] bg-[#F4F5F2] px-3.5 text-[10px] font-bold uppercase tracking-[0.07em] text-[#A0A19C] transition-colors hover:border-[#C8CAC4] disabled:cursor-not-allowed"
+                        >
+                          <Lock className="h-3.5 w-3.5" strokeWidth={1.8} />
+
+                          <span>Download Analisa</span>
+                        </button>
+                      ) : (
+                        <SweepButton
+                          onClick={handleDownloadAnalysis}
+                          disabled={isDownloadingAnalysis}
+                          sizing="h-[42px] w-full gap-2 px-3.5"
+                        >
+                          {isDownloadingAnalysis ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Download
+                              className="h-3.5 w-3.5"
+                              strokeWidth={1.8}
+                            />
+                          )}
+
+                          <span>
+                            {isDownloadingAnalysis
+                              ? "Menyiapkan..."
+                              : "Download Analisa"}
+                          </span>
+                        </SweepButton>
+                      )}
+
+                      {/* METADATA */}
+
+                      {(() => {
+                        const metadataAction = detailActions.find(
+                          (action) =>
+                            action.key === "metadata" ||
+                            action.key === "download-metadata" ||
+                            action.key === "download_metadata"
+                        );
+
+                        if (!metadataAction) {
+                          return null;
+                        }
+
+                        const metadataIcon = metadataAction.icon;
+
+                        return (
+                          <button
+                            type="button"
+                            onClick={metadataAction.onClick}
+                            disabled={
+                              "disabled" in metadataAction
+                                ? metadataAction.disabled
+                                : false
+                            }
+                            className="flex h-[34px] w-full items-center justify-between border border-[#E0E1DC] bg-white px-3 text-left transition-colors hover:border-[#C8CAC4] hover:bg-[#FAFAF8] disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <div className="flex min-w-0 items-center gap-2">
+                              <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center bg-[#F4F5F1] text-[#666861]">
+                                {React.isValidElement(metadataIcon)
+                                  ? metadataIcon
+                                  : React.createElement(
+                                      metadataIcon as React.ElementType,
+                                      {
+                                        className: "h-3 w-3",
+                                        strokeWidth: 1.8,
+                                      }
+                                    )}
+                              </span>
+
+                              <span className="truncate text-[9px] font-bold uppercase tracking-[0.06em] text-[#4E504A]">
+                                {metadataAction.label}
+                              </span>
+                            </div>
+
+                            <ChevronRight
+                              className="h-3 w-3 shrink-0 text-[#A0A29B]"
+                              strokeWidth={1.7}
+                            />
+                          </button>
+                        );
+                      })()}
+
+                      {/* EDIT + DELETE */}
+
+                      <div className="grid grid-cols-2 gap-1.5 pt-0.5">
+                        {/* EDIT */}
+
+                        {(() => {
+                          const editAction = detailActions.find(
+                            (action) =>
+                              action.key === "edit" || action.key === "edit-map"
+                          );
+
+                          if (!editAction) {
+                            return null;
+                          }
+
+                          const editIcon = editAction.icon;
+
+                          return (
+                            <button
+                              type="button"
+                              onClick={editAction.onClick}
+                              disabled={
+                                "disabled" in editAction
+                                  ? editAction.disabled
+                                  : false
+                              }
+                              title={editAction.label || "Edit peta"}
+                              aria-label={editAction.label || "Edit peta"}
+                              className="flex h-[34px] items-center justify-center border border-[#E0E1DC] bg-[#FAFAF8] text-[#666861] transition-colors hover:border-[#C8CAC4] hover:bg-[#F2F3EF] hover:text-[#171717] disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {editAction.spin ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : React.isValidElement(editIcon) ? (
+                                editIcon
+                              ) : (
+                                React.createElement(
+                                  editIcon as React.ElementType,
+                                  {
+                                    className: "h-3.5 w-3.5",
+                                    strokeWidth: 1.8,
+                                  }
+                                )
+                              )}
+                            </button>
+                          );
+                        })()}
+
+                        {/* DELETE */}
+
+                        {(() => {
+                          const deleteAction = detailActions.find(
+                            (action) =>
+                              action.key === "delete" ||
+                              action.key === "delete-map"
+                          );
+
+                          if (!deleteAction) {
+                            return null;
+                          }
+
+                          const deleteIcon = deleteAction.icon;
+
+                          return (
+                            <button
+                              type="button"
+                              onClick={deleteAction.onClick}
+                              disabled={
+                                "disabled" in deleteAction
+                                  ? deleteAction.disabled
+                                  : false
+                              }
+                              title={deleteAction.label || "Hapus peta"}
+                              aria-label={deleteAction.label || "Hapus peta"}
+                              className="flex h-[34px] items-center justify-center border border-[#E7D0CC] bg-[#FFF9F7] text-[#A34A3D] transition-colors hover:border-[#D8B8B2] hover:bg-[#FFF2EF] hover:text-[#8D3026] disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {deleteAction.spin ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : React.isValidElement(deleteIcon) ? (
+                                deleteIcon
+                              ) : (
+                                React.createElement(
+                                  deleteIcon as React.ElementType,
+                                  {
+                                    className: "h-3.5 w-3.5",
+                                    strokeWidth: 1.8,
+                                  }
+                                )
+                              )}
+                            </button>
+                          );
+                        })()}
+                      </div>
+                    </motion.div>
+
+                    {/* INFO */}
+
+                    <motion.div variants={overviewItem}>
+                      <InfoRow label="Tanggal survey">
+                        {selectedMap?.date}
+                      </InfoRow>
+
+                      <InfoRow label="Ukuran file">
+                        {selectedMap?.size} MB
+                      </InfoRow>
+                    </motion.div>
+
+                    {/* DESCRIPTION */}
+
+                    {selectedMapRaw.description && (
+                      <motion.div
+                        variants={overviewItem}
+                        className="mx-3 mb-3 mt-1 border border-[#E0E1DC] bg-[#F7F8F5] p-2.5"
+                      >
+                        <p className="text-[8px] font-bold uppercase tracking-[0.1em] text-[#999B94]">
+                          Deskripsi
+                        </p>
+
+                        <p className="mt-1.5 text-[10px] font-medium leading-4.5 text-[#4E504A]">
+                          {selectedMapRaw.description}
+                        </p>
+                      </motion.div>
+                    )}
+                  </motion.div>
+                )}
+              </div>
+            </>
+          )}
+        </motion.aside>
+      )}
 
       {/* =====================================================
           NOTICE
@@ -1772,18 +1818,23 @@ export default function MapsPage() {
                 <div className="divide-y divide-[#E7E8E3] border border-[#E0E1DC] bg-[#F7F8F5]">
                   {[
                     ["Nama", metadataMap.title],
+
                     ["Lokasi", metadataMap.location],
+
                     [
                       "Tanggal Survey",
                       new Date(metadataMap.survey_date).toLocaleDateString(
                         "id-ID"
                       ),
                     ],
+
                     [
                       "Format File",
                       `.${metadataMap.file_format?.toUpperCase()}`,
                     ],
+
                     ["Ukuran File", formatSize(metadataMap.file_size)],
+
                     [
                       "Dibuat",
                       new Date(metadataMap.created_at).toLocaleDateString(
@@ -2279,6 +2330,7 @@ export default function MapsPage() {
                   <label
                     className={cn(
                       "flex cursor-pointer items-start gap-3 border p-3.5 transition-colors hover:border-[#BFC4B8] hover:bg-[#F7F8F5] sm:p-4",
+
                       editForm.locked_for_free
                         ? "border-[#BFC4B8] bg-[#F7F8F5]"
                         : "border-[#E1E2DD] bg-white"
@@ -2313,6 +2365,7 @@ export default function MapsPage() {
                   <label
                     className={cn(
                       "flex cursor-pointer items-start gap-3 border p-3.5 transition-colors hover:border-[#BFC4B8] hover:bg-[#F7F8F5] sm:p-4",
+
                       editForm.purchasable
                         ? "border-[#BFC4B8] bg-[#F7F8F5]"
                         : "border-[#E1E2DD] bg-white"

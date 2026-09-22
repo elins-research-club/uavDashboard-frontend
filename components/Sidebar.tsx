@@ -186,8 +186,15 @@ export default function Sidebar({
     setCollapsed(next);
 
     localStorage.setItem(COLLAPSE_STORAGE_KEY, String(next));
-  };
 
+    window.dispatchEvent(
+      new CustomEvent("sidebar:toggle", {
+        detail: {
+          collapsed: next,
+        },
+      })
+    );
+  };
   const isCollapsed = collapsible && collapsed;
 
   const isActive = (path: string) => pathname === path;
