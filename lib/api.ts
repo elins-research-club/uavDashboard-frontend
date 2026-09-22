@@ -11,15 +11,35 @@ const api = axios.create({
   },
 });
 
-// Auto-bypass ngrok interstitial for native client-side fetch calls (MapLibre, etc.)
+// Auto-bypass ngrok interstitial ONLY for requests to ngrok or backend API
 if (typeof window !== "undefined") {
   const originalFetch = window.fetch;
   window.fetch = async (input, init) => {
-    const reqHeaders = new Headers(init?.headers);
-    if (!reqHeaders.has("ngrok-skip-browser-warning")) {
-      reqHeaders.set("ngrok-skip-browser-warning", "69420");
+    let urlStr = "";
+    if (typeof input === "string") {
+      urlStr = input;
+    } else if (input instanceof URL) {
+      urlStr = input.toString();
+    } else if (input && typeof (input as Request).url === "string") {
+      urlStr = (input as Request).url;
     }
-    return originalFetch(input, { ...init, headers: reqHeaders });
+
+    const isNgrokOrApi =
+      urlStr.includes("ngrok") ||
+      Boolean(
+        process.env.NEXT_PUBLIC_API_URL &&
+          urlStr.includes(process.env.NEXT_PUBLIC_API_URL)
+      );
+
+    if (isNgrokOrApi) {
+      const reqHeaders = new Headers(init?.headers);
+      if (!reqHeaders.has("ngrok-skip-browser-warning")) {
+        reqHeaders.set("ngrok-skip-browser-warning", "69420");
+      }
+      return originalFetch(input, { ...init, headers: reqHeaders });
+    }
+
+    return originalFetch(input, init);
   };
 }
 
