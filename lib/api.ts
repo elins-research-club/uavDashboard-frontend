@@ -7,8 +7,21 @@ const api = axios.create({
 
   headers: {
     "Content-Type": "application/json",
+    "ngrok-skip-browser-warning": "69420",
   },
 });
+
+// Auto-bypass ngrok interstitial for native client-side fetch calls (MapLibre, etc.)
+if (typeof window !== "undefined") {
+  const originalFetch = window.fetch;
+  window.fetch = async (input, init) => {
+    const reqHeaders = new Headers(init?.headers);
+    if (!reqHeaders.has("ngrok-skip-browser-warning")) {
+      reqHeaders.set("ngrok-skip-browser-warning", "69420");
+    }
+    return originalFetch(input, { ...init, headers: reqHeaders });
+  };
+}
 
 /* ============================================================
    REQUEST INTERCEPTOR
@@ -16,6 +29,7 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    config.headers["ngrok-skip-browser-warning"] = "69420";
     if (typeof window !== "undefined") {
       const token = localStorage.getItem("token");
 
