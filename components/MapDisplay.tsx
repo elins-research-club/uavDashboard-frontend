@@ -31,8 +31,6 @@ import {
   Grid,
   ZoomIn,
   ZoomOut,
-  Maximize2,
-  Minimize2,
   Sprout,
   ChevronDown,
   ChevronRight,
@@ -464,6 +462,42 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
     const isFullscreen = isFullscreenProp ?? internalIsFullscreen;
 
+    /* =====================================================
+       SIDEBAR POSITION SYNC
+    ===================================================== */
+
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+    useEffect(() => {
+      const syncSidebar = () => {
+        const stored = localStorage.getItem("sidebar:collapsed");
+
+        setSidebarCollapsed(stored === "true");
+      };
+
+      syncSidebar();
+
+      const handleSidebarToggle = (event: Event) => {
+        const customEvent = event as CustomEvent<{
+          collapsed?: boolean;
+        }>;
+
+        if (typeof customEvent.detail?.collapsed === "boolean") {
+          setSidebarCollapsed(customEvent.detail.collapsed);
+          return;
+        }
+
+        syncSidebar();
+      };
+
+      window.addEventListener("sidebar:toggle", handleSidebarToggle);
+
+      return () => {
+        window.removeEventListener("sidebar:toggle", handleSidebarToggle);
+      };
+    }, []);
+
+    const mapUiLeft = sidebarCollapsed ? 100 : 282;
     /* =====================================================
        PRECISION FARMING & SPATIAL TOOLS
     ====================================================== */
@@ -4046,7 +4080,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         <div
           className="pointer-events-none absolute bottom-2 z-20 flex flex-col items-start gap-1 sm:bottom-3"
           style={{
-            left: "calc(var(--map-ui-left, 8px) + 4px)",
+            left: `${mapUiLeft}px`,
             transition: "left 300ms ease-out",
           }}
         >
@@ -4116,20 +4150,6 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               className={controlButtonClass}
             >
               <ZoomOut className="h-2.5 w-2.5" strokeWidth={ICON_STROKE} />
-            </button>
-
-            <button
-              type="button"
-              onClick={handleToggleFullscreen}
-              title={isFullscreen ? "Keluar Layar Penuh" : "Layar Penuh"}
-              aria-label={isFullscreen ? "Keluar Layar Penuh" : "Layar Penuh"}
-              className={controlButtonClass}
-            >
-              {isFullscreen ? (
-                <Minimize2 className="h-2.5 w-2.5" strokeWidth={ICON_STROKE} />
-              ) : (
-                <Maximize2 className="h-2.5 w-2.5" strokeWidth={ICON_STROKE} />
-              )}
             </button>
           </div>
         </div>
