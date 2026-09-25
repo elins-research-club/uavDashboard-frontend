@@ -66,8 +66,6 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 
 const PAGE_SIZE = 10;
 
-const TIER_OPTIONS = ["free", "desa", "kecamatan"] as const;
-
 const TIER_LABELS: Record<string, string> = {
   free: "Free",
   desa: "Desa",
@@ -622,40 +620,6 @@ export default function UsersPage() {
     }
   };
 
-  const updateTier = async (id: string, tier: string) => {
-    if (!canManageUsers) {
-      showMessage(
-        "Anda tidak memiliki permission untuk mengelola user.",
-        "error"
-      );
-      return;
-    }
-
-    setUpdatingId(`${id}-tier`);
-
-    try {
-      const { data } = await api.patch<UserRecord>(`/admin/users/${id}/tier`, {
-        tier,
-      });
-
-      setUsers((current) =>
-        current.map((item) => (item.id === id ? data : item))
-      );
-
-      showMessage(
-        `Tier subscription berhasil diubah ke "${TIER_LABELS[tier] || tier}".`,
-        "success"
-      );
-    } catch (error: any) {
-      showMessage(
-        error.response?.data?.detail || "Gagal mengubah tier.",
-        "error"
-      );
-    } finally {
-      setUpdatingId("");
-    }
-  };
-
   const exportExcel = () => {
     const rows = sortedUsers.map((item) => [
       item.username,
@@ -1139,8 +1103,6 @@ export default function UsersPage() {
                     const canEditRole =
                       canManageUsers && !isSelf && !isProtected;
 
-                    const canEditTier = canManageUsers;
-
                     return (
                       <motion.tr
                         key={item.id}
@@ -1245,30 +1207,7 @@ export default function UsersPage() {
                         {/* TIER */}
 
                         <td className="px-4 py-4">
-                          <div className="flex items-center gap-2">
-                            <TierBadge tier={tier} />
-
-                            {canEditTier ? (
-                              <select
-                                value={tier}
-                                disabled={updatingId === `${item.id}-tier`}
-                                onChange={(event) =>
-                                  updateTier(item.id, event.target.value)
-                                }
-                                className="h-9 border border-[#DCDDD8] bg-white px-3 text-xs font-semibold text-[#555750] outline-none transition focus:border-[#BFC4B8] focus:ring-4 focus:ring-black/[0.025] disabled:cursor-not-allowed disabled:bg-[#F5F6F3] disabled:opacity-50"
-                              >
-                                {TIER_OPTIONS.map((option) => (
-                                  <option key={option} value={option}>
-                                    {TIER_LABELS[option]}
-                                  </option>
-                                ))}
-                              </select>
-                            ) : (
-                              <span className="text-[9px] font-medium text-[#A0A29B]">
-                                Read only
-                              </span>
-                            )}
-                          </div>
+                          <TierBadge tier={tier} />
                         </td>
 
                         {/* STATUS */}

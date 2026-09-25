@@ -234,7 +234,7 @@ export default function Sidebar({
   const mainMenuItems: MenuItem[] = [
     {
       href: "/dashboard",
-      label: "Ringkasan",
+      label: "Beranda",
       icon: <LayoutDashboard size={menuIconSize} strokeWidth={ICON_STROKE} />,
     },
     {

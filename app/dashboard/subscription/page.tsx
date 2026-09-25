@@ -496,6 +496,13 @@ function formatDate(date?: string | null) {
   }).format(parsed);
 }
 
+function formatCountdown(seconds: number) {
+  const safeSeconds = Math.max(0, seconds);
+  const minutes = Math.floor(safeSeconds / 60);
+  const remainingSeconds = safeSeconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
+}
+
 function formatScope(subscription?: Subscription | null) {
   if (!subscription?.scope_type) {
     return null;
@@ -590,6 +597,8 @@ export default function SubscriptionPage() {
   const [pricingPlans, setPricingPlans] = useState<PricingPlan[]>([]);
 
   const [subscription, setSubscription] = useState<Subscription | null>(null);
+
+  const [countdownSeconds, setCountdownSeconds] = useState<number | null>(null);
 
   const [pendingOrder, setPendingOrder] = useState<SubscriptionOrder | null>(
     null
@@ -765,6 +774,25 @@ export default function SubscriptionPage() {
   useEffect(() => {
     loadSubscriptionData();
   }, []);
+
+  useEffect(() => {
+    if (!subscription?.end_date || subscription.status !== "active") {
+      setCountdownSeconds(null);
+      return;
+    }
+
+    const updateCountdown = () => {
+      const remaining = Math.max(
+        0,
+        Math.ceil((new Date(subscription.end_date!).getTime() - Date.now()) / 1000)
+      );
+      setCountdownSeconds(remaining);
+    };
+
+    updateCountdown();
+    const timer = window.setInterval(updateCountdown, 1000);
+    return () => window.clearInterval(timer);
+  }, [subscription]);
 
   /* ==========================================================
      CURRENT TIER
@@ -1417,6 +1445,12 @@ export default function SubscriptionPage() {
                 <dt className="text-[11px] font-medium text-[#8A8C85]">
                   Berlaku hingga
                 </dt>
+
+                {isActive && countdownSeconds !== null && (
+                  <p className="mb-1 text-[10px] font-bold tabular-nums text-[#76B900]">
+                    Sisa {formatCountdown(countdownSeconds)}
+                  </p>
+                )}
 
                 <dd className="mt-0.5 truncate text-sm font-semibold tabular-nums text-[#171717]">
                   {isActive && subscription?.end_date
