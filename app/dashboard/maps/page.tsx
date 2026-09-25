@@ -9,6 +9,7 @@ import type { Variants } from "framer-motion";
 import { useUserRole } from "@/context/UserRoleContext";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useFormatDate } from "@/lib/format";
 
 import React from "react";
 import {
@@ -645,11 +646,13 @@ export default function MapsPage() {
 
   const isAdmin = user?.role === "admin";
 
+  const formatDate = useFormatDate();
+
   const mapLayers = maps.map((map) => ({
     id: map.id,
     name: map.title,
     location: map.location,
-    date: new Date(map.survey_date).toLocaleDateString("id-ID"),
+    date: formatDate(map.survey_date),
     color: "bg-[#76B900]",
     locked: map.locked_for_free && !isAdmin && user?.tier === "free",
     format: map.file_format,

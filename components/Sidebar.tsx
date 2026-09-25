@@ -5,6 +5,12 @@ import { usePathname } from "next/navigation";
 import { createPortal } from "react-dom";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useUserRole } from "@/context/UserRoleContext";
+import { useSettingsStore } from "@/lib/stores/settingsStore";
+import {
+  SIDEBAR_COLLAPSED_WIDTH,
+  getIconSize,
+  getSidebarWidth,
+} from "@/lib/settings-options";
 
 import {
   LayoutDashboard,
@@ -197,6 +203,16 @@ export default function Sidebar({
   };
   const isCollapsed = collapsible && collapsed;
 
+  /* Preferensi user (halaman Pengaturan) */
+  const sidebarSize = useSettingsStore((state) => state.sidebarSize);
+  const iconSize = useSettingsStore((state) => state.iconSize);
+
+  const menuIconSize = getIconSize(iconSize);
+
+  const sidebarWidth = isCollapsed
+    ? SIDEBAR_COLLAPSED_WIDTH
+    : getSidebarWidth(sidebarSize);
+
   const isActive = (path: string) => pathname === path;
 
   /* ==========================================================
@@ -219,17 +235,17 @@ export default function Sidebar({
     {
       href: "/dashboard",
       label: "Ringkasan",
-      icon: <LayoutDashboard size={18} strokeWidth={ICON_STROKE} />,
+      icon: <LayoutDashboard size={menuIconSize} strokeWidth={ICON_STROKE} />,
     },
     {
       href: "/dashboard/maps",
       label: "Peta Saya",
-      icon: <Map size={18} strokeWidth={ICON_STROKE} />,
+      icon: <Map size={menuIconSize} strokeWidth={ICON_STROKE} />,
     },
     {
       href: "/dashboard/subscription",
       label: "Langganan",
-      icon: <CreditCard size={18} strokeWidth={ICON_STROKE} />,
+      icon: <CreditCard size={menuIconSize} strokeWidth={ICON_STROKE} />,
     },
   ];
 
@@ -242,7 +258,7 @@ export default function Sidebar({
       ? {
           href: "/dashboard/users",
           label: "Manajemen User",
-          icon: <Users size={18} strokeWidth={ICON_STROKE} />,
+          icon: <Users size={menuIconSize} strokeWidth={ICON_STROKE} />,
         }
       : null,
 
@@ -250,7 +266,7 @@ export default function Sidebar({
       ? {
           href: "/dashboard/admin",
           label: "Admin Panel",
-          icon: <ShieldCheck size={18} strokeWidth={ICON_STROKE} />,
+          icon: <ShieldCheck size={menuIconSize} strokeWidth={ICON_STROKE} />,
         }
       : null,
 
@@ -258,7 +274,7 @@ export default function Sidebar({
       ? {
           href: "/dashboard/upload",
           label: "Upload Peta",
-          icon: <Upload size={18} strokeWidth={ICON_STROKE} />,
+          icon: <Upload size={menuIconSize} strokeWidth={ICON_STROKE} />,
         }
       : null,
   ].filter(Boolean) as MenuItem[];
@@ -273,12 +289,12 @@ export default function Sidebar({
     {
       href: "/dashboard/settings",
       label: "Pengaturan",
-      icon: <Settings size={18} strokeWidth={ICON_STROKE} />,
+      icon: <Settings size={menuIconSize} strokeWidth={ICON_STROKE} />,
     },
     {
       href: "/dashboard/help",
       label: "Bantuan",
-      icon: <HelpCircle size={18} strokeWidth={ICON_STROKE} />,
+      icon: <HelpCircle size={menuIconSize} strokeWidth={ICON_STROKE} />,
     },
   ];
 
@@ -318,7 +334,7 @@ export default function Sidebar({
             ? "mx-auto h-11 w-11 justify-center"
             : "w-full px-3 py-2.5",
           active
-            ? "border border-[#DDE3D3] bg-white text-[#76B900] shadow-[0_5px_18px_rgba(0,0,0,0.035)]"
+            ? "border uav-border-accent-soft bg-white uav-text-accent shadow-[0_5px_18px_rgba(0,0,0,0.035)]"
             : "border border-transparent text-[#6F716B] hover:border-[#E5E6E1] hover:bg-white hover:text-[#171717]",
         ].join(" ")}
       >
@@ -326,7 +342,7 @@ export default function Sidebar({
 
         {active && !isCollapsed && (
           <span
-            className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 bg-[#76B900]"
+            className="uav-bg-accent absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2"
             aria-hidden="true"
           />
         )}
@@ -337,7 +353,7 @@ export default function Sidebar({
           className={[
             "flex shrink-0 items-center justify-center transition-colors duration-200",
             active
-              ? "text-[#76B900]"
+              ? "uav-text-accent"
               : "text-[#7E8179] group-hover:text-[#4F514B]",
           ].join(" ")}
         >
@@ -365,7 +381,7 @@ export default function Sidebar({
               className={[
                 "shrink-0 transition-all duration-200",
                 active
-                  ? "translate-x-0 text-[#76B900]"
+                  ? "translate-x-0 uav-text-accent"
                   : "text-[#B8BAB4] opacity-0 group-hover:translate-x-0.5 group-hover:opacity-100",
               ].join(" ")}
             />
@@ -412,8 +428,9 @@ export default function Sidebar({
         "border border-[#DCDDD8] bg-[#F8F9F6]",
         "shadow-[0_8px_30px_rgba(0,0,0,0.04)]",
         "transition-[width,margin] duration-300",
-        isCollapsed ? "ml-3 w-[76px]" : "ml-3 w-[258px]",
+        "ml-3",
       ].join(" ")}
+      style={{ width: sidebarWidth }}
     >
       {/* ==================================================
           HEADER
@@ -445,9 +462,9 @@ export default function Sidebar({
               {/* OPEN ICON ON HOVER */}
 
               <PanelLeftOpen
-                size={18}
+                size={menuIconSize}
                 strokeWidth={ICON_STROKE}
-                className="hidden transition-all duration-200 group-hover:block group-hover:text-[#76B900]"
+                className="hidden transition-all duration-200 group-hover:block group-hover:uav-text-accent"
               />
             </button>
           </SidebarTooltip>
@@ -569,7 +586,7 @@ export default function Sidebar({
 
             <span
               className={[
-                "flex shrink-0 items-center justify-center border border-[#DCE4D4] bg-[#F3F7EF] font-bold text-[#5F8F13]",
+                "flex shrink-0 items-center justify-center border uav-border-accent-soft uav-bg-accent-tint font-bold uav-text-accent",
                 isCollapsed ? "h-9 w-9 text-[11px]" : "h-9 w-9 text-[10px]",
               ].join(" ")}
             >
@@ -589,10 +606,10 @@ export default function Sidebar({
                         <ShieldCheck
                           size={11}
                           strokeWidth={ICON_STROKE}
-                          className="shrink-0 text-[#76B900]"
+                          className="shrink-0 uav-text-accent"
                         />
 
-                        <span className="truncate text-[9px] font-bold text-[#5F910D]">
+                        <span className="truncate text-[9px] font-bold uav-text-accent">
                           God · Protected
                         </span>
                       </>
@@ -613,7 +630,7 @@ export default function Sidebar({
                         <Leaf
                           size={11}
                           strokeWidth={ICON_STROKE}
-                          className="shrink-0 text-[#76B900]"
+                          className="shrink-0 uav-text-accent"
                         />
 
                         <span className="truncate text-[9px] font-semibold text-[#777972]">
@@ -627,7 +644,7 @@ export default function Sidebar({
                 <ChevronRight
                   size={14}
                   strokeWidth={1.7}
-                  className="shrink-0 text-[#B4B6AF] transition-transform group-hover:translate-x-0.5 group-hover:text-[#76B900]"
+                  className="shrink-0 text-[#B4B6AF] transition-transform group-hover:translate-x-0.5 group-hover:uav-text-accent"
                 />
               </>
             )}

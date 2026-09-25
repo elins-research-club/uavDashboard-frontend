@@ -63,7 +63,12 @@ export default function LoginPage() {
       /* Save token */
       localStorage.setItem("token", data.access_token);
 
-      window.location.href = "/dashboard";
+      /* Halaman tujuan mengikuti preferensi "Halaman setelah login" */
+      const { getSettingsSnapshot } = await import(
+        "@/lib/stores/settingsStore"
+      );
+
+      window.location.href = getSettingsSnapshot().landingPage;
     } catch (error: unknown) {
       const axiosError = error as {
         response?: {

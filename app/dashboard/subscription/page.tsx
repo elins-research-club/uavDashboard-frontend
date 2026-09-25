@@ -1404,13 +1404,9 @@ export default function SubscriptionPage() {
                 </dt>
 
                 <dd className="mt-0.5 truncate text-sm font-semibold text-[#171717]">
-                  {currentScope ? currentScope.value : "Publik"}
-
-                  {currentScope && (
-                    <span className="ml-1.5 text-xs font-medium text-[#8A8C85]">
-                      {currentScope.label.replace("Cakupan ", "")}
-                    </span>
-                  )}
+                  {currentScope
+                    ? `${currentScope.label.replace("Cakupan ", "")} — ${currentScope.value}`
+                    : "Publik"}
                 </dd>
               </motion.div>
 

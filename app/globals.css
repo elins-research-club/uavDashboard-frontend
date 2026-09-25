@@ -142,4 +142,235 @@ body {
       scroll-behavior: auto !important;
     }
   }
+/* ============================================================
+   APPLICATION THEME TOKENS
+   Dikelola oleh halaman Pengaturan → <SettingsEffects />.
+   Satu-satunya tempat warna aksen boleh di-hardcode (default).
+============================================================ */
+
+:root {
+  --uav-accent: #76b900;
+  --uav-accent-tint: #f1f6eb;
+  --uav-accent-border: #dde3d3;
+}
+
+@layer utilities {
+
+  /* Aksen dinamis — dipakai komponen navigasi & elemen aktif. */
+  .uav-text-accent {
+    color: var(--uav-accent);
+  }
+
+  .uav-bg-accent {
+    background-color: var(--uav-accent);
+  }
+
+  .uav-border-accent {
+    border-color: var(--uav-accent);
+  }
+
+  .uav-bg-accent-tint {
+    background-color: var(--uav-accent-tint);
+  }
+
+  .uav-border-accent-soft {
+    border-color: var(--uav-accent-border);
+  }
+}
+
+/* ============================================================
+   REDUCE MOTION — preferensi aplikasi (bukan hanya OS)
+   Dipasang lewat atribut data-reduce-motion="true" pada <html>.
+============================================================ */
+
+[data-reduce-motion="true"] *,
+[data-reduce-motion="true"] *::before,
+[data-reduce-motion="true"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* ============================================================
+   DARK THEME (beta)
+
+   Strategi: aplikasi ini memakai utility Tailwind dengan warna
+   literal, jadi tema gelap diterapkan sebagai lapisan override
+   untuk token permukaan/border/teks yang benar-benar dipakai
+   (hasil audit 2.012 literal warna, 40 token teratas).
+   Elemen dekoratif yang jarang dipakai bisa belum optimal.
+============================================================ */
+
+[data-theme="dark"] {
+  background-color: #0f1214;
+}
+
+/* Permukaan terang → gelap */
+[data-theme="dark"] :is(
+    .bg-white,
+    .bg-\[\#ffffff\],
+    .bg-\[\#FFFFFF\]
+  ) {
+  background-color: #14181a;
+}
+
+[data-theme="dark"] :is(
+    .bg-\[\#F4F5F2\],
+    .bg-\[\#f4f5f2\]
+  ) {
+  background-color: #0f1214;
+}
+
+[data-theme="dark"] :is(
+    .bg-\[\#F7F8F5\],
+    .bg-\[\#f7f8f5\],
+    .bg-\[\#F8F9F6\],
+    .bg-\[\#f8f9f6\],
+    .bg-\[\#F8F8F6\]
+  ) {
+  background-color: #171b1d;
+}
+
+[data-theme="dark"] :is(
+    .bg-\[\#FAFAF8\],
+    .bg-\[\#fafaf8\],
+    .bg-\[\#F2F3EF\],
+    .bg-\[\#EEF2EC\],
+    .bg-\[\#E7ECE8\]
+  ) {
+  background-color: #191d1f;
+}
+
+/* Tint status & error */
+[data-theme="dark"] :is(.bg-\[\#F0FDF4\]) {
+  background-color: #14251c;
+}
+
+[data-theme="dark"] :is(.bg-\[\#EFF6FF\]) {
+  background-color: #16202e;
+}
+
+[data-theme="dark"] :is(.bg-\[\#FEF2F2\], .bg-\[\#FFF7F5\]) {
+  background-color: #2a1c1c;
+}
+
+/* Border */
+[data-theme="dark"] :is(
+    .border-\[\#DCDDD8\],
+    .border-\[\#dcddd8\]
+  ) {
+  border-color: #2b3134;
+}
+
+[data-theme="dark"] :is(
+    .border-\[\#E0E1DC\],
+    .border-\[\#E0E1DD\],
+    .border-\[\#E1E2DD\],
+    .border-\[\#E5E6E1\],
+    .border-\[\#E6E7E2\],
+    .border-\[\#E7E8E3\]
+  ) {
+  border-color: #262b2e;
+}
+
+[data-theme="dark"] :is(
+    .border-\[\#C8CAC4\],
+    .border-\[\#CFCFC8\],
+    .border-\[\#C7C8C2\],
+    .border-\[\#BFC0BA\],
+    .border-\[\#D3DAD5\]
+  ) {
+  border-color: #3a4145;
+}
+
+/* Teks */
+[data-theme="dark"] :is(
+    .text-\[\#171717\],
+    .text-\[\#151515\],
+    .text-\[\#1A1A1A\],
+    .text-\[\#1a1a1a\],
+    .text-\[\#1B1B1B\],
+    .text-\[\#111111\]
+  ) {
+  color: #eceeEA;
+}
+
+[data-theme="dark"] :is(.text-\[\#33332F\]) {
+  color: #d6dbdd;
+}
+
+[data-theme="dark"] :is(.text-\[\#4E504A\], .text-\[\#555750\]) {
+  color: #bec6cb;
+}
+
+[data-theme="dark"] :is(.text-\[\#666861\], .text-\[\#6B6B66\]) {
+  color: #aeb7bc;
+}
+
+[data-theme="dark"] :is(.text-\[\#777972\], .text-\[\#92948D\]) {
+  color: #98a1a7;
+}
+
+[data-theme="dark"] :is(
+    .text-\[\#858780\],
+    .text-\[\#8A8C85\],
+    .text-\[\#999B94\]
+  ) {
+  color: #8b949a;
+}
+
+[data-theme="dark"] :is(
+    .text-\[\#A0A19B\],
+    .text-\[\#A0A29B\],
+    .text-\[\#B0B1AB\]
+  ) {
+  color: #79838a;
+}
+
+[data-theme="dark"] :is(.text-\[\#123C28\], .text-\[\#123c28\]) {
+  color: #8cc7a5;
+}
+
+[data-theme="dark"] :is(.text-\[\#9B3E32\]) {
+  color: #e8a79c;
+}
+
+/* Tombol utama gelap (bg #171717 + text putih) → dibalik di tema gelap
+   supaya tetap kontras terhadap permukaan gelap. */
+[data-theme="dark"] :is(.bg-\[\#171717\], .bg-\[\#171917\]) {
+  background-color: #eceeEA;
+}
+
+[data-theme="dark"] :is(.bg-\[\#171717\], .bg-\[\#171917\]) :is(.text-white) {
+  color: #101315;
+}
+
+[data-theme="dark"] :is(.bg-\[\#171717\].text-white) {
+  color: #101315;
+}
+
+/* State hover yang paling sering dipakai */
+[data-theme="dark"] [class*="hover:bg-white"]:hover,
+[data-theme="dark"] [class*="hover\\:bg-white"]:hover,
+[data-theme="dark"] [class*="hover:bg-[#FAFAF8]"]:hover,
+[data-theme="dark"] [class*="hover:bg-[#F4F5F2]"]:hover,
+[data-theme="dark"] [class*="hover:bg-[#F7F8F5]"]:hover {
+  background-color: #1c2124;
+}
+
+[data-theme="dark"] [class*="hover:text-[#171717]"]:hover {
+  color: #ffffff;
+}
+
+[data-theme="dark"] [class*="hover:border-[#DCDDD8]"]:hover {
+  border-color: #3a4145;
+}
+
+/* Placeholder & input yang memakai warna teks gelap */
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: #79838a;
+}
+
 }

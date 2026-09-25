@@ -1,11 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Sidebar from "./Sidebar";
 import MobileBottomNav from "./MobileBottomNav";
 import api from "@/lib/api";
 import { useUserRole } from "@/context/UserRoleContext";
+import SettingsEffects from "@/components/SettingsEffects";
+import AppToastHost from "@/components/AppToastHost";
+import { daysUntil } from "@/lib/settings-options";
+import { getSettingsSnapshot } from "@/lib/stores/settingsStore";
+import { notifySubscriptionReminder } from "@/lib/notify";
 
 export default function DashboardLayout({
   children,
@@ -78,6 +83,42 @@ export default function DashboardLayout({
       clearTimeout(timeoutTimer);
     };
   }, [setAuthenticatedUser]);
+
+  /* ============================================================
+     SUBSCRIPTION REMINDER
+     Pengingat sekali per sesi saat tanggal berakhir berada
+     dalam jangka waktu yang dipilih di halaman Pengaturan.
+  ============================================================ */
+
+  const reminderSentRef = useRef(false);
+
+  useEffect(() => {
+    if (!user || reminderSentRef.current) {
+      return;
+    }
+
+    const subscription = user.subscription;
+
+    if (!subscription || subscription.status !== "active") {
+      return;
+    }
+
+    const days = daysUntil(subscription.end_date);
+
+    if (days === null) {
+      return;
+    }
+
+    const settings = getSettingsSnapshot();
+
+    if (days > settings.subscriptionLeadDays) {
+      return;
+    }
+
+    reminderSentRef.current = true;
+
+    notifySubscriptionReminder(days, subscription.tier || "paket Anda");
+  }, [user]);
 
   /* ============================================================
      LOADING
@@ -273,6 +314,10 @@ export default function DashboardLayout({
           ======================================================== */}
 
       <MobileBottomNav />
+
+      {/* Preferensi tema/aksen/gerak + host toast global */}
+      <SettingsEffects />
+      <AppToastHost />
     </div>
   );
 }

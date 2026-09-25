@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -13,6 +13,8 @@ import {
 import { cn } from "@/lib/utils";
 import { useBakingStatusStore } from "@/lib/stores/bakingStatusStore";
 import { useMapBakingPoll } from "@/hooks/useMapBakingPoll";
+import { getSettingsSnapshot } from "@/lib/stores/settingsStore";
+import { dispatchToast, showDesktopNotification } from "@/lib/notify";
 
 import {
   ActionButton,
@@ -45,6 +47,33 @@ export function BakingStatusBanner({
   useMapBakingPoll();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  /* Notifikasi "upload diterima" — dipicu saat dataset baru
+     dikirim dari halaman Upload (sekali per mapId). */
+  const notifiedUploadRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!uploadedDataset) return;
+
+    if (notifiedUploadRef.current === uploadedDataset.mapId) return;
+
+    notifiedUploadRef.current = uploadedDataset.mapId;
+
+    const settings = getSettingsSnapshot();
+
+    if (settings.notifyUpload) {
+      dispatchToast({
+        title: "Upload diterima",
+        message: `${uploadedDataset.title} · ${uploadedDataset.totalLayers} layer diproses di background.`,
+        tone: "info",
+      });
+    }
+
+    showDesktopNotification(
+      "Upload diterima",
+      `${uploadedDataset.title} sedang diproses di background.`
+    );
+  }, [uploadedDataset]);
 
   const active = useBakingStatusStore((s) => s.active);
   const dismiss = useBakingStatusStore((s) => s.dismiss);

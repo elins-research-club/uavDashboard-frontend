@@ -85,16 +85,9 @@ type UploadLayerType =
   | "auto"
   | "ortho"
   | "ndvi"
-  | "vari"
   | "nitrogen"
   | "phosphorus"
-  | "kalium"
-  | "dsm"
-  | "ph"
-  | "moisture"
-  | "corganic"
-  | "spectral"
-  | "custom";
+  | "kalium";
 
 type LayerAccessMeta = {
   locked_for_free?: boolean | null;
@@ -1006,16 +999,9 @@ export default function LayerControlPanel({
                       <option value="auto">Auto detect</option>
                       <option value="ortho">Orthomosaic</option>
                       <option value="ndvi">NDVI</option>
-                      <option value="vari">VARI</option>
                       <option value="nitrogen">Nitrogen</option>
                       <option value="phosphorus">Fosfor</option>
                       <option value="kalium">Kalium</option>
-                      <option value="dsm">DSM</option>
-                      <option value="ph">pH</option>
-                      <option value="moisture">Moisture</option>
-                      <option value="corganic">C-Organik</option>
-                      <option value="spectral">Spektral</option>
-                      <option value="custom">Kustom</option>
                     </select>
                   </div>
                 </div>

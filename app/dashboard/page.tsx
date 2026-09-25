@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import api from "@/lib/api";
 import { useUserRole } from "@/context/UserRoleContext";
+import { useFormatDate } from "@/lib/format";
 
 import {
   Activity,
@@ -213,6 +214,8 @@ export default function DashboardHomePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+
+  const formatDate = useFormatDate();
 
   /* ============================================================
      TIER
@@ -714,14 +717,7 @@ export default function DashboardHomePage() {
                               strokeWidth={1.7}
                             />
 
-                            {new Date(map.created_at).toLocaleDateString(
-                              "id-ID",
-                              {
-                                day: "numeric",
-                                month: "short",
-                                year: "numeric",
-                              }
-                            )}
+                            {formatDate(map.created_at)}
                           </div>
                         </div>
 

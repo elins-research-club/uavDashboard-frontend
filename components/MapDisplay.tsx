@@ -42,6 +42,10 @@ import type { MapLayerItem } from "@/types/map";
 import { generatePetakGrid, type PetakProperties } from "@/lib/gridGenerator";
 import { cn } from "@/lib/utils";
 import { EASE, ICON_STROKE } from "@/app/dashboard/upload/upload-ui";
+import {
+  getSettingsSnapshot,
+  useSettingsStore,
+} from "@/lib/stores/settingsStore";
 
 /* =========================================================
    PMTILES REGISTRATION
@@ -422,11 +426,13 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
     const mapRef = useRef<maplibregl.Map | null>(null);
 
-    const basemapRef = useRef<keyof typeof BASEMAPS>("street");
+    const basemapRef = useRef<keyof typeof BASEMAPS>(
+      getSettingsSnapshot().mapBasemap
+    );
 
-    const overlayOpacityRef = useRef(0.95);
+    const overlayOpacityRef = useRef(getSettingsSnapshot().mapOpacity);
 
-    const terrainEnabledRef = useRef(false);
+    const terrainEnabledRef = useRef(getSettingsSnapshot().mapTerrain);
 
     const mapIdRef = useRef(mapId);
 
@@ -440,9 +446,13 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
        STATE
     ====================================================== */
 
-    const [basemap, setBasemap] = useState<keyof typeof BASEMAPS>("street");
+    const [basemap, setBasemap] = useState<keyof typeof BASEMAPS>(
+      getSettingsSnapshot().mapBasemap
+    );
 
-    const [overlayOpacity, setOverlayOpacity] = useState(0.95);
+    const [overlayOpacity, setOverlayOpacity] = useState(
+      getSettingsSnapshot().mapOpacity
+    );
 
     const [currentMeta, setCurrentMeta] = useState<BoundsResponse | null>(null);
 
@@ -452,7 +462,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
     const [pitch, setPitch] = useState(0);
 
-    const [terrainEnabled, setTerrainEnabled] = useState(false);
+    const [terrainEnabled, setTerrainEnabled] = useState(
+      getSettingsSnapshot().mapTerrain
+    );
 
     const [loading, setLoading] = useState(false);
 
@@ -1496,6 +1508,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         setBasemap(next);
 
         basemapRef.current = next;
+
+        /* Sinkronkan ke preferensi user (halaman Pengaturan → Umum). */
+        useSettingsStore.getState().update({ mapBasemap: next });
 
         applyBasemap(next);
       },
@@ -2589,7 +2604,14 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     }, []);
 
     const handleToggle3D = useCallback(() => {
-      setTerrainEnabled((current) => !current);
+      setTerrainEnabled((current) => {
+        const next = !current;
+
+        /* Sinkronkan ke preferensi user (halaman Pengaturan → Umum). */
+        useSettingsStore.getState().update({ mapTerrain: next });
+
+        return next;
+      });
     }, []);
 
     /* =====================================================
@@ -3678,14 +3700,6 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               .toLowerCase()
               .includes("ndvi");
 
-            const isDSM = (
-              activeAnalysisLayer?.layer_type ||
-              selectedPetak.layer_type ||
-              ""
-            )
-              .toLowerCase()
-              .includes("dsm");
-
             const isNutrient = ["nitrogen", "phosphorus", "kalium"].some((k) =>
               (
                 activeAnalysisLayer?.layer_type ||
@@ -3696,7 +3710,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                 .includes(k)
             );
 
-            const unit = isDSM ? "mdpl" : isNutrient ? "mg/kg" : "";
+            const unit = isNutrient ? "mg/kg" : "";
 
             const summaryText = (() => {
               const lt = (selectedPetak.layer_type || "").toLowerCase();
@@ -3794,10 +3808,6 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                       : "Kandungan hara kalium tinggi pada lahan."
                   }`;
                 }
-              } else if (lt.includes("dsm")) {
-                return `Elevasi permukaan tanah berada pada ketinggian rata-rata ${
-                  val ?? "-"
-                } mdpl.`;
               } else if (status) {
                 return `Kondisi petak berstatus ${status} dengan nilai rata-rata ${
                   val ?? "-"
@@ -3823,10 +3833,6 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               {
                 key: "kalium",
                 label: "Kalium (K)",
-              },
-              {
-                key: "dsm",
-                label: "DSM (Elevasi)",
               },
             ];
 

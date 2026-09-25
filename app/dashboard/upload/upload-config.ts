@@ -162,11 +162,6 @@ export const layerOptions = [
   },
 
   {
-    value: "vari",
-    label: "VARI",
-  },
-
-  {
     value: "nitrogen",
     label: "Nitrogen (N)",
   },
@@ -181,35 +176,6 @@ export const layerOptions = [
     label: "Kalium (K)",
   },
 
-  {
-    value: "ph",
-    label: "Keasaman (pH)",
-  },
-
-  {
-    value: "moisture",
-    label: "Kelembapan",
-  },
-
-  {
-    value: "corganic",
-    label: "C-Organik",
-  },
-
-  {
-    value: "dsm",
-    label: "DSM (Elevasi)",
-  },
-
-  {
-    value: "spectral",
-    label: "Multispektral",
-  },
-
-  {
-    value: "custom",
-    label: "Layer Kustom",
-  },
 ];
 
 export const manualLayerOptions = layerOptions.filter(
