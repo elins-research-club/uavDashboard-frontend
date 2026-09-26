@@ -370,23 +370,6 @@ export default function DashboardHomePage() {
                 <span className="text-[#171717]">{username}</span>
               </h1>
 
-              <p
-                className="
-                  mt-2.5
-                  max-w-4xl
-                  text-[12px]
-                  font-medium
-                  leading-5
-                  text-[#767871]
-                  sm:mt-3
-                  sm:text-sm
-                  sm:leading-6
-                "
-              >
-                {isPaidTier
-                  ? `Anda sedang menggunakan ${tierConfig.label}. Pantau data dan kesehatan lahan Anda dari satu workspace.`
-                  : "Pantau data spasial, aktivitas pemetaan, dan kondisi lahan Anda dari satu tempat."}
-              </p>
             </div>
 
             <div className="flex items-center gap-2">
@@ -540,22 +523,6 @@ export default function DashboardHomePage() {
                 >
                   {tierConfig.heroTitle}
                 </h2>
-
-                <p
-                  className="
-                    mt-3
-                    max-w-xl
-                    text-[11px]
-                    font-medium
-                    leading-5
-                    text-white/65
-                    sm:mt-4
-                    sm:text-sm
-                    sm:leading-6
-                  "
-                >
-                  {tierConfig.heroDescription}
-                </p>
 
                 <div className="mt-5 flex flex-wrap items-center gap-2.5 sm:mt-7 sm:gap-3">
                   <Link

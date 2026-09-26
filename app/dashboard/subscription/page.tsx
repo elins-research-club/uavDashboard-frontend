@@ -498,9 +498,10 @@ function formatDate(date?: string | null) {
 
 function formatCountdown(seconds: number) {
   const safeSeconds = Math.max(0, seconds);
-  const minutes = Math.floor(safeSeconds / 60);
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
   const remainingSeconds = safeSeconds % 60;
-  return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
 }
 
 function formatScope(subscription?: Subscription | null) {
@@ -1210,10 +1211,6 @@ export default function SubscriptionPage() {
                 kebutuhan Anda.
               </h1>
 
-              <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-[#767871]">
-                Tingkatkan kapasitas pemetaan dan analisis berdasarkan cakupan
-                wilayah yang Anda kelola.
-              </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
@@ -1446,15 +1443,19 @@ export default function SubscriptionPage() {
                   Berlaku hingga
                 </dt>
 
-                {isActive && countdownSeconds !== null && (
-                  <p className="mb-1 text-[10px] font-bold tabular-nums text-[#76B900]">
-                    Sisa {formatCountdown(countdownSeconds)}
-                  </p>
-                )}
-
-                <dd className="mt-0.5 truncate text-sm font-semibold tabular-nums text-[#171717]">
-                  {isActive && subscription?.end_date
-                    ? formatDate(subscription.end_date)
+                <dd
+                  className={`mt-0.5 truncate text-sm font-semibold tabular-nums ${
+                    countdownSeconds !== null && countdownSeconds <= 86400
+                      ? "bg-red-50 px-1 text-red-600"
+                      : "text-[#171717]"
+                  }`}
+                >
+                  {isActive && subscription?.end_date &&
+                  countdownSeconds !== null &&
+                  countdownSeconds !== null
+                    ? countdownSeconds <= 86400
+                      ? `Sisa ${formatCountdown(countdownSeconds)}`
+                      : formatDate(subscription.end_date)
                     : "—"}
                 </dd>
               </motion.div>

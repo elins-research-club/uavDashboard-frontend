@@ -98,9 +98,11 @@ export function SectionHeader({
           {title}
         </h2>
 
-        <p className="mt-1 max-w-2xl text-[11px] font-medium leading-[1.55] text-[#6B6B66] sm:text-xs sm:leading-5">
-          {description}
-        </p>
+        {description && (
+          <p className="mt-1 max-w-2xl text-[11px] font-medium leading-[1.55] text-[#6B6B66] sm:text-xs sm:leading-5">
+            {description}
+          </p>
+        )}
       </div>
     </div>
   );

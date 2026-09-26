@@ -825,10 +825,6 @@ export default function UsersPage() {
                 Manajemen <span className="text-[#171717]">User</span>
               </h1>
 
-              <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-[#767871]">
-                Kelola akun, role, dan status subscription pengguna dari satu
-                workspace.
-              </p>
             </div>
 
             <div className="relative">

@@ -429,7 +429,6 @@ function RoleWorkspace({
           <SectionMarker
             eyebrow=""
             title="Role & Permission Matrix"
-            description="Pilih role di sebelah kiri, lalu atur capability yang tersedia untuk role tersebut."
             icon={ShieldCheck}
           />
 
@@ -1074,7 +1073,6 @@ function PricingWorkspace({
             <SectionMarker
               eyebrow=""
               title="Pricing Control Center"
-              description="Kelola harga dan feature set yang ditampilkan pada halaman subscription."
               icon={CreditCard}
             />
 

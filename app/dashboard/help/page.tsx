@@ -91,9 +91,11 @@ function SectionHeader({
           {title}
         </h2>
 
-        <p className="mt-1 max-w-2xl text-[11px] font-medium leading-[1.55] text-[#6B6B66] sm:text-xs sm:leading-5">
-          {description}
-        </p>
+        {description && (
+          <p className="mt-1 max-w-2xl text-[11px] font-medium leading-[1.55] text-[#6B6B66] sm:text-xs sm:leading-5">
+            {description}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -198,10 +200,7 @@ export default function HelpPage() {
                 Pusat Bantuan
               </h1>
 
-              <p className="mt-2 max-w-2xl text-[11px] font-medium leading-[1.65] text-[#6B6B66] sm:text-xs sm:leading-5">
-                Temukan jawaban, pahami workflow dataset, dan dapatkan bantuan
-                ketika Anda membutuhkannya.
-              </p>
+
             </div>
 
             <div className="flex items-end gap-2 sm:gap-4">
@@ -254,7 +253,6 @@ export default function HelpPage() {
               <SectionHeader
                 eyebrow="FAQ"
                 title="Pertanyaan Umum"
-                description="Jawaban untuk masalah yang paling sering muncul saat menggunakan platform."
                 icon={BookOpen}
               />
             </div>
@@ -268,11 +266,10 @@ export default function HelpPage() {
                     <motion.div
                       key={faq.question}
                       layout
-                      className={`overflow-hidden border transition-colors duration-200 ${
-                        isOpen
+                      className={`overflow-hidden border transition-colors duration-200 ${isOpen
                           ? "border-[#CFCFC8] bg-[#FAFAF8]"
                           : "border-[#DCDDD8] bg-white hover:bg-[#FAFAF8]"
-                      }`}
+                        }`}
                     >
                       <button
                         type="button"
@@ -294,9 +291,8 @@ export default function HelpPage() {
                           </motion.span>
 
                           <span
-                            className={`min-w-0 text-[11px] font-bold leading-[1.55] sm:text-xs sm:leading-5 ${
-                              isOpen ? "text-[#171717]" : "text-[#33332F]"
-                            }`}
+                            className={`min-w-0 text-[11px] font-bold leading-[1.55] sm:text-xs sm:leading-5 ${isOpen ? "text-[#171717]" : "text-[#33332F]"
+                              }`}
                           >
                             {faq.question}
                           </span>
@@ -378,7 +374,6 @@ export default function HelpPage() {
                 <SectionHeader
                   eyebrow="Workflow"
                   title="Alur Cepat"
-                  description="Urutan dasar dari dataset mentah hingga siap dianalisis."
                   icon={Workflow}
                 />
               </div>
@@ -411,11 +406,10 @@ export default function HelpPage() {
                             scale: 1.08,
                             rotate: -4,
                           }}
-                          className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center border ${
-                            index === steps.length - 1
+                          className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center border ${index === steps.length - 1
                               ? "border-[#171717] bg-[#171717] text-white"
                               : "border-[#DCDDD8] bg-[#F4F5F2] text-[#33332F]"
-                          }`}
+                            }`}
                         >
                           <span className="text-[9px] font-bold">
                             {step.number}
@@ -548,7 +542,6 @@ export default function HelpPage() {
             <SectionHeader
               eyebrow="Navigation"
               title="Akses Cepat"
-              description="Pindah langsung ke area utama yang paling sering digunakan."
               icon={MapPinned}
             />
           </div>
@@ -561,11 +554,10 @@ export default function HelpPage() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`group relative flex min-w-0 items-start gap-3.5 p-4 outline-none transition-colors hover:bg-[#FAFAF8] focus-visible:bg-[#FAFAF8] sm:gap-4 sm:p-5 ${
-                    index < quickLinks.length - 1
+                  className={`group relative flex min-w-0 items-start gap-3.5 p-4 outline-none transition-colors hover:bg-[#FAFAF8] focus-visible:bg-[#FAFAF8] sm:gap-4 sm:p-5 ${index < quickLinks.length - 1
                       ? "border-b border-[#DCDDD8] md:border-b-0 md:border-r"
                       : ""
-                  }`}
+                    }`}
                 >
                   <motion.span
                     whileHover={{

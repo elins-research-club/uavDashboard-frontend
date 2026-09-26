@@ -125,10 +125,6 @@ export default function SettingsPage() {
                 Pengaturan
               </h1>
 
-              <p className="mt-2 max-w-2xl text-[11px] font-medium leading-[1.65] text-[#6B6B66] sm:text-xs sm:leading-5">
-                Kelola preferensi tampilan, workspace, notifikasi, dan akses
-                akun.
-              </p>
             </div>
 
             <div className="flex w-full items-center gap-2 sm:w-auto">

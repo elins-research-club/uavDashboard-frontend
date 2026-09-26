@@ -116,7 +116,6 @@ function StepRail({
         <SectionHeader
           eyebrow="Workflow"
           title="Alur Upload"
-          description="Empat langkah dari file mentah hingga dataset tersimpan."
           icon={Workflow}
         />
       </div>
@@ -2068,7 +2067,6 @@ export default function UploadPage() {
                         <SectionHeader
                           eyebrow="Langkah 02"
                           title="Detail dataset"
-                          description="Tambahkan informasi dasar survei."
                           icon={Calendar}
                         />
                       </div>
@@ -2283,7 +2281,6 @@ export default function UploadPage() {
                         <SectionHeader
                           eyebrow="Langkah 03"
                           title="Review & kirim"
-                          description="Periksa sebelum upload."
                           icon={ShieldCheck}
                           right={
                             submitErrors.length === 0 &&
