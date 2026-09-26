@@ -31,7 +31,6 @@ export type SubscriptionLeadDays = 3 | 7 | 14;
 
 export interface UserSettings {
   /* Umum */
-  workspaceName: string;
   landingPage: LandingPageKey;
   timezone: TimezoneKey;
   dateFormat: DateFormatKey;
@@ -213,7 +212,6 @@ export const SUBSCRIPTION_LEAD_OPTIONS: {
 ============================================================ */
 
 export const DEFAULT_SETTINGS: UserSettings = {
-  workspaceName: "AMX GeoStream",
 
   landingPage: "/dashboard",
   timezone: "wib",

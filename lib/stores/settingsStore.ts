@@ -138,10 +138,6 @@ export function normalizeSettingsPatch(
 ): Partial<UserSettings> {
   const next: Partial<UserSettings> = { ...patch };
 
-  if (next.workspaceName !== undefined) {
-    next.workspaceName = String(next.workspaceName).slice(0, 60);
-  }
-
   if (next.mapOpacity !== undefined) {
     next.mapOpacity = sanitizeOpacity(Number(next.mapOpacity));
   }
@@ -294,7 +290,6 @@ export function getSettingsSnapshot(): UserSettings {
   const state = useSettingsStore.getState();
 
   return {
-    workspaceName: state.workspaceName,
     landingPage: state.landingPage,
     timezone: state.timezone,
     dateFormat: state.dateFormat,

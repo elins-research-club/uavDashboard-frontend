@@ -46,7 +46,6 @@ import {
 const PREVIEW_DATE = new Date();
 
 export function GeneralPanel() {
-  const workspaceName = useSettingsStore((state) => state.workspaceName);
   const landingPage = useSettingsStore((state) => state.landingPage);
   const timezone = useSettingsStore((state) => state.timezone);
   const dateFormat = useSettingsStore((state) => state.dateFormat);
@@ -88,20 +87,11 @@ export function GeneralPanel() {
           </h3>
 
           <p className="mt-1 text-[10px] font-medium leading-4 text-[#858780] sm:text-xs">
-            Nama tampil dan halaman tujuan setelah login.
+            Halaman tujuan setelah login.
           </p>
         </div>
 
         <div className="grid gap-x-5 gap-y-5 sm:grid-cols-2">
-          <TextField
-            icon={LayoutDashboard}
-            label="Nama workspace"
-            description="Ditampilkan pada judul dokumen dan kartu profil."
-            value={workspaceName}
-            placeholder="Agri Halmahera"
-            onChange={(value) => update({ workspaceName: value })}
-          />
-
           <SelectField<LandingPageKey>
             label="Halaman setelah login"
             description="Tujuan redirect setelah berhasil masuk."

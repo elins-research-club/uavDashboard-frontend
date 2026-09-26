@@ -21,7 +21,7 @@ import {
   UserRound,
   type LucideIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useUserRole } from "@/context/UserRoleContext";
 import { dispatchToast } from "@/lib/notify";
@@ -83,9 +83,20 @@ const tabs: SettingsTabItem[] = [
 export default function SettingsPage() {
   const router = useRouter();
 
-  const { logout } = useUserRole();
+  const { user, logout } = useUserRole();
 
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
+
+  const canViewGeneral = user?.role === "admin" || user?.role === "god";
+  const visibleTabs = canViewGeneral
+    ? tabs
+    : tabs.filter((tab) => tab.key !== "general");
+
+  useEffect(() => {
+    if (!canViewGeneral && activeTab === "general") {
+      setActiveTab("preferences");
+    }
+  }, [activeTab, canViewGeneral]);
 
   const reset = useSettingsStore((state) => state.reset);
 
@@ -173,7 +184,7 @@ export default function SettingsPage() {
 
             <div className="p-2.5 sm:p-3">
               <div className="grid grid-cols-2 gap-1 lg:block lg:space-y-1">
-                {tabs.map((tab) => {
+                {visibleTabs.map((tab) => {
                   const Icon = tab.icon;
                   const active = activeTab === tab.key;
 
@@ -275,7 +286,7 @@ export default function SettingsPage() {
                   }}
                   transition={panelTransition}
                 >
-                  {activeTab === "general" && <GeneralPanel />}
+                  {activeTab === "general" && canViewGeneral && <GeneralPanel />}
 
                   {activeTab === "preferences" && <PreferencesPanel />}
 

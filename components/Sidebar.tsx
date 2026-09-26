@@ -22,7 +22,6 @@ import {
   Users,
   ShieldCheck,
   Drone,
-  Leaf,
   PanelLeftClose,
   PanelLeftOpen,
   ChevronRight,
@@ -49,18 +48,6 @@ const ICON_STROKE = 1.75;
 /* ============================================================
    TIER LABEL
 ============================================================ */
-
-export const getTierLabel = (tier?: string) => {
-  if (tier === "kecamatan") {
-    return "Enterprise";
-  }
-
-  if (tier === "desa") {
-    return "Koperasi Desa";
-  }
-
-  return "Kelompok Tani";
-};
 
 /* ============================================================
    TOOLTIP
@@ -302,10 +289,6 @@ export default function Sidebar({
      PROFILE
   ========================================================== */
 
-  const tierLabel = getTierLabel(
-    user?.subscription?.tier ?? user?.tier ?? undefined
-  );
-
   const userName = user?.username || "Pengguna";
 
   const userInitials = userName.slice(0, 2).toUpperCase();
@@ -314,7 +297,7 @@ export default function Sidebar({
     ? `${userName} · God · Protected`
     : user?.role === "admin"
     ? `${userName} · Administrator`
-    : `${userName} · ${tierLabel}`;
+    : userName;
 
   /* ==========================================================
      MENU ITEM RENDERER
@@ -625,19 +608,7 @@ export default function Sidebar({
                           Administrator
                         </span>
                       </>
-                    ) : (
-                      <>
-                        <Leaf
-                          size={11}
-                          strokeWidth={ICON_STROKE}
-                          className="shrink-0 uav-text-accent"
-                        />
-
-                        <span className="truncate text-[9px] font-semibold text-[#777972]">
-                          {tierLabel}
-                        </span>
-                      </>
-                    )}
+                    ) : null}
                   </span>
                 </span>
 
