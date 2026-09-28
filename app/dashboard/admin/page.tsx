@@ -53,6 +53,15 @@ interface Plan {
   features: string[];
 }
 
+interface ManagedUser {
+  id: string;
+  username: string;
+  email: string;
+  role: string;
+  is_protected: boolean;
+  permissions: string[];
+}
+
 type SaveMessage = {
   id: string;
   type: "success" | "error";
@@ -63,6 +72,74 @@ type PlanSaveMessage = {
   type: "success" | "error";
   text: string;
 } | null;
+
+function UserPermissionWorkspace({
+  users,
+  permissionGroups,
+  selectedUserId,
+  setSelectedUserId,
+  editedPermissions,
+  togglePermission,
+  save,
+  saving,
+  message,
+}: {
+  users: ManagedUser[];
+  permissionGroups: PermissionGroup[];
+  selectedUserId: string;
+  setSelectedUserId: (id: string) => void;
+  editedPermissions: string[];
+  togglePermission: (key: string) => void;
+  save: () => Promise<void>;
+  saving: boolean;
+  message: string;
+}) {
+  const selected = users.find((item) => item.id === selectedUserId);
+
+  return (
+    <section className="border border-[#DCDDD8] bg-white p-4 shadow-sm">
+      <div className="flex flex-col gap-3 border-b border-[#E7E8E3] pb-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#858780]">Permission tambahan</p>
+          <h2 className="mt-1 text-sm font-bold">Atur fitur per user</h2>
+        </div>
+        <select
+          value={selectedUserId}
+          onChange={(event) => setSelectedUserId(event.target.value)}
+          className="h-8 border border-[#DCDDD8] bg-[#FAFAF8] px-2 text-xs font-semibold"
+          aria-label="Pilih user"
+        >
+          {users.map((item) => <option key={item.id} value={item.id}>{item.username} · {item.role}</option>)}
+        </select>
+      </div>
+
+      <p className="mt-3 text-[10px] leading-4 text-[#858780]">
+        Fitur dari role tetap aktif dan tidak dapat dicabut. Checkbox di bawah hanya menambah fitur khusus user.
+      </p>
+
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        {permissionGroups.flatMap((group) => group.permissions).filter((item) => item.key !== "all").map((permission) => (
+          <label key={permission.key} className="flex items-center gap-2 border border-[#E7E8E3] px-3 py-2 text-xs">
+            <input
+              type="checkbox"
+              checked={editedPermissions.includes(permission.key)}
+              onChange={() => togglePermission(permission.key)}
+              disabled={!selected || selected.is_protected || selected.role === "god"}
+            />
+            <span>{permission.label}</span>
+          </label>
+        ))}
+      </div>
+
+      <div className="mt-4 flex items-center justify-between gap-3">
+        <span className="text-[10px] font-medium text-[#4E504A]">{message}</span>
+        <button type="button" onClick={save} disabled={saving || !selected} className="inline-flex h-8 items-center gap-1.5 bg-[#171717] px-3 text-[10px] font-bold text-white disabled:opacity-50">
+          <Save className="h-3 w-3" /> Simpan fitur
+        </button>
+      </div>
+    </section>
+  );
+}
 
 /* ============================================================
    CONSTANTS
@@ -1471,9 +1548,10 @@ export default function AdminPage() {
 
   const canManageRoles = hasPermission("manage_roles");
   const canManagePricing = hasPermission("manage_pricing");
-  const canOpenAdminPanel = canManageRoles || canManagePricing;
+  const canManageUsers = hasPermission("manage_users");
+  const canOpenAdminPanel = canManageRoles || canManagePricing || canManageUsers;
 
-  const [activeTab, setActiveTab] = useState<"roles" | "pricing">("roles");
+  const [activeTab, setActiveTab] = useState<"roles" | "pricing" | "users">("roles");
 
   /* ==========================================================
      ROLES
@@ -1497,6 +1575,12 @@ export default function AdminPage() {
   const [editedPrice, setEditedPrice] = useState("0");
   const [editedFeatures, setEditedFeatures] = useState("");
   const [planSaveMsg, setPlanSaveMsg] = useState<PlanSaveMessage>(null);
+
+  const [managedUsers, setManagedUsers] = useState<ManagedUser[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState("");
+  const [editedUserPermissions, setEditedUserPermissions] = useState<string[]>([]);
+  const [userPermissionMsg, setUserPermissionMsg] = useState("");
+  const [userPermissionSaving, setUserPermissionSaving] = useState(false);
 
   /* ==========================================================
      AUTH GUARD
@@ -1531,10 +1615,15 @@ export default function AdminPage() {
       return;
     }
 
+    if (!canManageRoles && !canManagePricing && canManageUsers) {
+      setActiveTab("users");
+      return;
+    }
+
     if (canManageRoles) {
       setActiveTab("roles");
     }
-  }, [authLoading, canManageRoles, canManagePricing]);
+  }, [authLoading, canManageRoles, canManagePricing, canManageUsers]);
 
   /* ==========================================================
      FETCH ROLES
@@ -1624,6 +1713,23 @@ export default function AdminPage() {
     };
   }, [authLoading, user, canManagePricing]);
 
+  useEffect(() => {
+    if (authLoading || !user || !canManageUsers) return;
+
+    Promise.all([
+      api.get<ManagedUser[]>("/admin/users"),
+      api.get<PermissionGroup[]>("/admin/permission-catalog"),
+    ]).then(([usersResponse, catalogResponse]) => {
+      setManagedUsers(usersResponse.data);
+      setPermissionGroups((previous) => previous.length ? previous : catalogResponse.data);
+      const first = usersResponse.data[0];
+      if (first) {
+        setSelectedUserId(first.id);
+        setEditedUserPermissions(first.permissions || []);
+      }
+    }).catch(() => setManagedUsers([]));
+  }, [authLoading, user, canManageUsers]);
+
   /* ==========================================================
      ROLE HELPERS
   ========================================================== */
@@ -1632,6 +1738,36 @@ export default function AdminPage() {
     () => roles.find((role) => role.id === selectedRoleId),
     [roles, selectedRoleId]
   );
+
+  const selectedManagedUser = managedUsers.find((item) => item.id === selectedUserId);
+
+  const selectManagedUser = (id: string) => {
+    setSelectedUserId(id);
+    setEditedUserPermissions(managedUsers.find((item) => item.id === id)?.permissions || []);
+    setUserPermissionMsg("");
+  };
+
+  const toggleUserPermission = (permission: string) => {
+    if (!selectedManagedUser || selectedManagedUser.is_protected || selectedManagedUser.role === "god") return;
+    setEditedUserPermissions((previous) => previous.includes(permission)
+      ? previous.filter((item) => item !== permission)
+      : [...previous, permission]);
+  };
+
+  const saveUserPermissions = async () => {
+    if (!selectedManagedUser) return;
+    setUserPermissionSaving(true);
+    try {
+      const { data } = await api.patch<ManagedUser>(`/admin/users/${selectedManagedUser.id}/permissions`, { permissions: editedUserPermissions });
+      setManagedUsers((previous) => previous.map((item) => item.id === data.id ? data : item));
+      setEditedUserPermissions(data.permissions || []);
+      setUserPermissionMsg("Fitur user berhasil disimpan.");
+    } catch {
+      setUserPermissionMsg("Fitur user gagal disimpan.");
+    } finally {
+      setUserPermissionSaving(false);
+    }
+  };
 
   const startEditRole = (role: Role) => {
     setSelectedRoleId(role.id);
@@ -1767,6 +1903,7 @@ export default function AdminPage() {
 
   const showRolesTab = canManageRoles;
   const showPricingTab = canManagePricing;
+  const showUsersTab = canManageUsers;
 
   return (
     <main className="min-h-screen bg-[#F4F5F2] text-[#171717]">
@@ -1801,7 +1938,7 @@ export default function AdminPage() {
             MODULE NAV
         =================================================== */}
 
-        {(showRolesTab || showPricingTab) && (
+        {(showRolesTab || showPricingTab || showUsersTab) && (
           <motion.div
             initial={{
               opacity: 0,
@@ -1884,6 +2021,14 @@ export default function AdminPage() {
                       }}
                     />
                   )}
+                </button>
+              )}
+
+              {showUsersTab && (
+                <button type="button" onClick={() => setActiveTab("users")} className="group relative flex items-center gap-2 py-3 text-xs font-bold">
+                  <AnimatedIcon icon={Users} active={activeTab === "users"} />
+                  <span className={activeTab === "users" ? "text-[#171717]" : "text-[#858780]"}>Fitur User</span>
+                  {activeTab === "users" && <motion.span layoutId="activeAdminTab" className="absolute bottom-[-1px] left-0 right-0 h-[2px] bg-[#171717]" />}
                 </button>
               )}
             </div>
@@ -1973,6 +2118,22 @@ export default function AdminPage() {
                 setEditingPlan={setEditingPlan}
                 planSaveMsg={planSaveMsg}
                 canManagePricing={canManagePricing}
+              />
+            </motion.div>
+          )}
+
+          {activeTab === "users" && showUsersTab && (
+            <motion.div key="users" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+              <UserPermissionWorkspace
+                users={managedUsers}
+                permissionGroups={permissionGroups}
+                selectedUserId={selectedUserId}
+                setSelectedUserId={selectManagedUser}
+                editedPermissions={editedUserPermissions}
+                togglePermission={toggleUserPermission}
+                save={saveUserPermissions}
+                saving={userPermissionSaving}
+                message={userPermissionMsg}
               />
             </motion.div>
           )}

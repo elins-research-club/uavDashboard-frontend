@@ -37,6 +37,7 @@ import {
 
 import type { LucideIcon } from "lucide-react";
 import type { MapLayerItem } from "@/types/map";
+import { useUserRole } from "@/context/UserRoleContext";
 
 type BasemapKey = "street" | "satellite";
 
@@ -456,6 +457,7 @@ export default function LayerControlPanel({
   onReorderLayers,
   onSetBaseLayer,
 }: LayerControlPanelProps) {
+  const { isAdmin } = useUserRole();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [panelOpen, setPanelOpen] = useState(true);
@@ -857,24 +859,26 @@ export default function LayerControlPanel({
 
             <div className="flex shrink-0 items-center gap-1">
               {/* UPLOAD MAP */}
-              <button
-                type="button"
-                onClick={() => {
-                  setUploadOpen((current) => !current);
-                  setUploadError(null);
-                }}
-                className={[
-                  "inline-flex h-7 items-center gap-1.5 border px-2.5 text-[9px] font-bold outline-none transition-colors",
-                  "focus-visible:ring-2 focus-visible:ring-[#76B900]/40",
-                  uploadOpen
-                    ? "border-[#171717] bg-[#171717] text-white"
-                    : "border-[#DCDDD8] bg-white text-[#555750] hover:border-[#171717] hover:bg-[#171717] hover:text-white",
-                ].join(" ")}
-              >
-                <Upload className="h-3 w-3" strokeWidth={2} />
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUploadOpen((current) => !current);
+                    setUploadError(null);
+                  }}
+                  className={[
+                    "inline-flex h-7 items-center gap-1.5 border px-2.5 text-[9px] font-bold outline-none transition-colors",
+                    "focus-visible:ring-2 focus-visible:ring-[#76B900]/40",
+                    uploadOpen
+                      ? "border-[#171717] bg-[#171717] text-white"
+                      : "border-[#DCDDD8] bg-white text-[#555750] hover:border-[#171717] hover:bg-[#171717] hover:text-white",
+                  ].join(" ")}
+                >
+                  <Upload className="h-3 w-3" strokeWidth={2} />
 
-                <span>Upload Map</span>
-              </button>
+                  <span>Upload Map</span>
+                </button>
+              )}
 
               {/* MINIMIZE */}
               <IconButton
