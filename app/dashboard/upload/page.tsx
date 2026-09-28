@@ -151,8 +151,8 @@ function StepRail({
                       done
                         ? "border-[#171717] bg-[#171717] text-white"
                         : active
-                        ? "border-[#171717] bg-white text-[#171717]"
-                        : "border-[#DCDDD8] bg-[#F4F5F2] text-[#B0B1AB]"
+                          ? "border-[#171717] bg-white text-[#171717]"
+                          : "border-[#DCDDD8] bg-[#F4F5F2] text-[#B0B1AB]"
                     )}
                   >
                     {done ? (
@@ -218,15 +218,15 @@ function SystemStatusPanel({
   const stageLabel = isBaking
     ? "2. Kompilasi PMTiles"
     : isValidating
-    ? "1. Memeriksa berkas"
-    : "1. Upload berkas";
+      ? "1. Memeriksa berkas"
+      : "1. Upload berkas";
   const progress = isBaking
     ? pmtilesProgress.total > 0
       ? Math.round((pmtilesProgress.completed / pmtilesProgress.total) * 100)
       : undefined
     : isValidating
-    ? undefined
-    : uploadProgress;
+      ? undefined
+      : uploadProgress;
 
   const rows: { label: string; value: string; accent?: boolean }[] = [
     { label: "Files", value: String(fileCount) },
@@ -335,8 +335,8 @@ function SystemStatusPanel({
                 {isBaking
                   ? `${pmtilesProgress.completed}/${pmtilesProgress.total} layer`
                   : isValidating
-                  ? "Menunggu server"
-                  : `${uploadProgress}%`}
+                    ? "Menunggu server"
+                    : `${uploadProgress}%`}
               </span>
             </div>
 
@@ -352,11 +352,10 @@ function SystemStatusPanel({
               className="h-1.5 overflow-hidden bg-white/10"
             >
               <div
-                className={`h-full bg-[#76B900] ${
-                  progress === undefined
-                    ? "animate-pulse motion-reduce:animate-none"
-                    : "transition-[width] duration-300 motion-reduce:transition-none"
-                }`}
+                className={`h-full bg-[#76B900] ${progress === undefined
+                  ? "animate-pulse motion-reduce:animate-none"
+                  : "transition-[width] duration-300 motion-reduce:transition-none"
+                  }`}
                 style={{
                   width: progress === undefined ? "100%" : `${progress}%`,
                 }}
@@ -365,10 +364,10 @@ function SystemStatusPanel({
 
             <p className="text-[10px] font-medium leading-4 text-white/60">
               {isBaking
-                ? "Membangun piramida ubin untuk render instan di peta."
+                ? "Kami sedang menyiapkan peta agar bisa dibuka dengan lancar. Mohon tunggu."
                 : isValidating
-                ? "Menunggu pemeriksaan berkas oleh server."
-                : "Mengirim berkas ke server."}{" "}
+                  ? "Menunggu pemeriksaan berkas oleh server."
+                  : "Mengirim berkas ke server."}{" "}
               Formulir dikunci selama proses berlangsung.
             </p>
           </div>
@@ -572,10 +571,8 @@ export default function UploadPage() {
     setSurveyDate,
     description,
     setDescription,
-    lockedForFree,
-    setLockedForFree,
-    purchasable,
-    setPurchasable,
+    allowedTiers,
+    setAllowedTiers,
     batchFiles,
     setBatchFiles,
     manualSlots,
@@ -689,21 +686,21 @@ export default function UploadPage() {
   const submitErrors =
     uploadMode === "manual"
       ? [
-          ...(manualSlots.length
-            ? manualLayerErrors.flat()
-            : ["Tambahkan minimal satu layer."]),
-          ...(!title.trim() ? ["Judul peta wajib diisi."] : []),
-          ...(!location.trim() ? ["Lokasi survei wajib diisi."] : []),
-          ...(!surveyDate ? ["Tanggal survei wajib diisi."] : []),
-        ]
+        ...(manualSlots.length
+          ? manualLayerErrors.flat()
+          : ["Tambahkan minimal satu layer."]),
+        ...(!title.trim() ? ["Judul peta wajib diisi."] : []),
+        ...(!location.trim() ? ["Lokasi survei wajib diisi."] : []),
+        ...(!surveyDate ? ["Tanggal survei wajib diisi."] : []),
+      ]
       : batchErrors(batchFiles, title, location, surveyDate);
 
   const filesReady =
     uploadMode === "batch"
       ? batchFiles.length > 0 &&
-        batchFiles.filter((item) => item.is_base).length === 1 &&
-        !metadataStillReading &&
-        batchFiles.every((item) => Boolean(item.name.trim()))
+      batchFiles.filter((item) => item.is_base).length === 1 &&
+      !metadataStillReading &&
+      batchFiles.every((item) => Boolean(item.name.trim()))
       : manualFilesReady;
 
   // Section berikutnya hanya terbuka setelah user MENEKAN tombol
@@ -714,10 +711,10 @@ export default function UploadPage() {
   const currentStep = isSuccess
     ? 4
     : !filesConfirmed
-    ? 1
-    : !detailsConfirmed
-    ? 2
-    : 3;
+      ? 1
+      : !detailsConfirmed
+        ? 2
+        : 3;
 
   const showFilesEditor = editingFiles || !filesReady;
 
@@ -726,39 +723,39 @@ export default function UploadPage() {
   const reviewChecklist: ReviewChecklistItem[] =
     uploadMode === "batch"
       ? [
-          {
-            label: "File GeoTIFF dipilih",
-            ready: batchFiles.length > 0,
-          },
-          {
-            label: "Layer utama dipilih",
-            ready: batchFiles.filter((item) => item.is_base).length === 1,
-          },
-          {
-            label: "Nama layer lengkap",
-            ready: batchFiles.every((item) => Boolean(item.name.trim())),
-          },
-          ...metaChecklist,
-        ]
+        {
+          label: "File GeoTIFF dipilih",
+          ready: batchFiles.length > 0,
+        },
+        {
+          label: "Layer utama dipilih",
+          ready: batchFiles.filter((item) => item.is_base).length === 1,
+        },
+        {
+          label: "Nama layer lengkap",
+          ready: batchFiles.every((item) => Boolean(item.name.trim())),
+        },
+        ...metaChecklist,
+      ]
       : [
-          {
-            label: "Minimal satu layer dipilih",
-            ready: manualSlots.length > 0,
-          },
-          {
-            label: "Semua layer memiliki file",
-            ready:
-              manualSlots.length > 0 &&
-              manualSlots.every((slot) => Boolean(slot.file)),
-          },
-          {
-            label: "Semua layer memiliki nama",
-            ready:
-              manualSlots.length > 0 &&
-              manualSlots.every((slot) => Boolean(slot.name.trim())),
-          },
-          ...metaChecklist,
-        ];
+        {
+          label: "Minimal satu layer dipilih",
+          ready: manualSlots.length > 0,
+        },
+        {
+          label: "Semua layer memiliki file",
+          ready:
+            manualSlots.length > 0 &&
+            manualSlots.every((slot) => Boolean(slot.file)),
+        },
+        {
+          label: "Semua layer memiliki nama",
+          ready:
+            manualSlots.length > 0 &&
+            manualSlots.every((slot) => Boolean(slot.name.trim())),
+        },
+        ...metaChecklist,
+      ];
 
   const reviewFiles =
     uploadMode === "batch" ? batchFiles.map((item) => item.file) : manualFiles;
@@ -1280,9 +1277,7 @@ export default function UploadPage() {
       formData.append("description", description);
     }
 
-    formData.append("locked_for_free", lockedForFree ? "true" : "false");
-
-    formData.append("purchasable", purchasable ? "true" : "false");
+    formData.append("allowed_tiers", JSON.stringify(allowedTiers));
 
     formData.append("layers_config", JSON.stringify(layersConfigPayload));
 
@@ -1395,7 +1390,7 @@ export default function UploadPage() {
   ];
 
   const modes = [
-    { value: "batch" as const, label: "Mudah", icon: Wand2 },
+    { value: "batch" as const, label: "Auto", icon: Wand2 },
     { value: "manual" as const, label: "Manual", icon: SlidersHorizontal },
   ];
 
@@ -1418,9 +1413,7 @@ export default function UploadPage() {
                 Unggah Dataset
               </h1>
 
-              <p className="mt-2 max-w-2xl text-xs font-medium leading-5 text-[#6B6B66]">
-                Tambahkan hasil survei Anda ke dalam peta.
-              </p>
+
             </div>
 
             <div className="flex items-end gap-2 sm:gap-4">
@@ -1576,7 +1569,7 @@ export default function UploadPage() {
                       <p className={eyebrowClass}>Metode upload</p>
 
                       <p className="mt-1 text-xs font-medium leading-5 text-[#6B6B66]">
-                        Mode Mudah cocok untuk upload otomatis, Manual untuk
+                        Mode Auto untuk upload otomatis, Manual untuk
                         memilih layer satu per satu.
                       </p>
                     </div>
@@ -1643,11 +1636,7 @@ export default function UploadPage() {
                           eyebrow="Langkah 01"
                           title="Upload layer"
                           icon={Upload}
-                          description={
-                            uploadMode === "batch"
-                              ? "Pilih file hasil survei untuk dideteksi otomatis berdasarkan metadata, struktur raster, dan nama file."
-                              : "Tambahkan layer sesuai kebutuhan. Tidak perlu upload ortho terlebih dahulu."
-                          }
+
                         />
                       </div>
 
@@ -1762,8 +1751,8 @@ export default function UploadPage() {
                                               item.is_base
                                                 ? "bg-[#171717]"
                                                 : uncertain
-                                                ? "bg-red-400"
-                                                : "bg-[#DCDDD8]"
+                                                  ? "bg-red-400"
+                                                  : "bg-[#DCDDD8]"
                                             )}
                                           />
 
@@ -1981,7 +1970,7 @@ export default function UploadPage() {
                                                     <span className="w-9 text-right text-[10px] font-bold tabular-nums text-[#171717]">
                                                       {Math.round(
                                                         item.default_opacity *
-                                                          100
+                                                        100
                                                       )}
                                                       %
                                                     </span>
@@ -2040,9 +2029,8 @@ export default function UploadPage() {
                   ) : (
                     <CollapsedSummary
                       title="Upload layer"
-                      detail={`${
-                        reviewFiles.length
-                      } layer · ${totalSizeMB.toFixed(1)} MB`}
+                      detail={`${reviewFiles.length
+                        } layer · ${totalSizeMB.toFixed(1)} MB`}
                       onEdit={() => setEditingFiles(true)}
                     />
                   )}
@@ -2202,35 +2190,25 @@ export default function UploadPage() {
                             </div>
 
                             <div className="flex flex-wrap gap-2">
-                              <label className="flex cursor-pointer items-center gap-2 border border-[#DCDDD8] bg-white px-3 py-2 transition-colors hover:bg-[#FAFAF8]">
-                                <input
-                                  type="checkbox"
-                                  checked={lockedForFree}
-                                  onChange={(event) =>
-                                    setLockedForFree(event.target.checked)
-                                  }
-                                  className="h-3.5 w-3.5 accent-[#171717]"
-                                />
-
-                                <span className="text-[10px] font-bold text-[#33332F]">
-                                  Batasi untuk member berbayar
-                                </span>
-                              </label>
-
-                              <label className="flex cursor-pointer items-center gap-2 border border-[#DCDDD8] bg-white px-3 py-2 transition-colors hover:bg-[#FAFAF8]">
-                                <input
-                                  type="checkbox"
-                                  checked={purchasable}
-                                  onChange={(event) =>
-                                    setPurchasable(event.target.checked)
-                                  }
-                                  className="h-3.5 w-3.5 accent-[#171717]"
-                                />
-
-                                <span className="text-[10px] font-bold text-[#33332F]">
-                                  Izinkan pembelian satuan
-                                </span>
-                              </label>
+                              {["free", "desa", "kecamatan"].map((tier) => (
+                                <label key={tier} className="flex cursor-pointer items-center gap-2 border border-[#DCDDD8] bg-white px-3 py-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={allowedTiers.includes(tier)}
+                                    onChange={() =>
+                                      setAllowedTiers((current) =>
+                                        current.includes(tier)
+                                          ? current.filter((item) => item !== tier)
+                                          : [...current, tier]
+                                      )
+                                    }
+                                    className="h-3.5 w-3.5 accent-[#171717]"
+                                  />
+                                  <span className="text-[10px] font-bold capitalize text-[#33332F]">
+                                    {tier}
+                                  </span>
+                                </label>
+                              ))}
                             </div>
                           </div>
                         </div>
@@ -2284,7 +2262,7 @@ export default function UploadPage() {
                           icon={ShieldCheck}
                           right={
                             submitErrors.length === 0 &&
-                            !metadataStillReading ? (
+                              !metadataStillReading ? (
                               <span className="flex h-8 w-8 shrink-0 items-center justify-center bg-[#171717] text-white">
                                 <Check
                                   className="h-4 w-4"

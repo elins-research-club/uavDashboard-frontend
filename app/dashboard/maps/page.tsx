@@ -262,9 +262,8 @@ function PlanGeometry({
         WebkitMaskImage: fade,
         maskImage: fade,
       }}
-      className={`pointer-events-none absolute select-none ${className} ${
-        dark ? "text-white opacity-[0.2]" : "text-black opacity-[0.13]"
-      }`}
+      className={`pointer-events-none absolute select-none ${className} ${dark ? "text-white opacity-[0.2]" : "text-black opacity-[0.13]"
+        }`}
     >
       <path
         d={scene.region}
@@ -336,9 +335,8 @@ function SweepButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`group/sweep relative inline-flex items-center justify-center overflow-hidden text-[9px] font-bold uppercase tracking-[0.08em] outline-none transition-transform duration-200 focus-visible:ring-2 focus-visible:ring-[#76B900] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 sm:text-[10px] ${
-        disabled ? "" : "active:scale-[0.985]"
-      } ${sizing} ${base}`}
+      className={`group/sweep relative inline-flex items-center justify-center overflow-hidden text-[9px] font-bold uppercase tracking-[0.08em] outline-none transition-transform duration-200 focus-visible:ring-2 focus-visible:ring-[#76B900] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 sm:text-[10px] ${disabled ? "" : "active:scale-[0.985]"
+        } ${sizing} ${base}`}
     >
       {!disabled && (
         <span
@@ -706,10 +704,10 @@ export default function MapsPage() {
   const tierBadgeLabel = isAdmin
     ? "Akses Admin"
     : tierKey === "desa"
-    ? "Tier Desa"
-    : tierKey === "kecamatan"
-    ? "Tier Kecamatan"
-    : "User Free";
+      ? "Tier Desa"
+      : tierKey === "kecamatan"
+        ? "Tier Kecamatan"
+        : "User Free";
 
   /* =========================================================
      MAP ACTIONS
@@ -742,9 +740,8 @@ export default function MapsPage() {
       return;
     }
 
-    const shareUrl = `${window.location.origin}${
-      window.location.pathname
-    }?map=${encodeURIComponent(selectedMapRaw.id)}`;
+    const shareUrl = `${window.location.origin}${window.location.pathname
+      }?map=${encodeURIComponent(selectedMapRaw.id)}`;
 
     const shareTitle = selectedMapRaw.title || "Peta Geospasial";
 
@@ -1090,61 +1087,61 @@ export default function MapsPage() {
 
   const detailActions = selectedMapRaw
     ? [
-        {
-          key: "share",
-          icon: ArrowUpRight,
-          label: "Bagikan",
-          onClick: () => handleShare(),
-        },
+      {
+        key: "share",
+        icon: ArrowUpRight,
+        label: "Bagikan",
+        onClick: () => handleShare(),
+      },
 
-        {
-          key: "download",
-          icon: isDownloadingAnalysis
-            ? Loader2
-            : isDownloadLocked
+      {
+        key: "download",
+        icon: isDownloadingAnalysis
+          ? Loader2
+          : isDownloadLocked
             ? Lock
             : Download,
 
-          label: isDownloadingAnalysis ? "Memuat" : "Unduh",
+        label: isDownloadingAnalysis ? "Memuat" : "Unduh",
 
-          onClick: () => handleDownloadAnalysis(),
+        onClick: () => handleDownloadAnalysis(),
 
-          spin: isDownloadingAnalysis,
+        spin: isDownloadingAnalysis,
 
-          disabled: isDownloadingAnalysis,
-        },
+        disabled: isDownloadingAnalysis,
+      },
 
-        {
-          key: "metadata",
-          icon: ScanLine,
-          label: "Metadata",
-          onClick: () => setMetadataMap(selectedMapRaw),
-        },
+      {
+        key: "metadata",
+        icon: ScanLine,
+        label: "Metadata",
+        onClick: () => setMetadataMap(selectedMapRaw),
+      },
 
-        ...(canManage
-          ? [
-              {
-                key: "edit",
-                icon: Pencil,
-                label: "Edit",
+      ...(canManage
+        ? [
+          {
+            key: "edit",
+            icon: Pencil,
+            label: "Edit",
 
-                onClick: (event?: React.MouseEvent) =>
-                  openEditModal(selectedMapRaw, event),
-              },
+            onClick: (event?: React.MouseEvent) =>
+              openEditModal(selectedMapRaw, event),
+          },
 
-              {
-                key: "delete",
-                icon: Trash2,
-                label: "Hapus",
+          {
+            key: "delete",
+            icon: Trash2,
+            label: "Hapus",
 
-                onClick: (event?: React.MouseEvent) =>
-                  openDeleteConfirm(selectedMapRaw, event),
+            onClick: (event?: React.MouseEvent) =>
+              openDeleteConfirm(selectedMapRaw, event),
 
-                danger: true,
-              },
-            ]
-          : []),
-      ]
+            danger: true,
+          },
+        ]
+        : []),
+    ]
     : [];
 
   /* =========================================================
@@ -1261,11 +1258,10 @@ export default function MapsPage() {
                     onFocus={() => setIsMinSearchFocused(true)}
                     onBlur={() => setIsMinSearchFocused(false)}
                     placeholder="Cari nama, lokasi, atau format..."
-                    className={`h-[34px] w-full border bg-[#FAFAF8] pl-8 pr-8 text-[10px] font-medium text-[#171717] outline-none transition-all placeholder:text-[#A0A29B] focus:bg-white sm:h-9 sm:text-[11px] ${
-                      isMinSearchFocused
+                    className={`h-[34px] w-full border bg-[#FAFAF8] pl-8 pr-8 text-[10px] font-medium text-[#171717] outline-none transition-all placeholder:text-[#A0A29B] focus:bg-white sm:h-9 sm:text-[11px] ${isMinSearchFocused
                         ? "border-[#BFC4B8] ring-4 ring-black/[0.03]"
                         : "border-[#DCDDD8]"
-                    }`}
+                      }`}
                   />
 
                   {searchQuery && (
@@ -1327,7 +1323,7 @@ export default function MapsPage() {
                     </p>
 
                     <p className="mt-1 text-[9px] font-medium leading-4 text-[#858780] sm:text-[10px]">
-                      Upload peta pertama Anda untuk mulai melakukan analisis.
+                      Upload peta pertama Anda untuk mulai melakukan analisis atau jika ada kendala hubungi developer.
                     </p>
                   </div>
                 )}
@@ -1576,12 +1572,12 @@ export default function MapsPage() {
                                 {React.isValidElement(metadataIcon)
                                   ? metadataIcon
                                   : React.createElement(
-                                      metadataIcon as React.ElementType,
-                                      {
-                                        className: "h-3 w-3",
-                                        strokeWidth: 1.8,
-                                      }
-                                    )}
+                                    metadataIcon as React.ElementType,
+                                    {
+                                      className: "h-3 w-3",
+                                      strokeWidth: 1.8,
+                                    }
+                                  )}
                               </span>
 
                               <span className="truncate text-[9px] font-bold uppercase tracking-[0.06em] text-[#4E504A]">
@@ -1741,11 +1737,10 @@ export default function MapsPage() {
             opacity: 1,
             y: 0,
           }}
-          className={`fixed bottom-3 left-3 right-3 z-[9998] flex items-start gap-3 border px-4 py-3.5 text-[11px] font-medium leading-5 shadow-[0_20px_45px_rgba(0,0,0,0.10)] sm:bottom-6 sm:left-auto sm:right-6 sm:max-w-sm sm:px-5 sm:py-4 sm:text-sm ${
-            notice.type === "success"
+          className={`fixed bottom-3 left-3 right-3 z-[9998] flex items-start gap-3 border px-4 py-3.5 text-[11px] font-medium leading-5 shadow-[0_20px_45px_rgba(0,0,0,0.10)] sm:bottom-6 sm:left-auto sm:right-6 sm:max-w-sm sm:px-5 sm:py-4 sm:text-sm ${notice.type === "success"
               ? "border-[#D8DDD0] bg-[#F7F9F4] text-[#5D664F]"
               : "border-[#E7D0CC] bg-[#FFF7F5] text-[#9B3E32]"
-          }`}
+            }`}
         >
           {notice.type === "success" ? (
             <CheckCircle2
@@ -1882,8 +1877,8 @@ export default function MapsPage() {
                               (metadataMap.geo_metadata.bands === 3
                                 ? "Ortho True-Color (3 Saluran RGB)"
                                 : metadataMap.geo_metadata.bands === 1
-                                ? "Single-Band (Analisis Indeks / Unsur Hara)"
-                                : `${metadataMap.geo_metadata.bands} Saluran Multispektral`)}
+                                  ? "Single-Band (Analisis Indeks / Unsur Hara)"
+                                  : `${metadataMap.geo_metadata.bands} Saluran Multispektral`)}
                           </p>
                         </div>
 
@@ -1900,41 +1895,41 @@ export default function MapsPage() {
                       {(() => {
                         const bandsList =
                           metadataMap.geo_metadata.band_details &&
-                          metadataMap.geo_metadata.band_details.length > 0
+                            metadataMap.geo_metadata.band_details.length > 0
                             ? metadataMap.geo_metadata.band_details
                             : Array.from(
-                                {
-                                  length: metadataMap.geo_metadata.bands || 1,
-                                },
-                                (_, idx) => {
-                                  const b = idx + 1;
+                              {
+                                length: metadataMap.geo_metadata.bands || 1,
+                              },
+                              (_, idx) => {
+                                const b = idx + 1;
 
-                                  const dtype =
-                                    metadataMap.geo_metadata.dtypes?.[idx] ||
-                                    "uint8";
+                                const dtype =
+                                  metadataMap.geo_metadata.dtypes?.[idx] ||
+                                  "uint8";
 
-                                  let label = `Saluran ${b}`;
+                                let label = `Saluran ${b}`;
 
-                                  if (metadataMap.geo_metadata.bands === 3) {
-                                    label =
-                                      b === 1
-                                        ? "Red (Merah)"
-                                        : b === 2
+                                if (metadataMap.geo_metadata.bands === 3) {
+                                  label =
+                                    b === 1
+                                      ? "Red (Merah)"
+                                      : b === 2
                                         ? "Green (Hijau)"
                                         : "Blue (Biru)";
-                                  } else if (
-                                    metadataMap.geo_metadata.bands === 1
-                                  ) {
-                                    label = "Nilai Analisis / Indeks";
-                                  }
-
-                                  return {
-                                    band: b,
-                                    label,
-                                    dtype,
-                                  };
+                                } else if (
+                                  metadataMap.geo_metadata.bands === 1
+                                ) {
+                                  label = "Nilai Analisis / Indeks";
                                 }
-                              );
+
+                                return {
+                                  band: b,
+                                  label,
+                                  dtype,
+                                };
+                              }
+                            );
 
                         return (
                           <div className="mt-3 space-y-1.5 border-t border-[#E7E8E3] pt-3">
@@ -1963,12 +1958,12 @@ export default function MapsPage() {
                                 const dotColor = isRed
                                   ? "bg-rose-500"
                                   : isGreen
-                                  ? "bg-emerald-500"
-                                  : isBlue
-                                  ? "bg-sky-500"
-                                  : isAlpha
-                                  ? "bg-slate-400"
-                                  : "bg-amber-500";
+                                    ? "bg-emerald-500"
+                                    : isBlue
+                                      ? "bg-sky-500"
+                                      : isAlpha
+                                        ? "bg-slate-400"
+                                        : "bg-amber-500";
 
                                 return (
                                   <div
@@ -2188,11 +2183,10 @@ export default function MapsPage() {
                       title: event.target.value,
                     })
                   }
-                  className={`mt-2 h-10 w-full border bg-[#FAFAF8] px-3.5 text-[13px] font-medium text-[#171717] outline-none transition-all placeholder:text-[#A0A29B] focus:bg-white focus:ring-4 focus:ring-black/[0.03] sm:h-11 sm:px-4 sm:text-sm ${
-                    editErrors.title
+                  className={`mt-2 h-10 w-full border bg-[#FAFAF8] px-3.5 text-[13px] font-medium text-[#171717] outline-none transition-all placeholder:text-[#A0A29B] focus:bg-white focus:ring-4 focus:ring-black/[0.03] sm:h-11 sm:px-4 sm:text-sm ${editErrors.title
                       ? "border-[#E7D0CC] focus:border-[#C27B72]"
                       : "border-[#DCDDD8] focus:border-[#BFC4B8]"
-                  }`}
+                    }`}
                   placeholder="Contoh: Peta Orthomosaic Lahan Padi - Jul 2026"
                 />
 
@@ -2229,11 +2223,10 @@ export default function MapsPage() {
                         location: event.target.value,
                       })
                     }
-                    className={`h-10 w-full border bg-[#FAFAF8] pl-10 pr-3.5 text-[13px] font-medium text-[#171717] outline-none transition-all placeholder:text-[#A0A29B] focus:bg-white focus:ring-4 focus:ring-black/[0.03] sm:h-11 sm:pl-11 sm:pr-4 sm:text-sm ${
-                      editErrors.location
+                    className={`h-10 w-full border bg-[#FAFAF8] pl-10 pr-3.5 text-[13px] font-medium text-[#171717] outline-none transition-all placeholder:text-[#A0A29B] focus:bg-white focus:ring-4 focus:ring-black/[0.03] sm:h-11 sm:pl-11 sm:pr-4 sm:text-sm ${editErrors.location
                         ? "border-[#E7D0CC] focus:border-[#C27B72]"
                         : "border-[#DCDDD8] focus:border-[#BFC4B8]"
-                    }`}
+                      }`}
                     placeholder="Contoh: Desa Sriharjo, Kec. Imogiri, Bantul"
                   />
                 </div>
@@ -2271,11 +2264,10 @@ export default function MapsPage() {
                         survey_date: event.target.value,
                       })
                     }
-                    className={`h-10 w-full border bg-[#FAFAF8] pl-10 pr-3.5 text-[13px] font-medium text-[#171717] outline-none transition-all focus:bg-white focus:ring-4 focus:ring-black/[0.03] sm:h-11 sm:pl-11 sm:pr-4 sm:text-sm ${
-                      editErrors.survey_date
+                    className={`h-10 w-full border bg-[#FAFAF8] pl-10 pr-3.5 text-[13px] font-medium text-[#171717] outline-none transition-all focus:bg-white focus:ring-4 focus:ring-black/[0.03] sm:h-11 sm:pl-11 sm:pr-4 sm:text-sm ${editErrors.survey_date
                         ? "border-[#E7D0CC] focus:border-[#C27B72]"
                         : "border-[#DCDDD8] focus:border-[#BFC4B8]"
-                    }`}
+                      }`}
                   />
                 </div>
 

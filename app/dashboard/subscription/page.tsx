@@ -73,11 +73,6 @@ type SubscriptionOrder = {
   updated_at: string;
 };
 
-type CheckoutForm = {
-  scopeType: "village" | "district";
-  scopeId: string;
-};
-
 /* ============================================================
    PLAN META
 ============================================================ */
@@ -617,11 +612,6 @@ export default function SubscriptionPage() {
 
   const [selectedPlan, setSelectedPlan] = useState<PricingPlan | null>(null);
 
-  const [checkoutForm, setCheckoutForm] = useState<CheckoutForm>({
-    scopeType: "village",
-    scopeId: "",
-  });
-
   /* ==========================================================
      LOAD PLANS
   ========================================================== */
@@ -847,21 +837,7 @@ export default function SubscriptionPage() {
       }
     }
 
-    const defaultScopeType = tier === "desa" ? "village" : "district";
-
-    const existingScopeId =
-      pendingOrder && normalizeTier(pendingOrder.tier) === tier
-        ? tier === "desa"
-          ? pendingOrder.village_id || ""
-          : pendingOrder.district_id || ""
-        : "";
-
     setSelectedPlan(plan);
-
-    setCheckoutForm({
-      scopeType: defaultScopeType,
-      scopeId: existingScopeId,
-    });
 
     setError("");
     setSuccess("");
@@ -878,10 +854,7 @@ export default function SubscriptionPage() {
 
     setSelectedPlan(null);
 
-    setCheckoutForm({
-      scopeType: "village",
-      scopeId: "",
-    });
+    setCheckoutForm({});
 
     setError("");
   };
@@ -890,11 +863,7 @@ export default function SubscriptionPage() {
      PENDING MATCH
   ========================================================== */
 
-  const pendingMatchesSelection = (
-    tier: string,
-    scopeType: "village" | "district",
-    scopeId: string
-  ) => {
+  const pendingMatchesSelection = (tier: string) => {
     if (!pendingOrder) {
       return false;
     }
@@ -903,15 +872,7 @@ export default function SubscriptionPage() {
       return false;
     }
 
-    if (pendingOrder.scope_type !== scopeType) {
-      return false;
-    }
-
-    if (scopeType === "village") {
-      return pendingOrder.village_id === scopeId;
-    }
-
-    return pendingOrder.district_id === scopeId;
+    return true;
   };
 
   /* ==========================================================
@@ -925,24 +886,6 @@ export default function SubscriptionPage() {
 
     const tier = normalizeTier(selectedPlan.tier);
 
-    const requiredScopeType = tier === "desa" ? "village" : "district";
-
-    const trimmedScopeId = checkoutForm.scopeId.trim();
-
-    if (!trimmedScopeId) {
-      setError(
-        tier === "desa" ? "Village ID wajib diisi." : "District ID wajib diisi."
-      );
-
-      return;
-    }
-
-    if (checkoutForm.scopeType !== requiredScopeType) {
-      setError("Jenis cakupan tidak sesuai dengan paket.");
-
-      return;
-    }
-
     try {
       setActionLoading("checkout");
 
@@ -951,7 +894,7 @@ export default function SubscriptionPage() {
 
       let order: SubscriptionOrder | null = null;
 
-      if (pendingMatchesSelection(tier, requiredScopeType, trimmedScopeId)) {
+      if (pendingMatchesSelection(tier)) {
         order = pendingOrder;
       }
 
@@ -982,9 +925,6 @@ export default function SubscriptionPage() {
 
         const payload = {
           tier,
-          scope_type: requiredScopeType,
-          village_id: requiredScopeType === "village" ? trimmedScopeId : null,
-          district_id: requiredScopeType === "district" ? trimmedScopeId : null,
           billing_cycle: "monthly",
         };
 
@@ -1069,15 +1009,6 @@ export default function SubscriptionPage() {
     const tier = normalizeTier(pendingOrder.tier);
 
     setSelectedPlan(matchingPlan);
-
-    setCheckoutForm({
-      scopeType: tier === "desa" ? "village" : "district",
-
-      scopeId:
-        tier === "desa"
-          ? pendingOrder.village_id || ""
-          : pendingOrder.district_id || "",
-    });
 
     setError("");
     setSuccess("");
@@ -2073,93 +2004,6 @@ export default function SubscriptionPage() {
             </div>
 
             <div className="space-y-5 px-6 py-6">
-              {/* SCOPE */}
-
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#999B94]">
-                  Cakupan Wilayah
-                </p>
-
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    disabled={normalizeTier(selectedPlan.tier) !== "desa"}
-                    onClick={() =>
-                      setCheckoutForm((current) => ({
-                        ...current,
-                        scopeType: "village",
-                      }))
-                    }
-                    className={`border px-4 py-3 text-left transition ${
-                      checkoutForm.scopeType === "village" &&
-                      normalizeTier(selectedPlan.tier) === "desa"
-                        ? "border-[#BFC4B8] bg-[#F7F8F5] text-[#171717]"
-                        : "border-[#E1E2DD] bg-white text-[#999B94]"
-                    }`}
-                  >
-                    <p className="text-xs font-bold">Desa</p>
-
-                    <p className="mt-1 text-[10px] text-[#A0A29B]">
-                      village_id
-                    </p>
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={normalizeTier(selectedPlan.tier) !== "kecamatan"}
-                    onClick={() =>
-                      setCheckoutForm((current) => ({
-                        ...current,
-                        scopeType: "district",
-                      }))
-                    }
-                    className={`border px-4 py-3 text-left transition ${
-                      checkoutForm.scopeType === "district" &&
-                      normalizeTier(selectedPlan.tier) === "kecamatan"
-                        ? "border-[#BFC4B8] bg-[#F7F8F5] text-[#171717]"
-                        : "border-[#E1E2DD] bg-white text-[#999B94]"
-                    }`}
-                  >
-                    <p className="text-xs font-bold">Kecamatan</p>
-
-                    <p className="mt-1 text-[10px] text-[#A0A29B]">
-                      district_id
-                    </p>
-                  </button>
-                </div>
-              </div>
-
-              {/* SCOPE ID */}
-
-              <div>
-                <label
-                  htmlFor="subscription-scope-id"
-                  className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#999B94]"
-                >
-                  {checkoutForm.scopeType === "village"
-                    ? "Village ID"
-                    : "District ID"}
-                </label>
-
-                <input
-                  id="subscription-scope-id"
-                  type="text"
-                  value={checkoutForm.scopeId}
-                  onChange={(event) =>
-                    setCheckoutForm((current) => ({
-                      ...current,
-                      scopeId: event.target.value,
-                    }))
-                  }
-                  placeholder={
-                    checkoutForm.scopeType === "village"
-                      ? "Contoh: Halmahera"
-                      : "Contoh: Pangandaran"
-                  }
-                  className="mt-2 h-11 w-full border border-[#DCDDD8] bg-[#FAFAF8] px-4 text-sm font-medium text-[#171717] outline-none transition-all placeholder:text-[#A0A29B] focus:border-[#BFC4B8] focus:bg-white focus:ring-4 focus:ring-black/[0.03]"
-                />
-              </div>
-
               {/* TOTAL */}
 
               <div className="border border-[#E0E1DC] bg-[#F7F8F5] p-4">

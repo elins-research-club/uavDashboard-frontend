@@ -23,8 +23,7 @@ interface UploadDraftState {
   location: string;
   surveyDate: string;
   description: string;
-  lockedForFree: boolean;
-  purchasable: boolean;
+  allowedTiers: string[];
 
   batchFiles: BatchFileItem[]; // TIDAK dipersist (butuh File asli, lihat catatan bawah)
   manualSlots: ManualSlotItem[]; // dipersist tanpa `file`
@@ -41,8 +40,7 @@ interface UploadDraftState {
   setLocation: (u: Updater<string>) => void;
   setSurveyDate: (u: Updater<string>) => void;
   setDescription: (u: Updater<string>) => void;
-  setLockedForFree: (u: Updater<boolean>) => void;
-  setPurchasable: (u: Updater<boolean>) => void;
+  setAllowedTiers: (u: Updater<string[]>) => void;
   setBatchFiles: (u: Updater<BatchFileItem[]>) => void;
   setManualSlots: (u: Updater<ManualSlotItem[]>) => void;
   setExpandedBatchItems: (u: Updater<Set<string>>) => void;
@@ -60,8 +58,7 @@ const initial = {
   location: "",
   surveyDate: todayISO(),
   description: "",
-  lockedForFree: false,
-  purchasable: false,
+  allowedTiers: ["free", "desa", "kecamatan"],
   batchFiles: [] as BatchFileItem[],
   manualSlots: [] as ManualSlotItem[],
   expandedBatchItems: new Set<string>(),
@@ -82,10 +79,8 @@ export const useUploadDraftStore = create<UploadDraftState>()(
       setSurveyDate: (u) => set({ surveyDate: resolve(u, get().surveyDate) }),
       setDescription: (u) =>
         set({ description: resolve(u, get().description) }),
-      setLockedForFree: (u) =>
-        set({ lockedForFree: resolve(u, get().lockedForFree) }),
-      setPurchasable: (u) =>
-        set({ purchasable: resolve(u, get().purchasable) }),
+      setAllowedTiers: (u) =>
+        set({ allowedTiers: resolve(u, get().allowedTiers) }),
       setBatchFiles: (u) => set({ batchFiles: resolve(u, get().batchFiles) }),
       setManualSlots: (u) =>
         set({ manualSlots: resolve(u, get().manualSlots) }),
@@ -119,8 +114,7 @@ export const useUploadDraftStore = create<UploadDraftState>()(
         location: state.location,
         surveyDate: state.surveyDate,
         description: state.description,
-        lockedForFree: state.lockedForFree,
-        purchasable: state.purchasable,
+        allowedTiers: state.allowedTiers,
         editingFiles: state.editingFiles,
         editingDetails: state.editingDetails,
         detailsConfirmed: state.detailsConfirmed,
