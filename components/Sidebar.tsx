@@ -521,9 +521,6 @@ export default function Sidebar({
                   Administration
                 </p>
 
-                <span className="border border-[#DCDDD8] bg-white px-1.5 py-1 text-[8px] font-bold uppercase tracking-[0.08em] text-[#858780]">
-                  {isGod ? "God" : "Admin"}
-                </span>
               </div>
             )}
 

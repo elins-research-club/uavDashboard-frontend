@@ -425,8 +425,8 @@ function TinyActionButton({
         disabled
           ? "cursor-not-allowed border-transparent text-[#B0B1AB]"
           : danger
-          ? "border-[#E8D4CF] bg-[#FFF8F6] text-[#9B3E32] hover:border-[#D9B9B1] hover:bg-[#FFF4F1]"
-          : "border-[#DCDDD8] bg-white text-[#555750] hover:border-[#171717] hover:bg-[#171717] hover:text-white",
+            ? "border-[#E8D4CF] bg-[#FFF8F6] text-[#9B3E32] hover:border-[#D9B9B1] hover:bg-[#FFF4F1]"
+            : "border-[#DCDDD8] bg-white text-[#555750] hover:border-[#171717] hover:bg-[#171717] hover:text-white",
       ].join(" ")}
     >
       {children}
@@ -1136,9 +1136,7 @@ export default function LayerControlPanel({
                     Terrain 3D
                   </p>
 
-                  <p className="truncate text-[8px] font-medium text-[#999B94]">
-                    Elevasi permukaan medan
-                  </p>
+
                 </div>
               </div>
 
@@ -1503,40 +1501,40 @@ export default function LayerControlPanel({
                             {(extraMeta.min_value != null ||
                               extraMeta.max_value != null ||
                               extraMeta.unit) && (
-                              <div className="border border-[#E0E1DC] bg-white p-1.5">
-                                <div className="grid grid-cols-3 gap-1.5">
-                                  <div>
-                                    <span className="block text-[8px] font-semibold text-[#A0A19B]">
-                                      Min
-                                    </span>
+                                <div className="border border-[#E0E1DC] bg-white p-1.5">
+                                  <div className="grid grid-cols-3 gap-1.5">
+                                    <div>
+                                      <span className="block text-[8px] font-semibold text-[#A0A19B]">
+                                        Min
+                                      </span>
 
-                                    <span className="mt-0.5 block text-[9px] font-bold tabular-nums text-[#171717]">
-                                      {extraMeta.min_value ?? "-"}
-                                    </span>
-                                  </div>
+                                      <span className="mt-0.5 block text-[9px] font-bold tabular-nums text-[#171717]">
+                                        {extraMeta.min_value ?? "-"}
+                                      </span>
+                                    </div>
 
-                                  <div className="border-x border-[#E7E8E3] px-1.5">
-                                    <span className="block text-[8px] font-semibold text-[#A0A19B]">
-                                      Max
-                                    </span>
+                                    <div className="border-x border-[#E7E8E3] px-1.5">
+                                      <span className="block text-[8px] font-semibold text-[#A0A19B]">
+                                        Max
+                                      </span>
 
-                                    <span className="mt-0.5 block text-[9px] font-bold tabular-nums text-[#171717]">
-                                      {extraMeta.max_value ?? "-"}
-                                    </span>
-                                  </div>
+                                      <span className="mt-0.5 block text-[9px] font-bold tabular-nums text-[#171717]">
+                                        {extraMeta.max_value ?? "-"}
+                                      </span>
+                                    </div>
 
-                                  <div>
-                                    <span className="block text-[8px] font-semibold text-[#A0A19B]">
-                                      Unit
-                                    </span>
+                                    <div>
+                                      <span className="block text-[8px] font-semibold text-[#A0A19B]">
+                                        Unit
+                                      </span>
 
-                                    <span className="mt-0.5 block truncate text-[9px] font-bold text-[#171717]">
-                                      {extraMeta.unit || "-"}
-                                    </span>
+                                      <span className="mt-0.5 block truncate text-[9px] font-bold text-[#171717]">
+                                        {extraMeta.unit || "-"}
+                                      </span>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            )}
+                              )}
 
                             {isFailed && layer.conversion_error && (
                               <div className="border border-[#E8D4CF] bg-[#FFF7F5] px-2 py-1.5">
@@ -1722,7 +1720,7 @@ export default function LayerControlPanel({
         {/* =================================================
             FOOTER
         ================================================== */}
-        {orderedLayers.length > 0 && (
+        {/* {orderedLayers.length > 0 && (
           <div className="shrink-0 border-t border-[#E7E8E3] bg-[#FAFAF8] px-2.5 py-1.5">
             <div className="flex items-center justify-between gap-2">
               <div className="flex min-w-0 items-center gap-1">
@@ -1743,7 +1741,7 @@ export default function LayerControlPanel({
               )}
             </div>
           </div>
-        )}
+        )} */}
       </div>
     </motion.aside>
   );

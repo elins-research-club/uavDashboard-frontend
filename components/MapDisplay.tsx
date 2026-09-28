@@ -29,9 +29,9 @@ import {
   ArrowLeftRight,
   X,
   Grid,
+  LandPlot,
   ZoomIn,
   ZoomOut,
-  Sprout,
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
@@ -575,13 +575,37 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     const [popupHeight, setPopupHeight] = useState<number>(190);
 
     const [petakSection, setPetakSection] = useState<
-      "summary" | "layers" | null
+      "summary" | "layers" | "recommendations" | null
     >(null);
 
     const gridDataRef = useRef<GeoJSON.FeatureCollection<
       GeoJSON.Polygon,
       PetakProperties
     > | null>(null);
+
+    const layerGridDataRef = useRef<Record<string, PetakProperties[]>>({});
+
+    useEffect(() => {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
+      const headers = tokenRef.current
+        ? { Authorization: `Bearer ${tokenRef.current}` }
+        : undefined;
+
+      Promise.all(
+        mapLayers
+          .filter((layer) => layer.layer_type?.toLowerCase() !== "ortho")
+          .map(async (layer) => {
+            try {
+              const response = await fetch(`${baseUrl}/maps/layers/${layer.id}/grid`, { headers });
+              if (!response.ok) return;
+              const data = (await response.json()) as GeoJSON.FeatureCollection<GeoJSON.Polygon, PetakProperties>;
+              layerGridDataRef.current[layer.id] = data.features.map((feature) => feature.properties);
+            } catch {
+              // Layer tanpa grid tetap ditampilkan sebagai tidak tersedia.
+            }
+          })
+      );
+    }, [mapLayers, mapId]);
 
     /* =====================================================
        SYNC REFS
@@ -3018,8 +3042,8 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
           {spatialInfo?.has_spatial_geometry && spatialInfo.area_hectares && (
             <ToolbarButton
               active={postgisCardOpen}
-              title="Verifikasi Geodetik PostGIS"
-              label="PostGIS"
+              title="Lihat Luas Lahan"
+              label="Luas Lahan"
               onClick={() => {
                 const next = !postgisCardOpen;
 
@@ -3044,7 +3068,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
           <ToolbarButton
             active={toolMode === "distance"}
-            title="Ukur Jarak & Keliling"
+            title="Ukur Jarak Lintasan"
             label="Ukur Jarak"
             onClick={() => {
               handleCloseCompare();
@@ -3059,6 +3083,25 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             }}
           >
             <Ruler className="h-4 w-4" strokeWidth={ICON_STROKE} />
+          </ToolbarButton>
+
+          <ToolbarButton
+            active={toolMode === "area"}
+            title="Ukur Luas Lahan"
+            label="Ukur Luas"
+            onClick={() => {
+              handleCloseCompare();
+
+              setPostgisCardOpen(false);
+
+              const next = toolMode === "area" ? "none" : "area";
+
+              setToolMode(next);
+
+              handleClearMeasurement();
+            }}
+          >
+            <LandPlot className="h-4 w-4" strokeWidth={ICON_STROKE} />
           </ToolbarButton>
 
           <ToolbarButton
@@ -3207,20 +3250,6 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                           </div>
                         </div>
 
-                        {measuredMetrics.areaHa ? (
-                          <div className="mt-1 flex items-center gap-1 border border-[#E0E1DC] bg-white px-1.5 py-1 text-[10px] font-medium text-[#4E504A]">
-                            <Sprout
-                              className="h-2.5 w-2.5 shrink-0 text-[#666861]"
-                              strokeWidth={ICON_STROKE}
-                            />
-
-                            <span>Est. Urea:</span>
-
-                            <span className="font-bold tabular-nums text-[#171717]">
-                              ±{Math.round(measuredMetrics.areaHa * 250)} kg
-                            </span>
-                          </div>
-                        ) : null}
                       </div>
                     </div>
                   ) : (
@@ -3307,7 +3336,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               {...hudCardMotion}
               className={cn(
                 hudCardClass,
-                "absolute inset-x-0 top-16 z-50 mx-auto w-[calc(100%-16px)] max-w-[325px]"
+                "absolute inset-x-0 top-16 z-50 mx-auto w-[calc(100%-16px)] max-w-[520px]"
               )}
             >
               <HudHeader
@@ -3448,7 +3477,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             >
               <HudHeader
                 eyebrow=""
-                title="Detail Verifikasi Geodetik"
+                title="Detail Luas Lahan"
                 onClose={() => setPostgisCardOpen(false)}
                 closeLabel="Tutup Detail"
                 icon={
@@ -3467,7 +3496,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-2 py-1.5 outline-none [&::-webkit-details-marker]:hidden">
                     <div className="min-w-0">
                       <p className="text-[10px] font-semibold uppercase tracking-[0.05em] text-[#999B94]">
-                        Verifikasi Geodetik
+                        Luas Lahan
                       </p>
 
                       <p className="mt-0.5 truncate text-[10px] font-bold text-[#171717]">
@@ -3497,11 +3526,8 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                       </span>
 
                       <span className="text-[10px] font-medium leading-4 text-[#4E504A]">
-                        Luas lahan terverifikasi dihitung pada ellipsoid{" "}
-                        <strong className="font-bold text-[#171717]">
-                          WGS-84 (EPSG:4326)
-                        </strong>{" "}
-                        menggunakan fungsi geodetik PostGIS backend.
+                        Luas dan ukuran lahan dihitung otomatis dari bentuk area
+                        yang tersimpan.
                       </span>
                     </div>
 
@@ -3687,6 +3713,12 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               (l) => l.is_visible && l.layer_type?.toLowerCase() !== "ortho"
             );
 
+            const activePetak = activeAnalysisLayer
+              ? layerGridDataRef.current[activeAnalysisLayer.id]?.find(
+                  (petak) => petak.block_id === selectedPetak.block_id
+                ) || selectedPetak
+              : selectedPetak;
+
             const layerTitle =
               activeAnalysisLayer?.name ||
               selectedPetak.layer_type?.toUpperCase() ||
@@ -3715,9 +3747,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             const summaryText = (() => {
               const lt = (selectedPetak.layer_type || "").toLowerCase();
 
-              const val = selectedPetak.value_mean;
+              const val = activePetak.value_mean;
 
-              const status = selectedPetak.status;
+              const status = activePetak.status;
 
               if (lt.includes("ndvi") || lt.includes("vari")) {
                 if (val !== undefined) {
@@ -3836,6 +3868,33 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               },
             ];
 
+            const recommendations = analysisRows.flatMap(({ key, label }) => {
+              const layer = mapLayers.find(
+                (item) => (item.layer_type || "").toLowerCase() === key
+              );
+              const petak = layer
+                ? layerGridDataRef.current[layer.id]?.find(
+                    (item) => item.block_id === selectedPetak.block_id
+                  )
+                : null;
+              const value = petak?.value_mean;
+
+              if (value === undefined) return [];
+              if (key === "ndvi" && value < 0.22) {
+                return [`${label}: periksa stres tanaman, tutupan tajuk, dan kondisi lahan.`];
+              }
+              if (key === "nitrogen" && value < 35) {
+                return [`${label}: pertimbangkan pemupukan nitrogen sesuai analisis tanah.`];
+              }
+              if (key === "phosphorus" && value < 15) {
+                return [`${label}: pertimbangkan suplementasi fosfor sesuai rekomendasi agronom.`];
+              }
+              if (key === "kalium" && value < 80) {
+                return [`${label}: pertimbangkan pemupukan kalium sesuai kebutuhan tanaman.`];
+              }
+              return [`${label}: kondisi berada pada rentang cukup berdasarkan ambang analisis.`];
+            });
+
             const availableCount = analysisRows.filter(({ key }) =>
               mapLayers.some((l) => (l.layer_type || "").toLowerCase() === key)
             ).length;
@@ -3922,22 +3981,22 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                           {layerTitle}
                         </span>
 
-                        {selectedPetak.status && (
+                        {activePetak.status && (
                           <span
                             className="shrink-0 px-1 py-0.5 text-[10px] font-bold text-white"
                             style={{
-                              backgroundColor: selectedPetak.color || "#16a34a",
+                              backgroundColor: activePetak.color || "#16a34a",
                             }}
                           >
-                            {selectedPetak.status}
+                            {activePetak.status}
                           </span>
                         )}
                       </div>
 
                       <div className="mt-0.5 flex items-baseline gap-1">
                         <span className="text-[10px] font-bold tabular-nums text-white">
-                          {selectedPetak.value_mean !== undefined
-                            ? selectedPetak.value_mean
+                          {activePetak.value_mean !== undefined
+                            ? activePetak.value_mean
                             : "-"}
                         </span>
 
@@ -3948,8 +4007,8 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                         )}
                       </div>
 
-                      {selectedPetak.value_min !== undefined &&
-                        selectedPetak.value_max !== undefined && (
+                      {activePetak.value_min !== undefined &&
+                        activePetak.value_max !== undefined && (
                           <div className="mt-1 grid grid-cols-3 border-t border-white/10 pt-1 text-center tabular-nums">
                             <div>
                               <p className="text-[10px] font-medium text-white/45">
@@ -3957,7 +4016,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                               </p>
 
                               <p className="text-[10px] font-bold text-white">
-                                {selectedPetak.value_min}
+                                {activePetak.value_min}
                               </p>
                             </div>
 
@@ -3967,7 +4026,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                               </p>
 
                               <p className="text-[10px] font-bold text-white">
-                                {selectedPetak.value_mean}
+                                {activePetak.value_mean}
                               </p>
                             </div>
 
@@ -3977,7 +4036,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                               </p>
 
                               <p className="text-[10px] font-bold text-white">
-                                {selectedPetak.value_max}
+                                {activePetak.value_max}
                               </p>
                             </div>
                           </div>
@@ -4024,9 +4083,41 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                             (l) => (l.layer_type || "").toLowerCase() === key
                           );
 
+                          const layerPetak = layerItem
+                            ? layerGridDataRef.current[layerItem.id]?.find(
+                                (petak) => petak.block_id === selectedPetak.block_id
+                              )
+                            : null;
+
+                          const selectLayer = () => {
+                            if (!layerItem) return;
+                            const map = mapRef.current;
+                            mapLayersRef.current = mapLayersRef.current.map((layer) => ({
+                              ...layer,
+                              is_visible:
+                                layer.layer_type?.toLowerCase() === "ortho"
+                                  ? layer.is_visible
+                                  : layer.id === layerItem.id,
+                            }));
+                            setMapLayers(mapLayersRef.current);
+                            mapLayersRef.current.forEach((layer) => {
+                              const renderId = `layer-render-${layer.id}`;
+                              if (map?.getLayer(renderId)) {
+                                map.setLayoutProperty(
+                                  renderId,
+                                  "visibility",
+                                  layer.is_visible ? "visible" : "none"
+                                );
+                              }
+                            });
+                          };
+
                           return (
                             <div
                               key={key}
+                              onClick={selectLayer}
+                              role={layerItem ? "button" : undefined}
+                              tabIndex={layerItem ? 0 : undefined}
                               className={cn(
                                 "flex items-center justify-between gap-1.5 border px-1 py-0.5 text-[10px]",
                                 isCurrent
@@ -4057,7 +4148,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                                 </span>
                               ) : layerItem ? (
                                 <span className="shrink-0 border border-[#E0E1DC] bg-[#F7F8F5] px-1 py-0.5 text-[10px] font-semibold text-[#4E504A]">
-                                  Tersedia
+                                  {layerPetak?.value_mean ?? "Tidak ada data"}{layerPetak?.unit ? ` ${layerPetak.unit}` : ""}
                                 </span>
                               ) : (
                                 <span className="shrink-0 text-[10px] font-medium text-[#B0B1AB]">
@@ -4068,6 +4159,26 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                           );
                         })}
                       </div>
+                    </AccordionRow>
+
+                    <AccordionRow
+                      title="Rekomendasi tindakan"
+                      badge={String(recommendations.length)}
+                      open={petakSection === "recommendations"}
+                      onToggle={() =>
+                        setPetakSection((prev) =>
+                          prev === "recommendations" ? null : "recommendations"
+                        )
+                      }
+                    >
+                      <ul className="space-y-1.5 text-[10px] font-medium leading-4 text-[#4E504A]">
+                        {recommendations.map((recommendation) => (
+                          <li key={recommendation} className="flex gap-1.5">
+                            <span className="text-[#76B900]">•</span>
+                            <span>{recommendation}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </AccordionRow>
                   </div>
                 </motion.div>

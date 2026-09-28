@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, ChevronUp, Layers3 } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 import type { MapLayerItem } from "@/types/map";
 import { EASE } from "@/app/dashboard/upload/upload-ui";
@@ -302,15 +302,8 @@ export default function MapLegend({
                 ease: EASE,
               }}
               onClick={() => setOpen(true)}
-              className="mx-auto flex h-10 items-center gap-2 border border-[#DCDDD8] bg-white/95 px-3 shadow-[0_10px_24px_rgba(0,0,0,0.09)] backdrop-blur-md outline-none transition-colors hover:border-[#BFC1BB] hover:bg-white focus-visible:ring-2 focus-visible:ring-[#76B900]/40"
+              className="mx-auto flex h-8 items-center gap-2 border border-[#DCDDD8] bg-white/95 px-3 shadow-[0_10px_24px_rgba(0,0,0,0.09)] backdrop-blur-md outline-none transition-colors hover:border-[#BFC1BB] hover:bg-white focus-visible:ring-2 focus-visible:ring-[#76B900]/40"
             >
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center border border-[#E0E1DC] bg-[#F7F8F5]">
-                <Layers3
-                  className="h-3.5 w-3.5 text-[#555750]"
-                  strokeWidth={1.8}
-                />
-              </span>
-
               <div className="min-w-0 text-left">
                 <p className="truncate text-[10px] font-bold text-[#171717]">
                   {config.title}
@@ -361,13 +354,6 @@ export default function MapLegend({
               {/* HEADER */}
               <div className="flex items-center justify-between gap-3 border-b border-[#E7E8E3] px-3 py-2.5">
                 <div className="flex min-w-0 items-center gap-2">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center border border-[#E0E1DC] bg-[#F7F8F5]">
-                    <Layers3
-                      className="h-3.5 w-3.5 text-[#555750]"
-                      strokeWidth={1.8}
-                    />
-                  </span>
-
                   <div className="min-w-0">
                     <p className="truncate text-[11px] font-bold text-[#171717]">
                       {config.title}

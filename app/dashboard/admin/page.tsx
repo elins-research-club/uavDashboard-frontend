@@ -512,19 +512,17 @@ function RoleWorkspace({
                     whileHover={
                       canManageRoles
                         ? {
-                            x: 2,
-                          }
+                          x: 2,
+                        }
                         : undefined
                     }
-                    className={`group relative flex w-full items-center justify-between border px-3.5 py-3 text-left transition-colors ${
-                      active
-                        ? "border-[#CFCFC8] bg-white"
-                        : "border-transparent hover:border-[#DCDDD8] hover:bg-white"
-                    } ${
-                      !canManageRoles
+                    className={`group relative flex w-full items-center justify-between border px-3.5 py-3 text-left transition-colors ${active
+                      ? "border-[#CFCFC8] bg-white"
+                      : "border-transparent hover:border-[#DCDDD8] hover:bg-white"
+                      } ${!canManageRoles
                         ? "cursor-not-allowed opacity-60"
                         : "cursor-pointer"
-                    }`}
+                      }`}
                   >
                     {active && (
                       <motion.span
@@ -547,24 +545,21 @@ function RoleWorkspace({
                           rotate: -6,
                           scale: 1.06,
                         }}
-                        className={`flex h-9 w-9 items-center justify-center border ${
-                          active
-                            ? "border-[#DCDDD8] bg-[#F4F5F2]"
-                            : "border-[#E1E1DC] bg-white"
-                        }`}
+                        className={`flex h-9 w-9 items-center justify-center border ${active
+                          ? "border-[#DCDDD8] bg-[#F4F5F2]"
+                          : "border-[#E1E1DC] bg-white"
+                          }`}
                       >
                         {protectedRole ? (
                           <ShieldCheck
-                            className={`h-4 w-4 ${
-                              active ? "text-[#171717]" : "text-[#858780]"
-                            }`}
+                            className={`h-4 w-4 ${active ? "text-[#171717]" : "text-[#858780]"
+                              }`}
                             strokeWidth={ICON_STROKE}
                           />
                         ) : (
                           <Users
-                            className={`h-4 w-4 ${
-                              active ? "text-[#171717]" : "text-[#858780]"
-                            }`}
+                            className={`h-4 w-4 ${active ? "text-[#171717]" : "text-[#858780]"
+                              }`}
                             strokeWidth={ICON_STROKE}
                           />
                         )}
@@ -572,9 +567,8 @@ function RoleWorkspace({
 
                       <div>
                         <p
-                          className={`text-xs font-bold ${
-                            active ? "text-[#171717]" : "text-[#33332F]"
-                          }`}
+                          className={`text-xs font-bold ${active ? "text-[#171717]" : "text-[#33332F]"
+                            }`}
                         >
                           {role.name}
                         </p>
@@ -586,11 +580,10 @@ function RoleWorkspace({
                     </div>
 
                     <ChevronRight
-                      className={`h-3.5 w-3.5 transition-transform ${
-                        active
-                          ? "translate-x-0 text-[#171717]"
-                          : "-translate-x-1 text-[#B1B2AC] group-hover:translate-x-0"
-                      }`}
+                      className={`h-3.5 w-3.5 transition-transform ${active
+                        ? "translate-x-0 text-[#171717]"
+                        : "-translate-x-1 text-[#B1B2AC] group-hover:translate-x-0"
+                        }`}
                       strokeWidth={1.75}
                     />
                   </motion.button>
@@ -679,9 +672,8 @@ function RoleWorkspace({
                     transition={{
                       delay: index * 0.045,
                     }}
-                    className={`border bg-white transition-colors ${
-                      expanded ? "border-[#CFCFC8]" : "border-[#DCDDD8]"
-                    }`}
+                    className={`border bg-white transition-colors ${expanded ? "border-[#CFCFC8]" : "border-[#DCDDD8]"
+                      }`}
                   >
                     <div
                       role="button"
@@ -739,15 +731,13 @@ function RoleWorkspace({
                             toggleGroup(group);
                           }}
                           disabled={!canManageRoles || selectedRoleProtected}
-                          className={`hidden border px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.08em] sm:inline-flex ${
-                            allSelected
-                              ? "border-[#CFCFC8] bg-[#F4F5F2] text-[#33332F]"
-                              : "border-[#DCDDD8] bg-white text-[#6B6B66] hover:bg-[#F4F5F2]"
-                          } ${
-                            !canManageRoles || selectedRoleProtected
+                          className={`hidden border px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.08em] sm:inline-flex ${allSelected
+                            ? "border-[#CFCFC8] bg-[#F4F5F2] text-[#33332F]"
+                            : "border-[#DCDDD8] bg-white text-[#6B6B66] hover:bg-[#F4F5F2]"
+                            } ${!canManageRoles || selectedRoleProtected
                               ? "cursor-not-allowed opacity-40"
                               : ""
-                          }`}
+                            }`}
                         >
                           {allSelected ? "Clear" : "All"}
                         </button>
@@ -795,25 +785,23 @@ function RoleWorkspace({
                                     whileHover={
                                       !disabled
                                         ? {
-                                            x: 2,
-                                          }
+                                          x: 2,
+                                        }
                                         : undefined
                                     }
-                                    className={`group/permission flex items-center justify-between border px-3 py-3 transition-colors ${
-                                      disabled
-                                        ? "cursor-not-allowed border-[#E9E9E5] bg-[#F7F8F5] opacity-60"
-                                        : checked
+                                    className={`group/permission flex items-center justify-between border px-3 py-3 transition-colors ${disabled
+                                      ? "cursor-not-allowed border-[#E9E9E5] bg-[#F7F8F5] opacity-60"
+                                      : checked
                                         ? "cursor-pointer border-[#CFCFC8] bg-[#F3F5EF]"
                                         : "cursor-pointer border-[#DCDDD8] bg-white hover:bg-[#FAFAF8]"
-                                    }`}
+                                      }`}
                                   >
                                     <span className="flex items-center gap-3">
                                       <span
-                                        className={`relative flex h-5 w-5 items-center justify-center border ${
-                                          checked
-                                            ? "border-[#171717] bg-[#171717]"
-                                            : "border-[#C7C8C2] bg-white"
-                                        }`}
+                                        className={`relative flex h-5 w-5 items-center justify-center border ${checked
+                                          ? "border-[#171717] bg-[#171717]"
+                                          : "border-[#C7C8C2] bg-white"
+                                          }`}
                                       >
                                         <input
                                           type="checkbox"
@@ -851,11 +839,10 @@ function RoleWorkspace({
                                       </span>
 
                                       <span
-                                        className={`text-xs font-semibold ${
-                                          checked
-                                            ? "text-[#171717]"
-                                            : "text-[#6B6B66]"
-                                        }`}
+                                        className={`text-xs font-semibold ${checked
+                                          ? "text-[#171717]"
+                                          : "text-[#6B6B66]"
+                                          }`}
                                       >
                                         {permission.label}
                                       </span>
@@ -920,8 +907,8 @@ function RoleWorkspace({
                   whileHover={
                     canManageRoles
                       ? {
-                          x: -2,
-                        }
+                        x: -2,
+                      }
                       : undefined
                   }
                   whileTap={{
@@ -943,8 +930,8 @@ function RoleWorkspace({
                   whileHover={
                     !selectedRoleProtected && canManageRoles
                       ? {
-                          y: -2,
-                        }
+                        y: -2,
+                      }
                       : undefined
                   }
                   whileTap={{
@@ -981,11 +968,10 @@ function RoleWorkspace({
                   opacity: 0,
                   height: 0,
                 }}
-                className={`overflow-hidden border-t ${
-                  saveMessage.type === "success"
-                    ? "border-[#D7E6B7] bg-[#F4F8EB]"
-                    : "border-red-200 bg-red-50"
-                }`}
+                className={`overflow-hidden border-t ${saveMessage.type === "success"
+                  ? "border-[#D7E6B7] bg-[#F4F8EB]"
+                  : "border-red-200 bg-red-50"
+                  }`}
               >
                 <div className="flex items-center gap-2.5 px-5 py-3 text-xs font-bold sm:px-6">
                   {saveMessage.type === "success" ? (
@@ -1103,11 +1089,10 @@ function PricingWorkspace({
             opacity: 1,
             y: 0,
           }}
-          className={`mb-5 flex items-center gap-3 border px-4 py-3 text-xs font-bold ${
-            planSaveMsg.type === "success"
-              ? "border-[#D7E6B7] bg-[#F4F8EB] text-[#5D762C]"
-              : "border-red-200 bg-red-50 text-red-700"
-          }`}
+          className={`mb-5 flex items-center gap-3 border px-4 py-3 text-xs font-bold ${planSaveMsg.type === "success"
+            ? "border-[#D7E6B7] bg-[#F4F8EB] text-[#5D762C]"
+            : "border-red-200 bg-red-50 text-red-700"
+            }`}
         >
           {planSaveMsg.type === "success" ? (
             <Check className="h-4 w-4 flex-shrink-0" strokeWidth={2} />
@@ -1166,11 +1151,10 @@ function PricingWorkspace({
                   whileHover={{
                     y: isEditing ? 0 : -5,
                   }}
-                  className={`group relative flex min-h-[470px] flex-col overflow-hidden border ${
-                    isPopular
-                      ? "border-[#171717] bg-[#171717] text-white"
-                      : "border-[#DCDDD8] bg-white text-[#171717]"
-                  }`}
+                  className={`group relative flex min-h-[470px] flex-col overflow-hidden border ${isPopular
+                    ? "border-[#171717] bg-[#171717] text-white"
+                    : "border-[#DCDDD8] bg-white text-[#171717]"
+                    }`}
                 >
                   <WireframeDecoration
                     variant={
@@ -1192,28 +1176,25 @@ function PricingWorkspace({
                             duration: 0.25,
                             ease: EASE,
                           }}
-                          className={`flex h-10 w-10 items-center justify-center border ${
-                            isPopular
-                              ? "border-white/15 bg-white/8"
-                              : "border-[#DCDDD8] bg-[#F4F5F2]"
-                          }`}
+                          className={`flex h-10 w-10 items-center justify-center border ${isPopular
+                            ? "border-white/15 bg-white/8"
+                            : "border-[#DCDDD8] bg-[#F4F5F2]"
+                            }`}
                         >
                           {getTierIcon(plan.tier)}
                         </motion.div>
 
                         <div>
                           <p
-                            className={`text-[9px] font-bold uppercase tracking-[0.15em] ${
-                              isPopular ? "text-white/45" : "text-[#858780]"
-                            }`}
+                            className={`text-[9px] font-bold uppercase tracking-[0.15em] ${isPopular ? "text-white/45" : "text-[#858780]"
+                              }`}
                           >
                             Plan
                           </p>
 
                           <h3
-                            className={`mt-1 text-base font-bold capitalize ${
-                              isPopular ? "text-white" : "text-[#171717]"
-                            }`}
+                            className={`mt-1 text-base font-bold capitalize ${isPopular ? "text-white" : "text-[#171717]"
+                              }`}
                           >
                             {plan.tier}
                           </h3>
@@ -1230,9 +1211,8 @@ function PricingWorkspace({
                     {/* Price */}
                     <div className="relative mt-8">
                       <p
-                        className={`text-[9px] font-bold uppercase tracking-[0.15em] ${
-                          isPopular ? "text-white/45" : "text-[#858780]"
-                        }`}
+                        className={`text-[9px] font-bold uppercase tracking-[0.15em] ${isPopular ? "text-white/45" : "text-[#858780]"
+                          }`}
                       >
                         Harga / Bulan
                       </p>
@@ -1240,9 +1220,8 @@ function PricingWorkspace({
                       {isEditing ? (
                         <div className="mt-3 flex items-center gap-2">
                           <span
-                            className={`text-sm font-bold ${
-                              isPopular ? "text-white/55" : "text-[#6B6B66]"
-                            }`}
+                            className={`text-sm font-bold ${isPopular ? "text-white/55" : "text-[#6B6B66]"
+                              }`}
                           >
                             Rp
                           </span>
@@ -1257,11 +1236,10 @@ function PricingWorkspace({
                             style={
                               isPopular ? { colorScheme: "dark" } : undefined
                             }
-                            className={`min-w-0 flex-1 border px-3 py-3 text-xl font-bold outline-none ${
-                              isPopular
-                                ? "border-white/15 !bg-white/[0.08] !text-white caret-white focus:border-white/30"
-                                : "border-[#DCDDD8] bg-[#F9FAF7] text-[#171717] focus:border-[#9A9B95]"
-                            }`}
+                            className={`min-w-0 flex-1 border px-3 py-3 text-xl font-bold outline-none ${isPopular
+                              ? "border-white/15 !bg-white/[0.08] !text-white caret-white focus:border-white/30"
+                              : "border-[#DCDDD8] bg-[#F9FAF7] text-[#171717] focus:border-[#9A9B95]"
+                              }`}
                           />
                         </div>
                       ) : (
@@ -1275,9 +1253,8 @@ function PricingWorkspace({
                             opacity: 1,
                             y: 0,
                           }}
-                          className={`mt-2 text-3xl font-bold tracking-[-0.04em] ${
-                            isPopular ? "text-white" : "text-[#171717]"
-                          }`}
+                          className={`mt-2 text-3xl font-bold tracking-[-0.04em] ${isPopular ? "text-white" : "text-[#171717]"
+                            }`}
                         >
                           {plan.price === 0
                             ? "Gratis"
@@ -1288,26 +1265,23 @@ function PricingWorkspace({
 
                     {/* Divider */}
                     <div
-                      className={`mt-7 border-t ${
-                        isPopular ? "border-white/12" : "border-[#DCDDD8]"
-                      }`}
+                      className={`mt-7 border-t ${isPopular ? "border-white/12" : "border-[#DCDDD8]"
+                        }`}
                     />
 
                     {/* Features */}
                     <div className="relative flex-1 py-6">
                       <div className="flex items-center justify-between">
                         <p
-                          className={`text-[9px] font-bold uppercase tracking-[0.15em] ${
-                            isPopular ? "text-white/45" : "text-[#858780]"
-                          }`}
+                          className={`text-[9px] font-bold uppercase tracking-[0.15em] ${isPopular ? "text-white/45" : "text-[#858780]"
+                            }`}
                         >
                           Fitur Termasuk
                         </p>
 
                         <span
-                          className={`text-[9px] font-bold ${
-                            isPopular ? "text-white/35" : "text-[#A1A29C]"
-                          }`}
+                          className={`text-[9px] font-bold ${isPopular ? "text-white/35" : "text-[#A1A29C]"
+                            }`}
                         >
                           {plan.features?.length || 0} items
                         </span>
@@ -1324,11 +1298,10 @@ function PricingWorkspace({
                           style={
                             isPopular ? { colorScheme: "dark" } : undefined
                           }
-                          className={`mt-4 w-full resize-none border px-3.5 py-3 text-xs font-medium leading-5 outline-none ${
-                            isPopular
-                              ? "border-white/15 !bg-white/[0.08] !text-white !placeholder:text-white/30 caret-white focus:border-white/30"
-                              : "border-[#DCDDD8] bg-[#F9FAF7] text-[#171717] placeholder:text-[#858780] focus:border-[#9A9B95]"
-                          }`}
+                          className={`mt-4 w-full resize-none border px-3.5 py-3 text-xs font-medium leading-5 outline-none ${isPopular
+                            ? "border-white/15 !bg-white/[0.08] !text-white !placeholder:text-white/30 caret-white focus:border-white/30"
+                            : "border-[#DCDDD8] bg-[#F9FAF7] text-[#171717] placeholder:text-[#858780] focus:border-[#9A9B95]"
+                            }`}
                         />
                       ) : plan.features?.length ? (
                         <ul className="mt-4 space-y-2.5">
@@ -1355,19 +1328,17 @@ function PricingWorkspace({
                                   rotate: -8,
                                   scale: 1.08,
                                 }}
-                                className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center border ${
-                                  isPopular
-                                    ? "border-white/15 bg-white/6 text-white/80"
-                                    : "border-[#DCDDD8] bg-[#F4F5F2] text-[#33332F]"
-                                }`}
+                                className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center border ${isPopular
+                                  ? "border-white/15 bg-white/6 text-white/80"
+                                  : "border-[#DCDDD8] bg-[#F4F5F2] text-[#33332F]"
+                                  }`}
                               >
                                 <Check className="h-3 w-3" strokeWidth={2} />
                               </motion.span>
 
                               <span
-                                className={`text-xs font-medium leading-5 ${
-                                  isPopular ? "text-white/80" : "text-[#33332F]"
-                                }`}
+                                className={`text-xs font-medium leading-5 ${isPopular ? "text-white/80" : "text-[#33332F]"
+                                  }`}
                               >
                                 {feature}
                               </span>
@@ -1376,11 +1347,10 @@ function PricingWorkspace({
                         </ul>
                       ) : (
                         <div
-                          className={`mt-4 border border-dashed px-4 py-8 text-center ${
-                            isPopular
-                              ? "border-white/15 text-white/40"
-                              : "border-[#DCDDD8] text-[#858780]"
-                          }`}
+                          className={`mt-4 border border-dashed px-4 py-8 text-center ${isPopular
+                            ? "border-white/15 text-white/40"
+                            : "border-[#DCDDD8] text-[#858780]"
+                            }`}
                         >
                           <Sparkles
                             className="mx-auto h-4 w-4"
@@ -1406,11 +1376,10 @@ function PricingWorkspace({
                           whileTap={{
                             scale: 0.98,
                           }}
-                          className={`inline-flex flex-1 items-center justify-center gap-1.5 px-4 py-3 text-xs font-bold ${
-                            isPopular
-                              ? "bg-white text-[#171717] hover:bg-[#F0F0EC]"
-                              : "bg-[#171717] text-white hover:bg-[#2A2A2A]"
-                          }`}
+                          className={`inline-flex flex-1 items-center justify-center gap-1.5 px-4 py-3 text-xs font-bold ${isPopular
+                            ? "bg-white text-[#171717] hover:bg-[#F0F0EC]"
+                            : "bg-[#171717] text-white hover:bg-[#2A2A2A]"
+                            }`}
                         >
                           <Save className="h-3.5 w-3.5" strokeWidth={2} />
                           Simpan
@@ -1425,11 +1394,10 @@ function PricingWorkspace({
                           whileTap={{
                             scale: 0.96,
                           }}
-                          className={`flex h-11 w-11 items-center justify-center border ${
-                            isPopular
-                              ? "border-white/15 bg-white/5 text-white/70"
-                              : "border-[#DCDDD8] bg-white text-[#6B6B66]"
-                          }`}
+                          className={`flex h-11 w-11 items-center justify-center border ${isPopular
+                            ? "border-white/15 bg-white/5 text-white/70"
+                            : "border-[#DCDDD8] bg-white text-[#6B6B66]"
+                            }`}
                           aria-label="Batal edit"
                         >
                           <X className="h-3.5 w-3.5" strokeWidth={2} />
@@ -1446,15 +1414,13 @@ function PricingWorkspace({
                         whileTap={{
                           scale: 0.98,
                         }}
-                        className={`inline-flex w-full items-center justify-center gap-1.5 px-4 py-3 text-xs font-bold transition-colors ${
-                          isPopular
-                            ? "bg-white text-[#171717] hover:bg-[#F0F0EC]"
-                            : "border border-[#DCDDD8] bg-white text-[#171717] hover:bg-[#F4F5F2]"
-                        } ${
-                          !canManagePricing
+                        className={`inline-flex w-full items-center justify-center gap-1.5 px-4 py-3 text-xs font-bold transition-colors ${isPopular
+                          ? "bg-white text-[#171717] hover:bg-[#F0F0EC]"
+                          : "border border-[#DCDDD8] bg-white text-[#171717] hover:bg-[#F4F5F2]"
+                          } ${!canManagePricing
                             ? "cursor-not-allowed opacity-50"
                             : ""
-                        }`}
+                          }`}
                       >
                         <motion.span
                           whileHover={{
@@ -1816,16 +1782,9 @@ export default function AdminPage() {
           className="relative mb-8 overflow-hidden"
         >
           <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-[-0.05em] text-[#171717] sm:text-4xl">
-                Admin Panel
-              </h1>
-
-              <p className="mt-2 max-w-2xl text-xs font-medium leading-5 text-[#6B6B66]">
-                Central workspace untuk mengontrol akses, role, permission, dan
-                subscription platform.
-              </p>
-            </div>
+            <h1 className="text-3xl font-bold tracking-[-0.05em] text-[#171717] sm:text-4xl">
+              Admin Panel
+            </h1>
 
             <div className="hidden border-l border-[#DCDDD8] pl-4 sm:block">
               <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#858780]">
