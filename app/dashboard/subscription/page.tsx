@@ -301,8 +301,9 @@ function PlanGeometry({
         WebkitMaskImage: fade,
         maskImage: fade,
       }}
-      className={`pointer-events-none absolute -right-3 -top-1 w-[74%] max-w-[380px] origin-top-right select-none transition-transform duration-700 ease-out group-hover:-translate-y-0.5 group-hover:scale-[1.03] sm:w-[58%] md:w-[46%] lg:w-[84%] ${dark ? "text-white opacity-[0.2]" : "text-black opacity-[0.13]"
-        }`}
+      className={`pointer-events-none absolute -right-3 -top-1 w-[74%] max-w-[380px] origin-top-right select-none transition-transform duration-700 ease-out group-hover:-translate-y-0.5 group-hover:scale-[1.03] sm:w-[58%] md:w-[46%] lg:w-[84%] ${
+        dark ? "text-white opacity-[0.2]" : "text-black opacity-[0.13]"
+      }`}
     >
       {/* batas wilayah */}
       <path
@@ -432,8 +433,9 @@ function SweepButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`group/sweep relative inline-flex w-full items-center justify-center overflow-hidden px-5 py-3.5 text-[10px] font-bold uppercase tracking-[0.08em] outline-none transition-transform duration-200 focus-visible:ring-2 focus-visible:ring-[#76B900] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 ${disabled ? "" : "active:scale-[0.985]"
-        } ${base}`}
+      className={`group/sweep relative inline-flex w-full items-center justify-center overflow-hidden px-5 py-3.5 text-[10px] font-bold uppercase tracking-[0.08em] outline-none transition-transform duration-200 focus-visible:ring-2 focus-visible:ring-[#76B900] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 ${
+        disabled ? "" : "active:scale-[0.985]"
+      } ${base}`}
     >
       {!disabled && (
         <span
@@ -494,7 +496,10 @@ function formatCountdown(seconds: number) {
   const hours = Math.floor(safeSeconds / 3600);
   const minutes = Math.floor((safeSeconds % 3600) / 60);
   const remainingSeconds = safeSeconds % 60;
-  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(
+    2,
+    "0"
+  )}:${String(remainingSeconds).padStart(2, "0")}`;
 }
 
 function formatScope(subscription?: Subscription | null) {
@@ -639,17 +644,17 @@ export default function SubscriptionPage() {
             (isFree
               ? "Free"
               : isDesa
-                ? "Tier Desa"
-                : isKecamatan
-                  ? "Tier Kecamatan"
-                  : tier),
+              ? "Tier Desa"
+              : isKecamatan
+              ? "Tier Kecamatan"
+              : tier),
           description:
             plan.description ||
             (isFree
               ? "Sempurna untuk memulai dan mengeksplorasi platform."
               : isDesa
-                ? "Ideal untuk pemantauan level desa dan kelompok tani."
-                : "Solusi lengkap untuk analisis agregat level kecamatan."),
+              ? "Ideal untuk pemantauan level desa dan kelompok tani."
+              : "Solusi lengkap untuk analisis agregat level kecamatan."),
           popular: typeof plan.popular === "boolean" ? plan.popular : isDesa,
           frequency: plan.frequency || (isFree ? "/selamanya" : "/bulan"),
           features: Array.isArray(plan.features) ? plan.features : [],
@@ -773,7 +778,9 @@ export default function SubscriptionPage() {
     const updateCountdown = () => {
       const remaining = Math.max(
         0,
-        Math.ceil((new Date(subscription.end_date!).getTime() - Date.now()) / 1000)
+        Math.ceil(
+          (new Date(subscription.end_date!).getTime() - Date.now()) / 1000
+        )
       );
       setCountdownSeconds(remaining);
     };
@@ -796,8 +803,8 @@ export default function SubscriptionPage() {
     currentTier === "desa"
       ? "Tier Desa"
       : currentTier === "kecamatan"
-        ? "Tier Kecamatan"
-        : "Free";
+      ? "Tier Kecamatan"
+      : "Free";
 
   const currentScope =
     subscription?.status === "active" ? formatScope(subscription) : null;
@@ -826,7 +833,8 @@ export default function SubscriptionPage() {
 
       if (pendingTier !== tier) {
         setError(
-          `Anda masih memiliki order pending untuk ${pendingTier === "desa" ? "Tier Desa" : "Tier Kecamatan"
+          `Anda masih memiliki order pending untuk ${
+            pendingTier === "desa" ? "Tier Desa" : "Tier Kecamatan"
           }. Batalkan order tersebut terlebih dahulu.`
         );
 
@@ -850,8 +858,6 @@ export default function SubscriptionPage() {
     }
 
     setSelectedPlan(null);
-
-    setCheckoutForm({});
 
     setError("");
   };
@@ -1138,7 +1144,6 @@ export default function SubscriptionPage() {
                 Pilih paket yang <span className="text-[#171717]">sesuai</span>{" "}
                 kebutuhan Anda.
               </h1>
-
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
@@ -1254,8 +1259,9 @@ export default function SubscriptionPage() {
             style={{
               originY: 0,
             }}
-            className={`absolute inset-y-0 left-0 w-[3px] ${isActive ? "bg-[#76B900]" : "bg-[#C5C7C1]"
-              }`}
+            className={`absolute inset-y-0 left-0 w-[3px] ${
+              isActive ? "bg-[#76B900]" : "bg-[#C5C7C1]"
+            }`}
           />
 
           {/* garis tipis atas: menyapu dari kiri ke kanan */}
@@ -1300,10 +1306,11 @@ export default function SubscriptionPage() {
                 </p>
 
                 <span
-                  className={`inline-flex h-5 items-center rounded-none px-2 text-[10px] font-bold uppercase tracking-[0.12em] ${isActive
+                  className={`inline-flex h-5 items-center rounded-none px-2 text-[10px] font-bold uppercase tracking-[0.12em] ${
+                    isActive
                       ? "bg-[#76B900] text-[#0F1A00]"
                       : "bg-[#EEEFEA] text-[#666861]"
-                    }`}
+                  }`}
                 >
                   {isActive ? "Aktif" : "Free"}
                 </span>
@@ -1356,7 +1363,9 @@ export default function SubscriptionPage() {
 
                 <dd className="mt-0.5 truncate text-sm font-semibold text-[#171717]">
                   {currentScope
-                    ? `${currentScope.label.replace("Cakupan ", "")} — ${currentScope.value}`
+                    ? `${currentScope.label.replace("Cakupan ", "")} — ${
+                        currentScope.value
+                      }`
                     : "Publik"}
                 </dd>
               </motion.div>
@@ -1370,14 +1379,16 @@ export default function SubscriptionPage() {
                 </dt>
 
                 <dd
-                  className={`mt-0.5 truncate text-sm font-semibold tabular-nums ${countdownSeconds !== null && countdownSeconds <= 86400
+                  className={`mt-0.5 truncate text-sm font-semibold tabular-nums ${
+                    countdownSeconds !== null && countdownSeconds <= 86400
                       ? "bg-red-50 px-1 text-red-600"
                       : "text-[#171717]"
-                    }`}
+                  }`}
                 >
-                  {isActive && subscription?.end_date &&
-                    countdownSeconds !== null &&
-                    countdownSeconds !== null
+                  {isActive &&
+                  subscription?.end_date &&
+                  countdownSeconds !== null &&
+                  countdownSeconds !== null
                     ? countdownSeconds <= 86400
                       ? `Sisa ${formatCountdown(countdownSeconds)}`
                       : formatDate(subscription.end_date)
@@ -1495,8 +1506,6 @@ export default function SubscriptionPage() {
             <h2 className="mt-1 text-2xl font-bold tracking-[-0.04em] text-[#171717]">
               Pilih paket Anda
             </h2>
-
-
           </div>
 
           {pricingPlans.length === 0 ? (
@@ -1553,12 +1562,13 @@ export default function SubscriptionPage() {
                       delay: index * 0.06,
                       ease: [0.22, 1, 0.36, 1],
                     }}
-                    className={`group relative flex min-h-[560px] flex-col overflow-hidden border transition-all duration-300 ${isPopular
+                    className={`group relative flex min-h-[560px] flex-col overflow-hidden border transition-all duration-300 ${
+                      isPopular
                         ? "border-[#171717] bg-[#171717] text-white shadow-[0_20px_45px_rgba(0,0,0,0.10)]"
                         : isCurrent
-                          ? "border-[#C7CCC0] bg-white shadow-[0_12px_30px_rgba(0,0,0,0.045)]"
-                          : "border-[#DCDDD8] bg-white shadow-[0_8px_25px_rgba(0,0,0,0.025)] hover:-translate-y-0.5 hover:border-[#C8CAC4] hover:shadow-[0_16px_35px_rgba(0,0,0,0.06)]"
-                      }`}
+                        ? "border-[#C7CCC0] bg-white shadow-[0_12px_30px_rgba(0,0,0,0.045)]"
+                        : "border-[#DCDDD8] bg-white shadow-[0_8px_25px_rgba(0,0,0,0.025)] hover:-translate-y-0.5 hover:border-[#C8CAC4] hover:shadow-[0_16px_35px_rgba(0,0,0,0.06)]"
+                    }`}
                   >
                     {/* ==================================================
                           3D BACKGROUND
@@ -1579,8 +1589,9 @@ export default function SubscriptionPage() {
                     <div className="relative z-10 p-6">
                       <div className="flex items-center justify-between gap-3">
                         <span
-                          className={`inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] ${isPopular ? "text-white/70" : "text-[#666861]"
-                            }`}
+                          className={`inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] ${
+                            isPopular ? "text-white/70" : "text-[#666861]"
+                          }`}
                         >
                           {style.icon}
 
@@ -1596,10 +1607,11 @@ export default function SubscriptionPage() {
 
                           {isCurrent && (
                             <span
-                              className={`px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.1em] ${isPopular
+                              className={`px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.1em] ${
+                                isPopular
                                   ? "border border-white/10 bg-white/[0.06] text-white"
                                   : "border border-[#E0E2DC] bg-[#F7F8F5] text-[#666861]"
-                                }`}
+                              }`}
                             >
                               Aktif
                             </span>
@@ -1615,22 +1627,25 @@ export default function SubscriptionPage() {
 
                       <div className="mt-9">
                         <p
-                          className={`text-[10px] font-bold uppercase tracking-[0.16em] ${isPopular ? "text-white/40" : "text-[#999B94]"
-                            }`}
+                          className={`text-[10px] font-bold uppercase tracking-[0.16em] ${
+                            isPopular ? "text-white/40" : "text-[#999B94]"
+                          }`}
                         >
                           Paket
                         </p>
 
                         <h3
-                          className={`mt-1.5 text-2xl font-bold tracking-[-0.04em] ${isPopular ? "text-white" : "text-[#171717]"
-                            }`}
+                          className={`mt-1.5 text-2xl font-bold tracking-[-0.04em] ${
+                            isPopular ? "text-white" : "text-[#171717]"
+                          }`}
                         >
                           {plan.name}
                         </h3>
 
                         <p
-                          className={`mt-2 max-w-sm text-xs font-medium leading-5 ${isPopular ? "text-white/55" : "text-[#858780]"
-                            }`}
+                          className={`mt-2 max-w-sm text-xs font-medium leading-5 ${
+                            isPopular ? "text-white/55" : "text-[#858780]"
+                          }`}
                         >
                           {plan.description}
                         </p>
@@ -1638,24 +1653,27 @@ export default function SubscriptionPage() {
 
                       <div className="mt-8">
                         <p
-                          className={`text-[10px] font-bold uppercase tracking-[0.16em] ${isPopular ? "text-white/40" : "text-[#999B94]"
-                            }`}
+                          className={`text-[10px] font-bold uppercase tracking-[0.16em] ${
+                            isPopular ? "text-white/40" : "text-[#999B94]"
+                          }`}
                         >
                           Harga
                         </p>
 
                         <div className="mt-1 flex items-end gap-2">
                           <span
-                            className={`text-3xl font-bold tracking-[-0.05em] ${isPopular ? "text-white" : "text-[#171717]"
-                              }`}
+                            className={`text-3xl font-bold tracking-[-0.05em] ${
+                              isPopular ? "text-white" : "text-[#171717]"
+                            }`}
                           >
                             {formatPrice(plan.price)}
                           </span>
 
                           {plan.price > 0 && (
                             <span
-                              className={`mb-1 text-xs font-medium ${isPopular ? "text-white/40" : "text-[#999B94]"
-                                }`}
+                              className={`mb-1 text-xs font-medium ${
+                                isPopular ? "text-white/40" : "text-[#999B94]"
+                              }`}
                             >
                               / bulan
                             </span>
@@ -1669,8 +1687,9 @@ export default function SubscriptionPage() {
                       ================================================== */}
 
                     <div
-                      className={`relative z-10 mx-6 border-t ${isPopular ? "border-white/10" : "border-[#E7E8E3]"
-                        }`}
+                      className={`relative z-10 mx-6 border-t ${
+                        isPopular ? "border-white/10" : "border-[#E7E8E3]"
+                      }`}
                     />
 
                     {/* ==================================================
@@ -1679,8 +1698,9 @@ export default function SubscriptionPage() {
 
                     <div className="relative z-10 flex-1 p-6">
                       <p
-                        className={`text-[10px] font-bold uppercase tracking-[0.16em] ${isPopular ? "text-white/40" : "text-[#999B94]"
-                          }`}
+                        className={`text-[10px] font-bold uppercase tracking-[0.16em] ${
+                          isPopular ? "text-white/40" : "text-[#999B94]"
+                        }`}
                       >
                         Fitur termasuk
                       </p>
@@ -1692,10 +1712,11 @@ export default function SubscriptionPage() {
                             className="flex items-start gap-3"
                           >
                             <span
-                              className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center ${isPopular
+                              className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center ${
+                                isPopular
                                   ? "border border-white/10 bg-white/[0.06] text-white"
                                   : "border border-[#E0E1DC] bg-[#F7F8F5] text-[#666861]"
-                                }`}
+                              }`}
                             >
                               <CheckCircle2
                                 className="h-3.5 w-3.5"
@@ -1704,8 +1725,9 @@ export default function SubscriptionPage() {
                             </span>
 
                             <span
-                              className={`text-xs font-medium leading-5 ${isPopular ? "text-white/75" : "text-[#4E504A]"
-                                }`}
+                              className={`text-xs font-medium leading-5 ${
+                                isPopular ? "text-white/75" : "text-[#4E504A]"
+                              }`}
                             >
                               {feature}
                             </span>
@@ -1723,10 +1745,11 @@ export default function SubscriptionPage() {
                         <button
                           type="button"
                           disabled
-                          className={`w-full border px-5 py-3.5 text-[10px] font-bold uppercase tracking-[0.08em] ${isPopular
+                          className={`w-full border px-5 py-3.5 text-[10px] font-bold uppercase tracking-[0.08em] ${
+                            isPopular
                               ? "cursor-not-allowed border-white/10 bg-white/[0.05] text-white/35"
                               : "cursor-not-allowed border-[#E0E2DC] bg-[#F7F8F5] text-[#9A9C95]"
-                            }`}
+                          }`}
                         >
                           Paket Anda Saat Ini
                         </button>
@@ -1898,8 +1921,9 @@ export default function SubscriptionPage() {
                   duration: 0.4,
                   delay: 0.22 + index * 0.04,
                 }}
-                className={`p-6 ${index % 2 === 0 ? "md:border-r md:border-[#E7E8E3]" : ""
-                  } ${index < 2 ? "border-b border-[#E7E8E3]" : ""}`}
+                className={`p-6 ${
+                  index % 2 === 0 ? "md:border-r md:border-[#E7E8E3]" : ""
+                } ${index < 2 ? "border-b border-[#E7E8E3]" : ""}`}
               >
                 <div className="flex items-start gap-3">
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center border border-[#E0E1DC] bg-[#F7F8F5]">
