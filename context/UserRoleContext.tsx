@@ -456,7 +456,7 @@ export function UserRoleProvider({ children }: { children: React.ReactNode }) {
 
       isProtected: Boolean(user?.is_protected),
 
-      isAdmin: user?.role === "admin",
+      isAdmin: user?.role === "admin" || user?.role === "god",
 
       isMember: user?.role === "member",
 
