@@ -6,7 +6,6 @@ const api = axios.create({
   timeout: 20_000,
 
   headers: {
-    "Content-Type": "application/json",
     "ngrok-skip-browser-warning": "69420",
   },
 });
@@ -50,6 +49,11 @@ if (typeof window !== "undefined") {
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     config.headers["ngrok-skip-browser-warning"] = "69420";
+    if (typeof FormData !== "undefined" && config.data instanceof FormData) {
+      delete config.headers["Content-Type"];
+    } else {
+      config.headers["Content-Type"] = "application/json";
+    }
     if (typeof window !== "undefined") {
       const token = localStorage.getItem("token");
 

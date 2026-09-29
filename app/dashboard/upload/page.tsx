@@ -1288,8 +1288,9 @@ export default function UploadPage() {
     try {
       const response = await api.post("/maps/batch", formData, {
         headers: {
-          "Content-Type": "multipart/form-data",
+          // Biarkan Axios/browser menambahkan boundary multipart otomatis.
         },
+        timeout: 15 * 60 * 1000,
 
         onUploadProgress: ({ loaded, total }) => {
           if (!total) {
