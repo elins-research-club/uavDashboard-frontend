@@ -9,6 +9,7 @@ import api from "@/lib/api";
 
 import {
   AlertCircle,
+  AlertTriangle,
   ArrowRight,
   Building2,
   CheckCircle2,
@@ -800,7 +801,9 @@ export default function SubscriptionPage() {
     }
 
     if (user?.role === "admin" || user?.role === "god") {
-      setError("Admin dan God tidak dapat membeli subscription.");
+      setError(
+        "Paket subscription hanya tersedia untuk akun member. Akun ini menggunakan akses khusus administrator."
+      );
 
       return;
     }
@@ -1097,15 +1100,28 @@ export default function SubscriptionPage() {
     <main className="min-h-screen bg-[#F4F5F2] text-[#151515]">
       <div className="mx-auto max-w-[1440px] px-5 py-7 sm:px-7 lg:px-10 lg:py-10">
         {isPrivileged && (
-          <div className="mb-5 flex items-start gap-3 border border-[#D8E7B8] bg-[#F4F9E9] px-4 py-3 text-[#4E681B]">
-            <Shield className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={1.8} />
-            <div>
-              <p className="text-xs font-bold">Subscription tidak berlaku untuk administrator</p>
-              <p className="mt-1 text-[11px] leading-4 text-[#687A43]">Tier dan paket langganan hanya digunakan oleh akun member.</p>
+          <div
+            className="
+      mb-5
+      flex items-start gap-2.5
+      animate-[adminNoticeIn_350ms_cubic-bezier(.22,1,.36,1)]
+    "
+          >
+            {/* Icon */}
+            <div className="relative mt-[2px] shrink-0">
+              <Shield className="h-4 w-4 text-[#171717]" strokeWidth={1.9} />
+            </div>
+
+            {/* Content */}
+            <div className="min-w-0">
+              <p className="mt-0.5 max-w-2xl text-[10px] font-medium leading-4 text-[#73746E] sm:text-[14px]">
+                Subscription tidak berlaku untuk administrator. Paket dan tier
+                hanya digunakan oleh{" "}
+                <span className="font-bold text-[#91B928]">akun member</span>.
+              </p>
             </div>
           </div>
         )}
-
         {/* ====================================================
             HEADER
         ==================================================== */}
@@ -1136,7 +1152,10 @@ export default function SubscriptionPage() {
             {!isPrivileged && (
               <div className="flex flex-wrap items-center gap-3">
                 <span className="inline-flex items-center gap-2 border border-[#D8DAD4] bg-white px-3.5 py-2.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[#595B55]">
-                  <Gem className="h-3.5 w-3.5 text-[#666861]" strokeWidth={1.8} />
+                  <Gem
+                    className="h-3.5 w-3.5 text-[#666861]"
+                    strokeWidth={1.8}
+                  />
                   Paket {currentTierLabel}
                 </span>
 
@@ -1155,34 +1174,68 @@ export default function SubscriptionPage() {
         ==================================================== */}
 
         {error && (
-          <motion.div
-            initial={{
-              opacity: 0,
-              y: 8,
-            }}
-            animate={{
-              opacity: 1,
-              y: 0,
-            }}
-            className="mb-5 flex items-start gap-3 border border-[#E7D0CC] bg-[#FFF7F5] px-5 py-4 text-sm font-medium text-[#9B3E32]"
+          <div
+            className="
+      mb-7
+      flex items-start gap-3
+      animate-[subscriptionNoticeIn_260ms_cubic-bezier(.22,1,.36,1)]
+    "
           >
-            <AlertCircle
-              className="mt-0.5 h-4 w-4 shrink-0"
-              strokeWidth={1.75}
-            />
+            {/* Warning icon */}
+            <div className="relative mt-0.5 shrink-0">
+              {/* depth / 3D layer */}
+              <AlertTriangle
+                className="
+          absolute
+          left-[2px]
+          top-[2px]
+          h-[18px]
+          w-[18px]
+          text-[#B8BAAF]
+        "
+                strokeWidth={2.2}
+              />
 
-            <span className="flex-1">{error}</span>
+              {/* main icon */}
+              <AlertTriangle
+                className="
+          relative z-10
+          h-[18px]
+          w-[18px]
+          text-[#171717]
+          animate-[subscriptionWarning_2.4s_ease-in-out_infinite]
+        "
+                strokeWidth={2.2}
+              />
 
-            <button
-              type="button"
-              onClick={() => setError("")}
-              className="text-[#C27B72] transition-colors hover:text-[#9B3E32]"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </motion.div>
+              {/* small accent */}
+              <span
+                className="
+          absolute
+          -right-1
+          -top-1
+          z-20
+          h-1.5
+          w-1.5
+          rounded-full
+          bg-[#91B928]
+        "
+              />
+            </div>
+
+            {/* Content */}
+            <div className="min-w-0">
+              <p className="text-[11px] font-bold text-[#171717] sm:text-xs">
+                Subscription tidak tersedia
+              </p>
+
+              <p className="mt-1 max-w-2xl text-[10px] font-medium leading-[1.6] text-[#73746E] sm:text-[11px]">
+                Paket subscription hanya tersedia untuk akun member. Akun ini
+                menggunakan akses khusus administrator.
+              </p>
+            </div>
+          </div>
         )}
-
         {success && (
           <motion.div
             initial={{
@@ -1216,165 +1269,167 @@ export default function SubscriptionPage() {
             CURRENT SUBSCRIPTION (COMPACT, SQUARE)
         ==================================================== */}
 
-        {!isPrivileged && <motion.section
-          initial={{
-            opacity: 0,
-            y: 10,
-          }}
-          animate={{
-            opacity: 1,
-            y: 0,
-          }}
-          transition={{
-            duration: 0.45,
-            ease: [0.22, 1, 0.36, 1],
-          }}
-          aria-label="Ringkasan subscription"
-          className="relative mb-5 overflow-hidden rounded-none border border-[#DCDDD8] bg-white"
-        >
-          {/* accent bar kiri: tumbuh dari atas ke bawah */}
-
-          <motion.span
-            aria-hidden="true"
+        {!isPrivileged && (
+          <motion.section
             initial={{
-              scaleY: 0,
+              opacity: 0,
+              y: 10,
             }}
             animate={{
-              scaleY: 1,
+              opacity: 1,
+              y: 0,
             }}
             transition={{
-              duration: 0.6,
-              delay: 0.15,
+              duration: 0.45,
               ease: [0.22, 1, 0.36, 1],
             }}
-            style={{
-              originY: 0,
-            }}
-            className={`absolute inset-y-0 left-0 w-[3px] ${
-              isActive ? "bg-[#76B900]" : "bg-[#C5C7C1]"
-            }`}
-          />
+            aria-label="Ringkasan subscription"
+            className="relative mb-5 overflow-hidden rounded-none border border-[#DCDDD8] bg-white"
+          >
+            {/* accent bar kiri: tumbuh dari atas ke bawah */}
 
-          {/* garis tipis atas: menyapu dari kiri ke kanan */}
-
-          {isActive && (
             <motion.span
               aria-hidden="true"
               initial={{
-                scaleX: 0,
+                scaleY: 0,
               }}
               animate={{
-                scaleX: 1,
+                scaleY: 1,
               }}
               transition={{
-                duration: 0.9,
-                delay: 0.2,
+                duration: 0.6,
+                delay: 0.15,
                 ease: [0.22, 1, 0.36, 1],
               }}
               style={{
-                originX: 0,
+                originY: 0,
               }}
-              className="absolute inset-x-0 top-0 h-px bg-[#76B900]/70"
+              className={`absolute inset-y-0 left-0 w-[3px] ${
+                isActive ? "bg-[#76B900]" : "bg-[#C5C7C1]"
+              }`}
             />
-          )}
 
-          <motion.div
-            variants={overviewContainer}
-            initial="hidden"
-            animate="show"
-            className="flex flex-wrap items-center py-4 pl-6 pr-5 lg:flex-nowrap"
-          >
-            {/* STATUS */}
+            {/* garis tipis atas: menyapu dari kiri ke kanan */}
 
-            <motion.div variants={overviewItem} className="order-1 min-w-0">
-              <p className="text-[11px] font-medium text-[#8A8C85]">
-                Paket saat ini
-              </p>
+            {isActive && (
+              <motion.span
+                aria-hidden="true"
+                initial={{
+                  scaleX: 0,
+                }}
+                animate={{
+                  scaleX: 1,
+                }}
+                transition={{
+                  duration: 0.9,
+                  delay: 0.2,
+                  ease: [0.22, 1, 0.36, 1],
+                }}
+                style={{
+                  originX: 0,
+                }}
+                className="absolute inset-x-0 top-0 h-px bg-[#76B900]/70"
+              />
+            )}
 
-              <div className="mt-0.5 flex items-center gap-2.5">
-                <p className="truncate text-sm font-semibold text-[#171717]">
-                  {currentTierLabel}
+            <motion.div
+              variants={overviewContainer}
+              initial="hidden"
+              animate="show"
+              className="flex flex-wrap items-center py-4 pl-6 pr-5 lg:flex-nowrap"
+            >
+              {/* STATUS */}
+
+              <motion.div variants={overviewItem} className="order-1 min-w-0">
+                <p className="text-[11px] font-medium text-[#8A8C85]">
+                  Paket saat ini
                 </p>
 
-                <span
-                  className={`inline-flex h-5 items-center rounded-none px-2 text-[10px] font-bold uppercase tracking-[0.12em] ${
-                    isActive
-                      ? "bg-[#76B900] text-[#0F1A00]"
-                      : "bg-[#EEEFEA] text-[#666861]"
-                  }`}
+                <div className="mt-0.5 flex items-center gap-2.5">
+                  <p className="truncate text-sm font-semibold text-[#171717]">
+                    {currentTierLabel}
+                  </p>
+
+                  <span
+                    className={`inline-flex h-5 items-center rounded-none px-2 text-[10px] font-bold uppercase tracking-[0.12em] ${
+                      isActive
+                        ? "bg-[#76B900] text-[#0F1A00]"
+                        : "bg-[#EEEFEA] text-[#666861]"
+                    }`}
+                  >
+                    {isFree ? "Selamanya" : isActive ? "Aktif" : "Free"}
+                  </span>
+                </div>
+              </motion.div>
+
+              {/* REFRESH */}
+
+              <motion.button
+                variants={overviewItem}
+                type="button"
+                onClick={refreshSubscription}
+                disabled={actionLoading === "refresh"}
+                aria-label="Perbarui status subscription"
+                className="group order-2 ml-auto inline-flex h-8 items-center gap-1.5 rounded-none border border-[#DCDDD8] bg-white px-3 text-xs font-semibold text-[#3F413B] transition-colors duration-200 hover:border-[#171717] hover:bg-[#171717] hover:text-white disabled:cursor-not-allowed disabled:opacity-50 lg:order-3 lg:ml-6"
+              >
+                {actionLoading === "refresh" ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw
+                    className="h-3.5 w-3.5 transition-transform duration-500 group-hover:rotate-180"
+                    strokeWidth={1.8}
+                  />
+                )}
+                Perbarui
+              </motion.button>
+
+              {/* DETAILS */}
+
+              <dl className="order-3 mt-3 grid w-full grid-cols-2 gap-x-6 gap-y-3 border-t border-[#EEEFEA] pt-3 sm:grid-cols-3 lg:order-2 lg:ml-8 lg:mt-0 lg:w-auto lg:flex-1 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
+                {!isFree && (
+                  <motion.div variants={overviewItem} className="min-w-0">
+                    <dt className="text-[11px] font-medium text-[#8A8C85]">
+                      Siklus billing
+                    </dt>
+
+                    <dd className="mt-0.5 truncate text-sm font-semibold text-[#171717]">
+                      {subscription?.billing_cycle === "yearly"
+                        ? "Tahunan"
+                        : "Bulanan"}
+                    </dd>
+                  </motion.div>
+                )}
+
+                <motion.div
+                  variants={overviewItem}
+                  className="min-w-0 lg:border-l lg:border-[#EEEFEA] lg:pl-6"
                 >
-                  {isFree ? "Selamanya" : isActive ? "Aktif" : "Free"}
-                </span>
-              </div>
-            </motion.div>
-
-            {/* REFRESH */}
-
-            <motion.button
-              variants={overviewItem}
-              type="button"
-              onClick={refreshSubscription}
-              disabled={actionLoading === "refresh"}
-              aria-label="Perbarui status subscription"
-              className="group order-2 ml-auto inline-flex h-8 items-center gap-1.5 rounded-none border border-[#DCDDD8] bg-white px-3 text-xs font-semibold text-[#3F413B] transition-colors duration-200 hover:border-[#171717] hover:bg-[#171717] hover:text-white disabled:cursor-not-allowed disabled:opacity-50 lg:order-3 lg:ml-6"
-            >
-              {actionLoading === "refresh" ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <RefreshCw
-                  className="h-3.5 w-3.5 transition-transform duration-500 group-hover:rotate-180"
-                  strokeWidth={1.8}
-                />
-              )}
-              Perbarui
-            </motion.button>
-
-            {/* DETAILS */}
-
-            <dl className="order-3 mt-3 grid w-full grid-cols-2 gap-x-6 gap-y-3 border-t border-[#EEEFEA] pt-3 sm:grid-cols-3 lg:order-2 lg:ml-8 lg:mt-0 lg:w-auto lg:flex-1 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
-              {!isFree && (
-                <motion.div variants={overviewItem} className="min-w-0">
                   <dt className="text-[11px] font-medium text-[#8A8C85]">
-                    Siklus billing
+                    Berlaku hingga
                   </dt>
 
-                  <dd className="mt-0.5 truncate text-sm font-semibold text-[#171717]">
-                    {subscription?.billing_cycle === "yearly"
-                      ? "Tahunan"
-                      : "Bulanan"}
+                  <dd
+                    className={`mt-0.5 truncate text-sm font-semibold tabular-nums ${
+                      countdownSeconds !== null && countdownSeconds <= 86400
+                        ? "bg-red-50 px-1 text-red-600"
+                        : "text-[#171717]"
+                    }`}
+                  >
+                    {isFree
+                      ? "Selamanya"
+                      : isActive &&
+                        subscription?.end_date &&
+                        countdownSeconds !== null
+                      ? countdownSeconds <= 86400
+                        ? `Sisa ${formatCountdown(countdownSeconds)}`
+                        : formatDate(subscription.end_date)
+                      : "—"}
                   </dd>
                 </motion.div>
-              )}
-
-              <motion.div
-                variants={overviewItem}
-                className="min-w-0 lg:border-l lg:border-[#EEEFEA] lg:pl-6"
-              >
-                <dt className="text-[11px] font-medium text-[#8A8C85]">
-                  Berlaku hingga
-                </dt>
-
-                <dd
-                  className={`mt-0.5 truncate text-sm font-semibold tabular-nums ${
-                    countdownSeconds !== null && countdownSeconds <= 86400
-                      ? "bg-red-50 px-1 text-red-600"
-                      : "text-[#171717]"
-                  }`}
-                >
-                  {isFree
-                    ? "Selamanya"
-                    : isActive &&
-                      subscription?.end_date &&
-                      countdownSeconds !== null
-                    ? countdownSeconds <= 86400
-                      ? `Sisa ${formatCountdown(countdownSeconds)}`
-                      : formatDate(subscription.end_date)
-                    : "—"}
-                </dd>
-              </motion.div>
-            </dl>
-          </motion.div>
-        </motion.section>}
+              </dl>
+            </motion.div>
+          </motion.section>
+        )}
 
         {/* ====================================================
             PENDING ORDER

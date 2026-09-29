@@ -4,10 +4,14 @@
    NOTIFICATION HELPERS
 
    Dua kanal nyata:
-   1. In-app toast  → CustomEvent `amx:toast` yang dirender oleh
-      <AppToastHost /> (dipasang di DashboardLayout).
-   2. Desktop       → Web Notification API, hanya bila user
-      mengizinkan DAN preferensi `notifyBrowser` menyala.
+   1. In-app toast
+      → CustomEvent `amx:toast`
+      → dirender oleh <AppToastHost />
+
+   2. Desktop
+      → Web Notification API
+      → hanya bila user mengizinkan DAN preferensi
+        `notifyBrowser` menyala.
 ============================================================ */
 
 import { getSettingsSnapshot } from "@/lib/stores/settingsStore";
@@ -21,6 +25,12 @@ export interface ToastDetail {
   message: string;
   tone?: ToastTone;
   durationMs?: number;
+
+  /**
+   * Success toast akan confetti secara default.
+   * Set false bila ada success toast yang tidak perlu confetti.
+   */
+  confetti?: boolean;
 }
 
 export function dispatchToast(detail: ToastDetail): boolean {
@@ -29,7 +39,9 @@ export function dispatchToast(detail: ToastDetail): boolean {
   }
 
   window.dispatchEvent(
-    new CustomEvent<ToastDetail>(TOAST_EVENT, { detail })
+    new CustomEvent<ToastDetail>(TOAST_EVENT, {
+      detail,
+    })
   );
 
   return true;
@@ -94,13 +106,10 @@ export async function requestBrowserPermission(): Promise<PermissionState> {
 }
 
 /**
- * Kirim desktop notification bila diizinkan & preferensi menyala.
- * Return false bila tidak terkirim (mis. belum ada izin).
+ * Kirim desktop notification bila diizinkan
+ * & preferensi menyala.
  */
-export function showDesktopNotification(
-  title: string,
-  body: string
-): boolean {
+export function showDesktopNotification(title: string, body: string): boolean {
   const settings = getSettingsSnapshot();
 
   if (!settings.notifyBrowser) {
@@ -141,8 +150,9 @@ export interface BakingNotificationPayload {
 
 /**
  * Dipanggil saat seluruh layer selesai/gagal dikompilasi.
- * In-app toast mengikuti `notifyBaking`; desktop mengikuti
- * `notifyBrowser` + izin browser.
+ *
+ * In-app toast mengikuti `notifyBaking`.
+ * Desktop mengikuti `notifyBrowser` + izin browser.
  */
 export function notifyBakingFinished({
   mapTitle,
@@ -154,7 +164,9 @@ export function notifyBakingFinished({
 
   const allFailed = total > 0 && failed === total;
 
-  const title = allFailed ? "Konversi PMTiles gagal" : "Kompilasi PMTiles selesai";
+  const title = allFailed
+    ? "Konversi PMTiles gagal"
+    : "Kompilasi PMTiles selesai";
 
   const body = allFailed
     ? `${failed}/${total} layer gagal · ${mapTitle}`
@@ -167,6 +179,7 @@ export function notifyBakingFinished({
       title,
       message: body,
       tone: allFailed ? "error" : failed > 0 ? "info" : "success",
+      confetti: !allFailed && failed === 0,
     });
   }
 

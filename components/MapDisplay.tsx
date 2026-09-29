@@ -586,7 +586,8 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     const layerGridDataRef = useRef<Record<string, PetakProperties[]>>({});
 
     useEffect(() => {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
+      const baseUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
       const headers = tokenRef.current
         ? { Authorization: `Bearer ${tokenRef.current}` }
         : undefined;
@@ -596,10 +597,18 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
           .filter((layer) => layer.layer_type?.toLowerCase() !== "ortho")
           .map(async (layer) => {
             try {
-              const response = await fetch(`${baseUrl}/maps/layers/${layer.id}/grid`, { headers });
+              const response = await fetch(
+                `${baseUrl}/maps/layers/${layer.id}/grid`,
+                { headers }
+              );
               if (!response.ok) return;
-              const data = (await response.json()) as GeoJSON.FeatureCollection<GeoJSON.Polygon, PetakProperties>;
-              layerGridDataRef.current[layer.id] = data.features.map((feature) => feature.properties);
+              const data = (await response.json()) as GeoJSON.FeatureCollection<
+                GeoJSON.Polygon,
+                PetakProperties
+              >;
+              layerGridDataRef.current[layer.id] = data.features.map(
+                (feature) => feature.properties
+              );
             } catch {
               // Layer tanpa grid tetap ditampilkan sebagai tidak tersedia.
             }
@@ -3249,7 +3258,6 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                             </span>
                           </div>
                         </div>
-
                       </div>
                     </div>
                   ) : (
@@ -3651,12 +3659,10 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             const cEl = containerRef.current;
 
             const containerW = cEl?.clientWidth || 800;
-
             const containerH = cEl?.clientHeight || 600;
 
             const isSmall = containerW < 640;
-
-            const cardWidth = isSmall ? 188 : 208;
+            const cardWidth = isSmall ? 220 : 260;
 
             const SAFE_TOP = 54;
             const SAFE_BOTTOM = 10;
@@ -3709,145 +3715,259 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             const arrowAtBottom =
               petakScreenPos.y >= clampedTop + currentCardH / 2;
 
-            const activeAnalysisLayer = mapLayers.find(
-              (l) => l.is_visible && l.layer_type?.toLowerCase() !== "ortho"
+            /* =================================================
+       HELPERS
+    ================================================== */
+
+            const normalizeLayerType = (type = "") => {
+              const value = String(type).toLowerCase().trim();
+
+              if (value.includes("ndvi")) return "ndvi";
+
+              if (
+                value.includes("nitrogen") ||
+                value === "n" ||
+                value.includes("(n)")
+              ) {
+                return "nitrogen";
+              }
+
+              if (
+                value.includes("phosphorus") ||
+                value.includes("phosphor") ||
+                value.includes("fosfor") ||
+                value === "p" ||
+                value.includes("(p)")
+              ) {
+                return "phosphorus";
+              }
+
+              if (
+                value.includes("kalium") ||
+                value.includes("potassium") ||
+                value === "k" ||
+                value.includes("(k)")
+              ) {
+                return "kalium";
+              }
+
+              if (value.includes("ortho")) return "ortho";
+
+              return value;
+            };
+
+            const isValidNumber = (value) => {
+              const number = Number(value);
+              return Number.isFinite(number);
+            };
+
+            const formatValue = (value, decimals = 2) => {
+              if (!isValidNumber(value)) return "-";
+
+              const number = Number(value);
+
+              return number.toFixed(decimals).replace(/\.?0+$/, "");
+            };
+
+            /* =================================================
+       LAYER AKTIF
+    ================================================== */
+
+            const activeAnalysisLayer =
+              mapLayers.find(
+                (layer) =>
+                  layer.is_visible &&
+                  normalizeLayerType(layer.layer_type) !== "ortho"
+              ) || null;
+
+            const activeLayerType = normalizeLayerType(
+              activeAnalysisLayer?.layer_type || selectedPetak?.layer_type || ""
             );
 
-            const activePetak = activeAnalysisLayer
+            /*
+             * PENTING:
+             * Jangan lagi menjadikan selectedPetak sebagai sumber
+             * angka utama setelah user mengganti layer.
+             *
+             * selectedPetak hanya menyimpan identitas petak.
+             * Data numerik selalu diambil dari layer aktif.
+             */
+
+            const activeLayerPetak = activeAnalysisLayer
               ? layerGridDataRef.current[activeAnalysisLayer.id]?.find(
                   (petak) => petak.block_id === selectedPetak.block_id
-                ) || selectedPetak
-              : selectedPetak;
+                ) || null
+              : null;
+
+            const selectedPetakMatchesActiveLayer =
+              normalizeLayerType(selectedPetak.layer_type) === activeLayerType;
+
+            const activePetak =
+              activeLayerPetak ||
+              (selectedPetakMatchesActiveLayer
+                ? selectedPetak
+                : {
+                    ...selectedPetak,
+                    value_mean: undefined,
+                    value_min: undefined,
+                    value_max: undefined,
+                    status: undefined,
+                    color: undefined,
+                    unit: undefined,
+                  });
+
+            /* =================================================
+       INFORMASI LAYER
+    ================================================== */
 
             const layerTitle =
               activeAnalysisLayer?.name ||
               selectedPetak.layer_type?.toUpperCase() ||
               "Analisis Spasial";
 
-            const isNDVI = (
-              activeAnalysisLayer?.layer_type ||
-              selectedPetak.layer_type ||
-              ""
-            )
-              .toLowerCase()
-              .includes("ndvi");
-
-            const isNutrient = ["nitrogen", "phosphorus", "kalium"].some((k) =>
-              (
-                activeAnalysisLayer?.layer_type ||
-                selectedPetak.layer_type ||
-                ""
-              )
-                .toLowerCase()
-                .includes(k)
+            const isNutrient = ["nitrogen", "phosphorus", "kalium"].includes(
+              activeLayerType
             );
 
-            const unit = isNutrient ? "mg/kg" : "";
+            const unit = activePetak?.unit || (isNutrient ? "mg/kg" : "");
+
+            const valueMean = activePetak?.value_mean;
+
+            /* =================================================
+       STATUS + RINGKASAN
+    ================================================== */
+
+            const getDefaultStatus = (layerType, value) => {
+              if (!isValidNumber(value)) return null;
+
+              const number = Number(value);
+
+              switch (layerType) {
+                case "ndvi":
+                  return number >= 0.42
+                    ? "Tinggi"
+                    : number >= 0.22
+                    ? "Sedang"
+                    : number >= 0.11
+                    ? "Rendah"
+                    : "Non Vegetasi";
+
+                case "nitrogen":
+                  return number >= 70
+                    ? "Tinggi / Berlebih"
+                    : number >= 35
+                    ? "Optimal / Cukup"
+                    : "Defisit Rendah";
+
+                case "phosphorus":
+                  return number >= 30
+                    ? "Tinggi"
+                    : number >= 15
+                    ? "Optimal / Cukup"
+                    : "Defisit Rendah";
+
+                case "kalium":
+                  return number >= 150
+                    ? "Tinggi"
+                    : number >= 80
+                    ? "Optimal / Cukup"
+                    : "Defisit Rendah";
+
+                default:
+                  return null;
+              }
+            };
+
+            const currentStatus =
+              activePetak?.status ||
+              getDefaultStatus(activeLayerType, valueMean);
 
             const summaryText = (() => {
-              const lt = (selectedPetak.layer_type || "").toLowerCase();
+              const val = Number(valueMean);
 
-              const val = activePetak.value_mean;
-
-              const status = activePetak.status;
-
-              if (lt.includes("ndvi") || lt.includes("vari")) {
-                if (val !== undefined) {
-                  const currentStatus =
-                    status ||
-                    (val >= 0.42
-                      ? "Tinggi"
-                      : val >= 0.22
-                      ? "Sedang"
-                      : val >= 0.11
-                      ? "Rendah"
-                      : "Non Vegetasi");
-
-                  if (
-                    val >= 0.42 ||
-                    currentStatus.toLowerCase().includes("tinggi")
-                  ) {
-                    return `${currentStatus} (NDVI ≥ 0.42). Kerapatan tajuk dan aktivitas fotosintesis vegetasi sangat optimal. (Ref: Rahaldi et al., 2013)`;
-                  }
-
-                  if (
-                    val >= 0.22 ||
-                    currentStatus.toLowerCase().includes("sedang")
-                  ) {
-                    return `${currentStatus} (NDVI 0.22–0.42). Kondisi tanaman wajar dengan kerapatan tajuk sedang/berjarak. (Ref: Rahaldi et al., 2013)`;
-                  }
-
-                  if (
-                    val >= 0.11 ||
-                    currentStatus.toLowerCase().includes("rendah")
-                  ) {
-                    return `${currentStatus} (NDVI 0.11–0.22). Vegetasi terindikasi mengalami stres, kekurangan hara, atau kerusakan tajuk. (Ref: Rahaldi et al., 2013)`;
-                  }
-
-                  return `${currentStatus} (NDVI < 0.11). Area lahan terbuka, tanah gundul, bebatuan, atau jalan kebun. (Ref: Rahaldi et al., 2013)`;
+              if (!Number.isFinite(val)) {
+                if (currentStatus) {
+                  return `Kondisi petak berstatus ${currentStatus} berdasarkan data layer ${layerTitle}.`;
                 }
-              } else if (lt.includes("nitrogen")) {
-                if (val !== undefined) {
-                  const s =
-                    status ||
-                    (val >= 70
-                      ? "Tinggi / Berlebih"
-                      : val >= 35
-                      ? "Optimal / Cukup"
-                      : "Defisit Rendah");
 
-                  return `${s} (${val} mg/kg). ${
-                    val < 35
-                      ? "Ketersediaan unsur hara nitrogen rendah, disarankan pemupukan N."
-                      : val <= 70
-                      ? "Ketersediaan unsur hara N dalam rentang optimal."
-                      : "Kandungan hara N tinggi pada tajuk tanaman."
-                  }`;
-                }
-              } else if (lt.includes("phosphorus") || lt.includes("fosfor")) {
-                if (val !== undefined) {
-                  const s =
-                    status ||
-                    (val >= 30
-                      ? "Tinggi"
-                      : val >= 15
-                      ? "Optimal / Cukup"
-                      : "Defisit Rendah");
+                return "Data analisis untuk layer ini belum tersedia pada petak yang dipilih.";
+              }
 
-                  return `${s} (${val} mg/kg). ${
-                    val < 15
-                      ? "Ketersediaan unsur hara fosfor rendah, disarankan suplementasi P."
-                      : val <= 30
-                      ? "Ketersediaan unsur hara fosfor dalam rentang optimal."
-                      : "Kandungan hara fosfor tinggi pada lahan."
-                  }`;
+              if (activeLayerType === "ndvi") {
+                if (
+                  val >= 0.42 ||
+                  currentStatus?.toLowerCase().includes("tinggi")
+                ) {
+                  return `${currentStatus} (NDVI ≥ 0.42). Kerapatan tajuk dan aktivitas fotosintesis vegetasi sangat optimal. (Ref: Rahaldi et al., 2013)`;
                 }
-              } else if (lt.includes("kalium")) {
-                if (val !== undefined) {
-                  const s =
-                    status ||
-                    (val >= 150
-                      ? "Tinggi"
-                      : val >= 80
-                      ? "Optimal / Cukup"
-                      : "Defisit Rendah");
 
-                  return `${s} (${val} mg/kg). ${
-                    val < 80
-                      ? "Ketersediaan unsur hara kalium rendah, disarankan pemupukan K."
-                      : val <= 150
-                      ? "Ketersediaan unsur hara K optimal untuk ketahanan tanaman."
-                      : "Kandungan hara kalium tinggi pada lahan."
-                  }`;
+                if (
+                  val >= 0.22 ||
+                  currentStatus?.toLowerCase().includes("sedang")
+                ) {
+                  return `${currentStatus} (NDVI 0.22–0.42). Kondisi tanaman wajar dengan kerapatan tajuk sedang/berjarak. (Ref: Rahaldi et al., 2013)`;
                 }
-              } else if (status) {
-                return `Kondisi petak berstatus ${status} dengan nilai rata-rata ${
-                  val ?? "-"
-                } berdasarkan pembacaan raster sensor drone.`;
+
+                if (
+                  val >= 0.11 ||
+                  currentStatus?.toLowerCase().includes("rendah")
+                ) {
+                  return `${currentStatus} (NDVI 0.11–0.22). Vegetasi terindikasi mengalami stres, kekurangan hara, atau kerusakan tajuk. (Ref: Rahaldi et al., 2013)`;
+                }
+
+                return `${
+                  currentStatus || "Non Vegetasi"
+                } (NDVI < 0.11). Area lahan terbuka, tanah gundul, bebatuan, atau jalan kebun. (Ref: Rahaldi et al., 2013)`;
+              }
+
+              if (activeLayerType === "nitrogen") {
+                return `${currentStatus || "Tidak diketahui"} (${formatValue(
+                  val
+                )} mg/kg). ${
+                  val < 35
+                    ? "Ketersediaan unsur hara nitrogen rendah, disarankan pemupukan N."
+                    : val <= 70
+                    ? "Ketersediaan unsur hara N dalam rentang optimal."
+                    : "Kandungan hara N tinggi pada tajuk tanaman."
+                }`;
+              }
+
+              if (activeLayerType === "phosphorus") {
+                return `${currentStatus || "Tidak diketahui"} (${formatValue(
+                  val
+                )} mg/kg). ${
+                  val < 15
+                    ? "Ketersediaan unsur hara fosfor rendah, disarankan suplementasi P."
+                    : val <= 30
+                    ? "Ketersediaan unsur hara fosfor dalam rentang optimal."
+                    : "Kandungan hara fosfor tinggi pada lahan."
+                }`;
+              }
+
+              if (activeLayerType === "kalium") {
+                return `${currentStatus || "Tidak diketahui"} (${formatValue(
+                  val
+                )} mg/kg). ${
+                  val < 80
+                    ? "Ketersediaan unsur hara kalium rendah, disarankan pemupukan K."
+                    : val <= 150
+                    ? "Ketersediaan unsur hara K optimal untuk ketahanan tanaman."
+                    : "Kandungan hara kalium tinggi pada lahan."
+                }`;
+              }
+
+              if (currentStatus) {
+                return `Kondisi petak berstatus ${currentStatus} dengan nilai rata-rata ${formatValue(
+                  val
+                )} berdasarkan pembacaan raster sensor drone.`;
               }
 
               return "Data saintifik diekstraksi langsung dari berkas GeoTIFF drone resolusi tinggi.";
             })();
+
+            /* =================================================
+       DAFTAR LAYER ANALISIS
+    ================================================== */
 
             const analysisRows = [
               {
@@ -3868,36 +3988,108 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               },
             ];
 
+            /* =================================================
+       REKOMENDASI
+    ================================================== */
+
             const recommendations = analysisRows.flatMap(({ key, label }) => {
               const layer = mapLayers.find(
-                (item) => (item.layer_type || "").toLowerCase() === key
+                (item) => normalizeLayerType(item.layer_type) === key
               );
+
               const petak = layer
                 ? layerGridDataRef.current[layer.id]?.find(
                     (item) => item.block_id === selectedPetak.block_id
                   )
                 : null;
-              const value = petak?.value_mean;
 
-              if (value === undefined) return [];
+              const value = Number(petak?.value_mean);
+
+              if (!Number.isFinite(value)) {
+                return [];
+              }
+
               if (key === "ndvi" && value < 0.22) {
-                return [`${label}: periksa stres tanaman, tutupan tajuk, dan kondisi lahan.`];
+                return [
+                  `${label}: periksa stres tanaman, tutupan tajuk, dan kondisi lahan.`,
+                ];
               }
+
               if (key === "nitrogen" && value < 35) {
-                return [`${label}: pertimbangkan pemupukan nitrogen sesuai analisis tanah.`];
+                return [
+                  `${label}: pertimbangkan pemupukan nitrogen sesuai analisis tanah.`,
+                ];
               }
+
               if (key === "phosphorus" && value < 15) {
-                return [`${label}: pertimbangkan suplementasi fosfor sesuai rekomendasi agronom.`];
+                return [
+                  `${label}: pertimbangkan suplementasi fosfor sesuai rekomendasi agronom.`,
+                ];
               }
+
               if (key === "kalium" && value < 80) {
-                return [`${label}: pertimbangkan pemupukan kalium sesuai kebutuhan tanaman.`];
+                return [
+                  `${label}: pertimbangkan pemupukan kalium sesuai kebutuhan tanaman.`,
+                ];
               }
-              return [`${label}: kondisi berada pada rentang cukup berdasarkan ambang analisis.`];
+
+              return [
+                `${label}: kondisi berada pada rentang cukup berdasarkan ambang analisis.`,
+              ];
             });
 
+            /* =================================================
+       AVAILABLE LAYER COUNT
+    ================================================== */
+
             const availableCount = analysisRows.filter(({ key }) =>
-              mapLayers.some((l) => (l.layer_type || "").toLowerCase() === key)
+              mapLayers.some(
+                (layer) => normalizeLayerType(layer.layer_type) === key
+              )
             ).length;
+
+            /* =================================================
+       SELECT LAYER
+    ================================================== */
+
+            const selectLayer = (layerItem) => {
+              if (!layerItem) return;
+
+              const map = mapRef.current;
+
+              setMapLayers((prevLayers) => {
+                const nextLayers = prevLayers.map((layer) => ({
+                  ...layer,
+                  is_visible:
+                    normalizeLayerType(layer.layer_type) === "ortho"
+                      ? layer.is_visible
+                      : layer.id === layerItem.id,
+                }));
+
+                mapLayersRef.current = nextLayers;
+
+                nextLayers.forEach((layer) => {
+                  const renderId = `layer-render-${layer.id}`;
+
+                  if (map?.getLayer(renderId)) {
+                    map.setLayoutProperty(
+                      renderId,
+                      "visibility",
+                      layer.is_visible ? "visible" : "none"
+                    );
+                  }
+                });
+
+                return nextLayers;
+              });
+
+              /*
+               * Jangan setSelectedPetak di sini.
+               *
+               * selectedPetak harus tetap menjadi petak yang sama.
+               * Yang berubah hanya activeAnalysisLayer.
+               */
+            };
 
             return (
               <div
@@ -3951,6 +4143,10 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                   }}
                   className="relative flex max-h-[inherit] flex-col overflow-y-auto border border-[#DCDDD8] bg-white/95 shadow-[0_12px_28px_rgba(0,0,0,0.09)] backdrop-blur-md"
                 >
+                  {/* =================================================
+                HEADER
+          ================================================== */}
+
                   <div className="flex items-center justify-between gap-1.5 px-2 pt-2">
                     <div className="min-w-0">
                       <p className="text-[10px] font-semibold uppercase tracking-[0.04em] text-[#999B94]">
@@ -3972,6 +4168,10 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                     </button>
                   </div>
 
+                  {/* =================================================
+                MAIN VALUE
+          ================================================== */}
+
                   <div className="space-y-1 p-2">
                     <div className="relative overflow-hidden bg-[#171717] px-2 py-1.5 text-white">
                       <div className="absolute inset-x-0 top-0 h-[2px] bg-[#76B900]" />
@@ -3981,23 +4181,21 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                           {layerTitle}
                         </span>
 
-                        {activePetak.status && (
+                        {currentStatus && (
                           <span
                             className="shrink-0 px-1 py-0.5 text-[10px] font-bold text-white"
                             style={{
                               backgroundColor: activePetak.color || "#16a34a",
                             }}
                           >
-                            {activePetak.status}
+                            {currentStatus}
                           </span>
                         )}
                       </div>
 
                       <div className="mt-0.5 flex items-baseline gap-1">
                         <span className="text-[10px] font-bold tabular-nums text-white">
-                          {activePetak.value_mean !== undefined
-                            ? activePetak.value_mean
-                            : "-"}
+                          {formatValue(valueMean)}
                         </span>
 
                         {unit && (
@@ -4007,8 +4205,8 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                         )}
                       </div>
 
-                      {activePetak.value_min !== undefined &&
-                        activePetak.value_max !== undefined && (
+                      {isValidNumber(activePetak.value_min) &&
+                        isValidNumber(activePetak.value_max) && (
                           <div className="mt-1 grid grid-cols-3 border-t border-white/10 pt-1 text-center tabular-nums">
                             <div>
                               <p className="text-[10px] font-medium text-white/45">
@@ -4016,7 +4214,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                               </p>
 
                               <p className="text-[10px] font-bold text-white">
-                                {activePetak.value_min}
+                                {formatValue(activePetak.value_min)}
                               </p>
                             </div>
 
@@ -4026,7 +4224,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                               </p>
 
                               <p className="text-[10px] font-bold text-white">
-                                {activePetak.value_mean}
+                                {formatValue(activePetak.value_mean)}
                               </p>
                             </div>
 
@@ -4036,12 +4234,16 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                               </p>
 
                               <p className="text-[10px] font-bold text-white">
-                                {activePetak.value_max}
+                                {formatValue(activePetak.value_max)}
                               </p>
                             </div>
                           </div>
                         )}
                     </div>
+
+                    {/* =================================================
+                  SUMMARY
+            ================================================== */}
 
                     <AccordionRow
                       title="Ringkasan kondisi"
@@ -4057,6 +4259,10 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                       </p>
                     </AccordionRow>
 
+                    {/* =================================================
+                  ANALYSIS LAYERS
+            ================================================== */}
+
                     <AccordionRow
                       title="Layer analisis lahan"
                       badge={`${availableCount}/${analysisRows.length}`}
@@ -4069,57 +4275,45 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                     >
                       <div className="space-y-0.5">
                         {analysisRows.map(({ key, label }) => {
-                          const activeAnalysis = mapLayers.find(
-                            (l) =>
-                              l.is_visible &&
-                              l.layer_type?.toLowerCase() !== "ortho"
+                          const layerItem = mapLayers.find(
+                            (layer) =>
+                              normalizeLayerType(layer.layer_type) === key
                           );
 
                           const isCurrent =
-                            (activeAnalysis?.layer_type || "").toLowerCase() ===
-                            key;
-
-                          const layerItem = mapLayers.find(
-                            (l) => (l.layer_type || "").toLowerCase() === key
-                          );
+                            normalizeLayerType(
+                              activeAnalysisLayer?.layer_type
+                            ) === key;
 
                           const layerPetak = layerItem
                             ? layerGridDataRef.current[layerItem.id]?.find(
-                                (petak) => petak.block_id === selectedPetak.block_id
+                                (petak) =>
+                                  petak.block_id === selectedPetak.block_id
                               )
                             : null;
 
-                          const selectLayer = () => {
-                            if (!layerItem) return;
-                            const map = mapRef.current;
-                            mapLayersRef.current = mapLayersRef.current.map((layer) => ({
-                              ...layer,
-                              is_visible:
-                                layer.layer_type?.toLowerCase() === "ortho"
-                                  ? layer.is_visible
-                                  : layer.id === layerItem.id,
-                            }));
-                            setMapLayers(mapLayersRef.current);
-                            mapLayersRef.current.forEach((layer) => {
-                              const renderId = `layer-render-${layer.id}`;
-                              if (map?.getLayer(renderId)) {
-                                map.setLayoutProperty(
-                                  renderId,
-                                  "visibility",
-                                  layer.is_visible ? "visible" : "none"
-                                );
-                              }
-                            });
-                          };
+                          const hasLayerValue = isValidNumber(
+                            layerPetak?.value_mean
+                          );
 
                           return (
                             <div
                               key={key}
-                              onClick={selectLayer}
+                              onClick={() => selectLayer(layerItem)}
+                              onKeyDown={(event) => {
+                                if (
+                                  event.key === "Enter" ||
+                                  event.key === " "
+                                ) {
+                                  event.preventDefault();
+                                  selectLayer(layerItem);
+                                }
+                              }}
                               role={layerItem ? "button" : undefined}
                               tabIndex={layerItem ? 0 : undefined}
                               className={cn(
                                 "flex items-center justify-between gap-1.5 border px-1 py-0.5 text-[10px]",
+                                layerItem ? "cursor-pointer" : "cursor-default",
                                 isCurrent
                                   ? "border-[#171717] bg-[#F7F8F5] font-bold text-[#171717]"
                                   : "border-transparent text-[#858780]"
@@ -4142,13 +4336,17 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
                               {isCurrent ? (
                                 <span className="shrink-0 font-bold tabular-nums text-[#171717]">
-                                  {selectedPetak.value_mean !== undefined
-                                    ? selectedPetak.value_mean
-                                    : "Aktif"}
+                                  {formatValue(activePetak?.value_mean)}
                                 </span>
                               ) : layerItem ? (
                                 <span className="shrink-0 border border-[#E0E1DC] bg-[#F7F8F5] px-1 py-0.5 text-[10px] font-semibold text-[#4E504A]">
-                                  {layerPetak?.value_mean ?? "Tidak ada data"}{layerPetak?.unit ? ` ${layerPetak.unit}` : ""}
+                                  {hasLayerValue
+                                    ? `${formatValue(layerPetak.value_mean)}${
+                                        layerPetak?.unit
+                                          ? ` ${layerPetak.unit}`
+                                          : ""
+                                      }`
+                                    : "Tidak ada data"}
                                 </span>
                               ) : (
                                 <span className="shrink-0 text-[10px] font-medium text-[#B0B1AB]">
@@ -4161,6 +4359,10 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                       </div>
                     </AccordionRow>
 
+                    {/* =================================================
+                  RECOMMENDATIONS
+            ================================================== */}
+
                     <AccordionRow
                       title="Rekomendasi tindakan"
                       badge={String(recommendations.length)}
@@ -4171,14 +4373,22 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                         )
                       }
                     >
-                      <ul className="space-y-1.5 text-[10px] font-medium leading-4 text-[#4E504A]">
-                        {recommendations.map((recommendation) => (
-                          <li key={recommendation} className="flex gap-1.5">
-                            <span className="text-[#76B900]">•</span>
-                            <span>{recommendation}</span>
-                          </li>
-                        ))}
-                      </ul>
+                      {recommendations.length > 0 ? (
+                        <ul className="space-y-1.5 text-[10px] font-medium leading-4 text-[#4E504A]">
+                          {recommendations.map((recommendation) => (
+                            <li key={recommendation} className="flex gap-1.5">
+                              <span className="text-[#76B900]">•</span>
+
+                              <span>{recommendation}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-[10px] font-medium leading-4 text-[#858780]">
+                          Belum ada rekomendasi khusus berdasarkan data petak
+                          ini.
+                        </p>
+                      )}
                     </AccordionRow>
                   </div>
                 </motion.div>
