@@ -502,28 +502,6 @@ function formatCountdown(seconds: number) {
   )}:${String(remainingSeconds).padStart(2, "0")}`;
 }
 
-function formatScope(subscription?: Subscription | null) {
-  if (!subscription?.scope_type) {
-    return null;
-  }
-
-  if (subscription.scope_type === "village") {
-    return {
-      label: "Cakupan Desa",
-      value: subscription.village_id || "Belum ditentukan",
-    };
-  }
-
-  if (subscription.scope_type === "district") {
-    return {
-      label: "Cakupan Kecamatan",
-      value: subscription.district_id || "Belum ditentukan",
-    };
-  }
-
-  return null;
-}
-
 function getSavedMidtransUrl(orderId?: string | null) {
   if (!orderId || typeof window === "undefined") {
     return "";
@@ -592,6 +570,7 @@ const overviewItem: Variants = {
 
 export default function SubscriptionPage() {
   const { user, refreshCurrentUser } = useUserRole();
+  const isPrivileged = user?.role === "admin" || user?.role === "god";
 
   const [pricingPlans, setPricingPlans] = useState<PricingPlan[]>([]);
 
@@ -806,9 +785,7 @@ export default function SubscriptionPage() {
       ? "Tier Kecamatan"
       : "Free";
 
-  const currentScope =
-    subscription?.status === "active" ? formatScope(subscription) : null;
-
+  const isFree = currentTier === "free";
   const isActive = subscription?.status === "active";
 
   /* ==========================================================
@@ -1119,6 +1096,16 @@ export default function SubscriptionPage() {
   return (
     <main className="min-h-screen bg-[#F4F5F2] text-[#151515]">
       <div className="mx-auto max-w-[1440px] px-5 py-7 sm:px-7 lg:px-10 lg:py-10">
+        {isPrivileged && (
+          <div className="mb-5 flex items-start gap-3 border border-[#D8E7B8] bg-[#F4F9E9] px-4 py-3 text-[#4E681B]">
+            <Shield className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={1.8} />
+            <div>
+              <p className="text-xs font-bold">Subscription tidak berlaku untuk administrator</p>
+              <p className="mt-1 text-[11px] leading-4 text-[#687A43]">Tier dan paket langganan hanya digunakan oleh akun member.</p>
+            </div>
+          </div>
+        )}
+
         {/* ====================================================
             HEADER
         ==================================================== */}
@@ -1146,16 +1133,20 @@ export default function SubscriptionPage() {
               </h1>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="inline-flex items-center gap-2 border border-[#D8DAD4] bg-white px-3.5 py-2.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[#595B55]">
-                <Gem className="h-3.5 w-3.5 text-[#666861]" strokeWidth={1.8} />
-                Paket {currentTierLabel}
-              </span>
+            {!isPrivileged && (
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="inline-flex items-center gap-2 border border-[#D8DAD4] bg-white px-3.5 py-2.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[#595B55]">
+                  <Gem className="h-3.5 w-3.5 text-[#666861]" strokeWidth={1.8} />
+                  Paket {currentTierLabel}
+                </span>
 
-              <span className="inline-flex items-center border border-[#D8DAD4] bg-white px-3.5 py-2.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[#777972]">
-                Billing Bulanan
-              </span>
-            </div>
+                {!isFree && (
+                  <span className="inline-flex items-center border border-[#D8DAD4] bg-white px-3.5 py-2.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[#777972]">
+                    Billing Bulanan
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </motion.header>
 
@@ -1225,7 +1216,7 @@ export default function SubscriptionPage() {
             CURRENT SUBSCRIPTION (COMPACT, SQUARE)
         ==================================================== */}
 
-        <motion.section
+        {!isPrivileged && <motion.section
           initial={{
             opacity: 0,
             y: 10,
@@ -1312,7 +1303,7 @@ export default function SubscriptionPage() {
                       : "bg-[#EEEFEA] text-[#666861]"
                   }`}
                 >
-                  {isActive ? "Aktif" : "Free"}
+                  {isFree ? "Selamanya" : isActive ? "Aktif" : "Free"}
                 </span>
               </div>
             </motion.div>
@@ -1341,34 +1332,19 @@ export default function SubscriptionPage() {
             {/* DETAILS */}
 
             <dl className="order-3 mt-3 grid w-full grid-cols-2 gap-x-6 gap-y-3 border-t border-[#EEEFEA] pt-3 sm:grid-cols-3 lg:order-2 lg:ml-8 lg:mt-0 lg:w-auto lg:flex-1 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
-              <motion.div variants={overviewItem} className="min-w-0">
-                <dt className="text-[11px] font-medium text-[#8A8C85]">
-                  Siklus billing
-                </dt>
+              {!isFree && (
+                <motion.div variants={overviewItem} className="min-w-0">
+                  <dt className="text-[11px] font-medium text-[#8A8C85]">
+                    Siklus billing
+                  </dt>
 
-                <dd className="mt-0.5 truncate text-sm font-semibold text-[#171717]">
-                  {subscription?.billing_cycle === "yearly"
-                    ? "Tahunan"
-                    : "Bulanan"}
-                </dd>
-              </motion.div>
-
-              <motion.div
-                variants={overviewItem}
-                className="min-w-0 lg:border-l lg:border-[#EEEFEA] lg:pl-6"
-              >
-                <dt className="text-[11px] font-medium text-[#8A8C85]">
-                  Cakupan
-                </dt>
-
-                <dd className="mt-0.5 truncate text-sm font-semibold text-[#171717]">
-                  {currentScope
-                    ? `${currentScope.label.replace("Cakupan ", "")} — ${
-                        currentScope.value
-                      }`
-                    : "Publik"}
-                </dd>
-              </motion.div>
+                  <dd className="mt-0.5 truncate text-sm font-semibold text-[#171717]">
+                    {subscription?.billing_cycle === "yearly"
+                      ? "Tahunan"
+                      : "Bulanan"}
+                  </dd>
+                </motion.div>
+              )}
 
               <motion.div
                 variants={overviewItem}
@@ -1385,10 +1361,11 @@ export default function SubscriptionPage() {
                       : "text-[#171717]"
                   }`}
                 >
-                  {isActive &&
-                  subscription?.end_date &&
-                  countdownSeconds !== null &&
-                  countdownSeconds !== null
+                  {isFree
+                    ? "Selamanya"
+                    : isActive &&
+                      subscription?.end_date &&
+                      countdownSeconds !== null
                     ? countdownSeconds <= 86400
                       ? `Sisa ${formatCountdown(countdownSeconds)}`
                       : formatDate(subscription.end_date)
@@ -1397,7 +1374,7 @@ export default function SubscriptionPage() {
               </motion.div>
             </dl>
           </motion.div>
-        </motion.section>
+        </motion.section>}
 
         {/* ====================================================
             PENDING ORDER
