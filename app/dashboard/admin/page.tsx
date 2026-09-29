@@ -4,6 +4,7 @@ import { AnimatePresence, motion, type Variants } from "framer-motion";
 import {
   AlertTriangle,
   Check,
+  ChevronDown,
   ChevronRight,
   CreditCard,
   Crown,
@@ -12,14 +13,16 @@ import {
   Lock,
   RotateCcw,
   Save,
+  Search,
   Settings2,
   ShieldCheck,
   Sparkles,
+  UserRound,
   Users,
   X,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useMemo, useState, type ReactElement } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import { useRouter } from "next/navigation";
 
 import { useUserRole } from "@/context/UserRoleContext";
@@ -73,6 +76,10 @@ type PlanSaveMessage = {
   text: string;
 } | null;
 
+/* ============================================================
+   USER PERMISSION WORKSPACE
+============================================================ */
+
 function UserPermissionWorkspace({
   users,
   permissionGroups,
@@ -96,48 +103,585 @@ function UserPermissionWorkspace({
 }) {
   const selected = users.find((item) => item.id === selectedUserId);
 
+  const [userSearch, setUserSearch] = useState("");
+  const [userPickerOpen, setUserPickerOpen] = useState(false);
+
+  const userPickerRef = useRef<HTMLDivElement>(null);
+
+  /* ----------------------------------------------------------
+     FILTER USERS
+  ---------------------------------------------------------- */
+
+  const filteredUsers = useMemo(() => {
+    const query = userSearch.trim().toLowerCase();
+
+    if (!query) {
+      return users;
+    }
+
+    return users.filter((item) => {
+      const username = String(item.username || "").toLowerCase();
+      const email = String(item.email || "").toLowerCase();
+      const role = String(item.role || "").toLowerCase();
+
+      return (
+        username.includes(query) ||
+        email.includes(query) ||
+        role.includes(query)
+      );
+    });
+  }, [users, userSearch]);
+
+  /* ----------------------------------------------------------
+     CLOSE PICKER WHEN CLICKING OUTSIDE
+  ---------------------------------------------------------- */
+
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (
+        userPickerRef.current &&
+        !userPickerRef.current.contains(event.target as Node)
+      ) {
+        setUserPickerOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, []);
+
+  /* ----------------------------------------------------------
+     SELECT USER
+  ---------------------------------------------------------- */
+
+  const handleSelectUser = (userId: string) => {
+    setSelectedUserId(userId);
+    setUserSearch("");
+    setUserPickerOpen(false);
+  };
+
+  const selectedProtected =
+    Boolean(selected?.is_protected) || selected?.role === "god";
+
+  const activePermissionCount = editedPermissions.filter(
+    (permission) => permission !== "all"
+  ).length;
+
+  const availablePermissionCount = permissionGroups
+    .flatMap((group) => group.permissions)
+    .filter((permission) => permission.key !== "all").length;
+
+  /* ----------------------------------------------------------
+     RENDER
+  ---------------------------------------------------------- */
+
   return (
-    <section className="border border-[#DCDDD8] bg-white p-4 shadow-sm">
-      <div className="flex flex-col gap-3 border-b border-[#E7E8E3] pb-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#858780]">Permission tambahan</p>
-          <h2 className="mt-1 text-sm font-bold">Atur fitur per user</h2>
+    <motion.section
+      initial={{
+        opacity: 0,
+        y: 10,
+      }}
+      animate={{
+        opacity: 1,
+        y: 0,
+      }}
+      transition={{
+        duration: 0.45,
+        ease: [0.22, 1, 0.36, 1],
+      }}
+      className="relative overflow-hidden border border-[#DCDDD8] bg-white"
+    >
+      {/* =====================================================
+          TOP ACCENT
+      ===================================================== */}
+
+      <div className="absolute inset-x-0 top-0 h-px bg-[#76B900]/70" />
+
+      {/* =====================================================
+          HEADER
+      ===================================================== */}
+
+      <div className="border-b border-[#E7E8E3] px-5 py-5 sm:px-6 sm:py-6">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#999B94]">
+              Permission Manager
+            </p>
+
+            <h2 className="mt-1.5 text-xl font-bold tracking-[-0.035em] text-[#171717] sm:text-2xl">
+              Atur fitur per user
+            </h2>
+
+            <p className="mt-2 max-w-2xl text-xs font-medium leading-5 text-[#858780]">
+              Fitur dari role tetap aktif. Permission di bawah digunakan untuk
+              menambahkan akses khusus pada user tertentu.
+            </p>
+          </div>
+
+          {/* =================================================
+              SEARCHABLE USER PICKER
+          ================================================= */}
+
+          <div ref={userPickerRef} className="relative w-full lg:w-[360px]">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#999B94]">
+                Pilih pengguna
+              </span>
+
+              <span className="text-[10px] font-medium text-[#A0A29B]">
+                {users.length} user
+              </span>
+            </div>
+
+            <div
+              className={`relative flex h-11 items-center border bg-[#FAFAF8] transition-colors duration-200 ${
+                userPickerOpen
+                  ? "border-[#171717] bg-white"
+                  : "border-[#DCDDD8] hover:border-[#C8CAC4]"
+              }`}
+            >
+              <Search
+                className="ml-3.5 h-4 w-4 shrink-0 text-[#777972]"
+                strokeWidth={1.8}
+              />
+
+              <input
+                type="text"
+                value={
+                  userPickerOpen
+                    ? userSearch
+                    : selected
+                    ? selected.username
+                    : ""
+                }
+                onChange={(event) => {
+                  setUserSearch(event.target.value);
+                  setUserPickerOpen(true);
+                }}
+                onFocus={() => {
+                  setUserSearch("");
+                  setUserPickerOpen(true);
+                }}
+                placeholder={
+                  selected
+                    ? selected.username
+                    : "Cari username, email, atau role..."
+                }
+                className="h-full min-w-0 flex-1 bg-transparent px-3 text-xs font-semibold text-[#171717] outline-none placeholder:text-[#9A9C95]"
+                aria-label="Cari user"
+                aria-expanded={userPickerOpen}
+                aria-haspopup="listbox"
+              />
+
+              {selected && !userSearch && !userPickerOpen && (
+                <span className="mr-2 hidden shrink-0 items-center gap-1.5 border border-[#E0E1DC] bg-[#F7F8F5] px-2 py-1 text-[9px] font-bold uppercase tracking-[0.1em] text-[#666861] sm:inline-flex">
+                  <ShieldCheck className="h-3 w-3" strokeWidth={1.8} />
+                  {selected.role}
+                </span>
+              )}
+
+              {userSearch && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUserSearch("");
+                  }}
+                  className="mr-1 flex h-7 w-7 shrink-0 items-center justify-center text-[#8A8C85] transition-colors hover:text-[#171717]"
+                  aria-label="Hapus pencarian"
+                >
+                  <X className="h-3.5 w-3.5" strokeWidth={1.8} />
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  setUserPickerOpen((previous) => !previous);
+
+                  if (!userPickerOpen) {
+                    setUserSearch("");
+                  }
+                }}
+                className="mr-2 flex h-7 w-7 shrink-0 items-center justify-center text-[#777972] transition-colors hover:text-[#171717]"
+                aria-label="Buka daftar user"
+              >
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform duration-200 ${
+                    userPickerOpen ? "rotate-180" : ""
+                  }`}
+                  strokeWidth={1.8}
+                />
+              </button>
+            </div>
+
+            {/* =================================================
+                USER DROPDOWN
+            ================================================= */}
+
+            <AnimatePresence>
+              {userPickerOpen && (
+                <motion.div
+                  initial={{
+                    opacity: 0,
+                    y: -4,
+                    scale: 0.99,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                    scale: 1,
+                  }}
+                  exit={{
+                    opacity: 0,
+                    y: -4,
+                    scale: 0.99,
+                  }}
+                  transition={{
+                    duration: 0.16,
+                  }}
+                  className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden border border-[#DCDDD8] bg-white shadow-[0_18px_45px_rgba(0,0,0,0.10)]"
+                >
+                  <div className="flex items-center justify-between border-b border-[#E7E8E3] px-3.5 py-2.5">
+                    <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#999B94]">
+                      Daftar pengguna
+                    </p>
+
+                    <p className="text-[9px] font-medium text-[#A0A29B]">
+                      {filteredUsers.length} hasil
+                    </p>
+                  </div>
+
+                  <div
+                    className="max-h-[300px] overflow-y-auto p-1.5"
+                    role="listbox"
+                  >
+                    {filteredUsers.length === 0 ? (
+                      <div className="px-4 py-9 text-center">
+                        <div className="mx-auto flex h-9 w-9 items-center justify-center border border-[#E0E1DC] bg-[#F7F8F5]">
+                          <Search
+                            className="h-4 w-4 text-[#8B8D86]"
+                            strokeWidth={1.7}
+                          />
+                        </div>
+
+                        <p className="mt-3 text-xs font-bold text-[#44453F]">
+                          User tidak ditemukan
+                        </p>
+
+                        <p className="mt-1 text-[10px] font-medium text-[#999B94]">
+                          Coba username, email, atau role lain.
+                        </p>
+                      </div>
+                    ) : (
+                      filteredUsers.map((item) => {
+                        const isSelected = item.id === selectedUserId;
+                        const protectedUser =
+                          Boolean(item.is_protected) || item.role === "god";
+
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            role="option"
+                            aria-selected={isSelected}
+                            onClick={() => handleSelectUser(item.id)}
+                            className={`group flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors ${
+                              isSelected ? "bg-[#F5F8F1]" : "hover:bg-[#F8F9F6]"
+                            }`}
+                          >
+                            <span
+                              className={`flex h-8 w-8 shrink-0 items-center justify-center border ${
+                                isSelected
+                                  ? "border-[#C8D5B8] bg-[#EDF4E7] text-[#55752C]"
+                                  : "border-[#E0E1DC] bg-[#F7F8F5] text-[#777972]"
+                              }`}
+                            >
+                              {protectedUser ? (
+                                <ShieldCheck
+                                  className="h-3.5 w-3.5"
+                                  strokeWidth={1.8}
+                                />
+                              ) : (
+                                <UserRound
+                                  className="h-3.5 w-3.5"
+                                  strokeWidth={1.8}
+                                />
+                              )}
+                            </span>
+
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-xs font-bold text-[#171717]">
+                                {item.username}
+                              </span>
+
+                              <span className="mt-0.5 block truncate text-[10px] font-medium text-[#999B94]">
+                                {item.email || "Email tidak tersedia"}
+                              </span>
+
+                              <span className="mt-0.5 block text-[9px] font-bold uppercase tracking-[0.08em] text-[#B0B1AA]">
+                                {item.role}
+                              </span>
+                            </span>
+
+                            {isSelected && (
+                              <span className="flex h-6 w-6 shrink-0 items-center justify-center bg-[#76B900] text-[#0F1A00]">
+                                <Check
+                                  className="h-3.5 w-3.5"
+                                  strokeWidth={2.4}
+                                />
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
-        <select
-          value={selectedUserId}
-          onChange={(event) => setSelectedUserId(event.target.value)}
-          className="h-8 border border-[#DCDDD8] bg-[#FAFAF8] px-2 text-xs font-semibold"
-          aria-label="Pilih user"
+      </div>
+
+      {/* =====================================================
+          SELECTED USER SUMMARY
+      ===================================================== */}
+
+      {selected && (
+        <motion.div
+          initial={{
+            opacity: 0,
+            y: 4,
+          }}
+          animate={{
+            opacity: 1,
+            y: 0,
+          }}
+          className="border-b border-[#E7E8E3] bg-[#FAFAF8] px-5 py-4 sm:px-6"
         >
-          {users.map((item) => <option key={item.id} value={item.id}>{item.username} · {item.role}</option>)}
-        </select>
-      </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center border border-[#DCDDD8] bg-white">
+                <UserRound
+                  className="h-4 w-4 text-[#666861]"
+                  strokeWidth={1.8}
+                />
+              </span>
 
-      <p className="mt-3 text-[10px] leading-4 text-[#858780]">
-        Fitur dari role tetap aktif dan tidak dapat dicabut. Checkbox di bawah hanya menambah fitur khusus user.
-      </p>
+              <div className="min-w-0">
+                <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#999B94]">
+                  User terpilih
+                </p>
 
-      <div className="mt-4 grid gap-2 sm:grid-cols-2">
-        {permissionGroups.flatMap((group) => group.permissions).filter((item) => item.key !== "all").map((permission) => (
-          <label key={permission.key} className="flex items-center gap-2 border border-[#E7E8E3] px-3 py-2 text-xs">
-            <input
-              type="checkbox"
-              checked={editedPermissions.includes(permission.key)}
-              onChange={() => togglePermission(permission.key)}
-              disabled={!selected || selected.is_protected || selected.role === "god"}
-            />
-            <span>{permission.label}</span>
-          </label>
-        ))}
-      </div>
+                <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                  <p className="truncate text-sm font-bold text-[#171717]">
+                    {selected.username}
+                  </p>
 
-      <div className="mt-4 flex items-center justify-between gap-3">
-        <span className="text-[10px] font-medium text-[#4E504A]">{message}</span>
-        <button type="button" onClick={save} disabled={saving || !selected} className="inline-flex h-8 items-center gap-1.5 bg-[#171717] px-3 text-[10px] font-bold text-white disabled:opacity-50">
-          <Save className="h-3 w-3" /> Simpan fitur
-        </button>
+                  <span className="inline-flex items-center gap-1.5 border border-[#E0E1DC] bg-white px-2 py-1 text-[9px] font-bold uppercase tracking-[0.1em] text-[#666861]">
+                    <ShieldCheck className="h-3 w-3" strokeWidth={1.8} />
+                    {selected.role}
+                  </span>
+                </div>
+
+                {selected.email && (
+                  <p className="mt-1 truncate text-[10px] font-medium text-[#999B94]">
+                    {selected.email}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {selectedProtected ? (
+              <span className="inline-flex w-fit items-center gap-1.5 bg-[#F1F1EE] px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.1em] text-[#8A8C85]">
+                <Lock className="h-3 w-3" strokeWidth={1.8} />
+                Permission terkunci
+              </span>
+            ) : (
+              <span className="inline-flex w-fit items-center gap-1.5 bg-[#EEF6E8] px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.1em] text-[#5A752F]">
+                <Check className="h-3 w-3" strokeWidth={2.2} />
+                Dapat disesuaikan
+              </span>
+            )}
+          </div>
+        </motion.div>
+      )}
+
+      {/* =====================================================
+          PERMISSIONS
+      ===================================================== */}
+
+      <div className="px-5 py-5 sm:px-6 sm:py-6">
+        <div className="mb-4 flex items-end justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#999B94]">
+              Access Control
+            </p>
+
+            <h3 className="mt-1 text-sm font-bold tracking-[-0.02em] text-[#171717]">
+              Fitur khusus pengguna
+            </h3>
+          </div>
+
+          <div className="hidden text-right sm:block">
+            <p className="text-[9px] font-bold uppercase tracking-[0.13em] text-[#999B94]">
+              Selected
+            </p>
+
+            <motion.p
+              key={activePermissionCount}
+              initial={{
+                opacity: 0,
+                y: 4,
+              }}
+              animate={{
+                opacity: 1,
+                y: 0,
+              }}
+              className="mt-0.5 text-lg font-bold tracking-[-0.04em] text-[#171717]"
+            >
+              {activePermissionCount}
+              <span className="ml-1 text-xs font-medium text-[#A0A29B]">
+                / {availablePermissionCount}
+              </span>
+            </motion.p>
+          </div>
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+          {permissionGroups
+            .flatMap((group) => group.permissions)
+            .filter((item) => item.key !== "all")
+            .map((permission, index) => {
+              const isChecked = editedPermissions.includes(permission.key);
+              const isDisabled = !selected || selectedProtected;
+
+              return (
+                <motion.label
+                  key={permission.key}
+                  initial={{
+                    opacity: 0,
+                    y: 6,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                  }}
+                  transition={{
+                    duration: 0.28,
+                    delay: index * 0.025,
+                    ease: [0.22, 1, 0.36, 1],
+                  }}
+                  whileHover={
+                    !isDisabled
+                      ? {
+                          y: -1,
+                        }
+                      : undefined
+                  }
+                  className={`group relative flex cursor-pointer items-center gap-3 border px-3.5 py-3 transition-all duration-200 ${
+                    isDisabled
+                      ? "cursor-not-allowed border-[#ECEDE8] bg-[#FAFAF8] opacity-60"
+                      : isChecked
+                      ? "border-[#C8D5B8] bg-[#F6F9F2]"
+                      : "border-[#E7E8E3] bg-white hover:border-[#C8CAC4] hover:shadow-[0_8px_20px_rgba(0,0,0,0.04)]"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={() => togglePermission(permission.key)}
+                    disabled={isDisabled}
+                    className="sr-only"
+                  />
+
+                  <span
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center border transition-all duration-200 ${
+                      isChecked
+                        ? "border-[#76B900] bg-[#76B900] text-[#0F1A00]"
+                        : "border-[#DCDDD8] bg-[#F8F9F6] text-transparent group-hover:border-[#BFC1BA]"
+                    }`}
+                  >
+                    <Check className="h-3.5 w-3.5" strokeWidth={2.4} />
+                  </span>
+
+                  <span className="min-w-0 flex-1">
+                    <span
+                      className={`block text-xs font-bold ${
+                        isChecked ? "text-[#27320F]" : "text-[#353631]"
+                      }`}
+                    >
+                      {permission.label}
+                    </span>
+
+                    <span className="mt-0.5 block truncate text-[9px] font-medium uppercase tracking-[0.08em] text-[#A0A29B]">
+                      {permission.key}
+                    </span>
+                  </span>
+
+                  {isChecked && (
+                    <motion.span
+                      initial={{
+                        opacity: 0,
+                        scale: 0.8,
+                      }}
+                      animate={{
+                        opacity: 1,
+                        scale: 1,
+                      }}
+                      className="flex h-5 w-5 shrink-0 items-center justify-center bg-[#E5F0D8] text-[#5A752F]"
+                    >
+                      <Check className="h-3 w-3" strokeWidth={2.3} />
+                    </motion.span>
+                  )}
+                </motion.label>
+              );
+            })}
+        </div>
+
+        {/* ===================================================
+            FOOTER ACTION
+        =================================================== */}
+
+        <div className="mt-6 flex flex-col gap-3 border-t border-[#E7E8E3] pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-h-[18px]">
+            {message ? (
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-medium text-[#5D664F]">
+                <Check className="h-3 w-3" strokeWidth={2} />
+                {message}
+              </span>
+            ) : (
+              <span className="text-[10px] font-medium text-[#999B94]">
+                Permission dari role tetap aktif dan tidak dapat dicabut.
+              </span>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={save}
+            disabled={saving || !selected || selectedProtected}
+            className="group relative inline-flex h-10 items-center justify-center gap-2 overflow-hidden bg-[#171717] px-5 text-[10px] font-bold uppercase tracking-[0.08em] text-white transition-transform duration-200 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {!saving && (
+              <span
+                aria-hidden="true"
+                className="absolute inset-0 origin-right scale-x-0 bg-[#76B900] transition-transform duration-[650ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:origin-left group-hover:scale-x-100"
+              />
+            )}
+
+            <span className="relative z-10 inline-flex items-center gap-2 transition-colors duration-500 group-hover:text-[#0F1A00]">
+              <Save className="h-3.5 w-3.5" strokeWidth={1.9} />
+
+              {saving ? "Menyimpan..." : "Simpan fitur"}
+            </span>
+          </button>
+        </div>
       </div>
-    </section>
+    </motion.section>
   );
 }
 
@@ -263,9 +807,11 @@ function SectionMarker({
       </motion.div>
 
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#858780]">
-          {eyebrow}
-        </p>
+        {eyebrow && (
+          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#858780]">
+            {eyebrow}
+          </p>
+        )}
 
         <h2 className="mt-1 text-base font-bold tracking-[-0.02em] text-[#171717]">
           {title}
@@ -405,36 +951,8 @@ function RoleWorkspace({
     const allSelected =
       keys.length > 0 && keys.every((key) => editedPermissions.includes(key));
 
-    const next = new Set(
-      editedPermissions.filter((permission) => permission !== "all")
-    );
-
-    if (allSelected) {
-      keys.forEach((key) => next.delete(key));
-    } else {
-      keys.forEach((key) => next.add(key));
-    }
-
-    const nextPermissions = [...next];
-
-    if (
-      nextPermissions.length ===
-      permissionGroups.reduce(
-        (total, currentGroup) =>
-          total +
-          currentGroup.permissions.filter(
-            (permission) => permission.key !== "all"
-          ).length,
-        0
-      )
-    ) {
-      nextPermissions.unshift("all");
-    }
-
-    // Direct state update through each permission is intentionally avoided
-    // because togglePermission protects system roles.
     keys.forEach((key) => {
-      const shouldBeSelected = next.has(key);
+      const shouldBeSelected = !allSelected;
       const isSelected = editedPermissions.includes(key);
 
       if (shouldBeSelected !== isSelected) {
@@ -499,6 +1017,7 @@ function RoleWorkspace({
       className="border border-[#DCDDD8] bg-white"
     >
       {/* Workspace top bar */}
+
       <div className="relative overflow-hidden border-b border-[#DCDDD8] bg-[#FBFBF9]">
         <WireframeDecoration variant="grid" />
 
@@ -517,8 +1036,14 @@ function RoleWorkspace({
 
               <motion.p
                 key={activePermissionCount}
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{
+                  opacity: 0,
+                  y: 5,
+                }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                }}
                 className="mt-1 text-xl font-bold tracking-[-0.04em] text-[#171717]"
               >
                 {activePermissionCount}
@@ -541,20 +1066,27 @@ function RoleWorkspace({
       </div>
 
       {/* Main workspace */}
+
       <div className="grid min-h-[620px] lg:grid-cols-[280px_minmax(0,1fr)]">
         {/* Role rail */}
+
         <aside className="border-b border-[#DCDDD8] bg-[#F7F8F5] lg:border-b-0 lg:border-r">
           <div className="border-b border-[#DCDDD8] px-5 py-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="mt-1 text-xs font-medium text-[#6B6B66]">
-                  {roles.length} Role{roles.length === 1 ? "" : "s"} Terdaftar
+                <p className="text-xs font-medium text-[#6B6B66]">
+                  {roles.length} Role
+                  {roles.length === 1 ? "" : "s"} Terdaftar
                 </p>
               </div>
 
               <motion.div
-                whileHover={{ rotate: 90 }}
-                transition={{ duration: 0.25 }}
+                whileHover={{
+                  rotate: 90,
+                }}
+                transition={{
+                  duration: 0.25,
+                }}
                 className="flex h-8 w-8 items-center justify-center border border-[#DCDDD8] bg-white"
               >
                 <Settings2
@@ -579,8 +1111,14 @@ function RoleWorkspace({
                     type="button"
                     onClick={() => setSelectedRoleId(role.id)}
                     disabled={!canManageRoles}
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
+                    initial={{
+                      opacity: 0,
+                      x: -8,
+                    }}
+                    animate={{
+                      opacity: 1,
+                      x: 0,
+                    }}
                     transition={{
                       duration: 0.35,
                       delay: index * 0.04,
@@ -589,17 +1127,19 @@ function RoleWorkspace({
                     whileHover={
                       canManageRoles
                         ? {
-                          x: 2,
-                        }
+                            x: 2,
+                          }
                         : undefined
                     }
-                    className={`group relative flex w-full items-center justify-between border px-3.5 py-3 text-left transition-colors ${active
-                      ? "border-[#CFCFC8] bg-white"
-                      : "border-transparent hover:border-[#DCDDD8] hover:bg-white"
-                      } ${!canManageRoles
+                    className={`group relative flex w-full items-center justify-between border px-3.5 py-3 text-left transition-colors ${
+                      active
+                        ? "border-[#CFCFC8] bg-white"
+                        : "border-transparent hover:border-[#DCDDD8] hover:bg-white"
+                    } ${
+                      !canManageRoles
                         ? "cursor-not-allowed opacity-60"
                         : "cursor-pointer"
-                      }`}
+                    }`}
                   >
                     {active && (
                       <motion.span
@@ -616,27 +1156,30 @@ function RoleWorkspace({
                       <motion.span
                         animate={{
                           scale: active ? 1 : 0.94,
-                          rotate: active ? 0 : 0,
+                          rotate: 0,
                         }}
                         whileHover={{
                           rotate: -6,
                           scale: 1.06,
                         }}
-                        className={`flex h-9 w-9 items-center justify-center border ${active
-                          ? "border-[#DCDDD8] bg-[#F4F5F2]"
-                          : "border-[#E1E1DC] bg-white"
-                          }`}
+                        className={`flex h-9 w-9 items-center justify-center border ${
+                          active
+                            ? "border-[#DCDDD8] bg-[#F4F5F2]"
+                            : "border-[#E1E1DC] bg-white"
+                        }`}
                       >
                         {protectedRole ? (
                           <ShieldCheck
-                            className={`h-4 w-4 ${active ? "text-[#171717]" : "text-[#858780]"
-                              }`}
+                            className={`h-4 w-4 ${
+                              active ? "text-[#171717]" : "text-[#858780]"
+                            }`}
                             strokeWidth={ICON_STROKE}
                           />
                         ) : (
                           <Users
-                            className={`h-4 w-4 ${active ? "text-[#171717]" : "text-[#858780]"
-                              }`}
+                            className={`h-4 w-4 ${
+                              active ? "text-[#171717]" : "text-[#858780]"
+                            }`}
                             strokeWidth={ICON_STROKE}
                           />
                         )}
@@ -644,8 +1187,9 @@ function RoleWorkspace({
 
                       <div>
                         <p
-                          className={`text-xs font-bold ${active ? "text-[#171717]" : "text-[#33332F]"
-                            }`}
+                          className={`text-xs font-bold ${
+                            active ? "text-[#171717]" : "text-[#33332F]"
+                          }`}
                         >
                           {role.name}
                         </p>
@@ -657,10 +1201,11 @@ function RoleWorkspace({
                     </div>
 
                     <ChevronRight
-                      className={`h-3.5 w-3.5 transition-transform ${active
-                        ? "translate-x-0 text-[#171717]"
-                        : "-translate-x-1 text-[#B1B2AC] group-hover:translate-x-0"
-                        }`}
+                      className={`h-3.5 w-3.5 transition-transform ${
+                        active
+                          ? "translate-x-0 text-[#171717]"
+                          : "-translate-x-1 text-[#B1B2AC] group-hover:translate-x-0"
+                      }`}
                       strokeWidth={1.75}
                     />
                   </motion.button>
@@ -692,6 +1237,7 @@ function RoleWorkspace({
         </aside>
 
         {/* Permission workspace */}
+
         <div className="min-w-0">
           <div className="flex flex-col border-b border-[#DCDDD8] px-5 py-4 sm:px-6 md:flex-row md:items-center md:justify-between">
             <div>
@@ -749,8 +1295,9 @@ function RoleWorkspace({
                     transition={{
                       delay: index * 0.045,
                     }}
-                    className={`border bg-white transition-colors ${expanded ? "border-[#CFCFC8]" : "border-[#DCDDD8]"
-                      }`}
+                    className={`border bg-white transition-colors ${
+                      expanded ? "border-[#CFCFC8]" : "border-[#DCDDD8]"
+                    }`}
                   >
                     <div
                       role="button"
@@ -759,6 +1306,7 @@ function RoleWorkspace({
                       onKeyDown={(event) => {
                         if (event.key === "Enter" || event.key === " ") {
                           event.preventDefault();
+
                           toggleGroupExpanded(group.title);
                         }
                       }}
@@ -808,13 +1356,15 @@ function RoleWorkspace({
                             toggleGroup(group);
                           }}
                           disabled={!canManageRoles || selectedRoleProtected}
-                          className={`hidden border px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.08em] sm:inline-flex ${allSelected
-                            ? "border-[#CFCFC8] bg-[#F4F5F2] text-[#33332F]"
-                            : "border-[#DCDDD8] bg-white text-[#6B6B66] hover:bg-[#F4F5F2]"
-                            } ${!canManageRoles || selectedRoleProtected
+                          className={`hidden border px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.08em] sm:inline-flex ${
+                            allSelected
+                              ? "border-[#CFCFC8] bg-[#F4F5F2] text-[#33332F]"
+                              : "border-[#DCDDD8] bg-white text-[#6B6B66] hover:bg-[#F4F5F2]"
+                          } ${
+                            !canManageRoles || selectedRoleProtected
                               ? "cursor-not-allowed opacity-40"
                               : ""
-                            }`}
+                          }`}
                         >
                           {allSelected ? "Clear" : "All"}
                         </button>
@@ -862,23 +1412,25 @@ function RoleWorkspace({
                                     whileHover={
                                       !disabled
                                         ? {
-                                          x: 2,
-                                        }
+                                            x: 2,
+                                          }
                                         : undefined
                                     }
-                                    className={`group/permission flex items-center justify-between border px-3 py-3 transition-colors ${disabled
-                                      ? "cursor-not-allowed border-[#E9E9E5] bg-[#F7F8F5] opacity-60"
-                                      : checked
+                                    className={`group/permission flex items-center justify-between border px-3 py-3 transition-colors ${
+                                      disabled
+                                        ? "cursor-not-allowed border-[#E9E9E5] bg-[#F7F8F5] opacity-60"
+                                        : checked
                                         ? "cursor-pointer border-[#CFCFC8] bg-[#F3F5EF]"
                                         : "cursor-pointer border-[#DCDDD8] bg-white hover:bg-[#FAFAF8]"
-                                      }`}
+                                    }`}
                                   >
                                     <span className="flex items-center gap-3">
                                       <span
-                                        className={`relative flex h-5 w-5 items-center justify-center border ${checked
-                                          ? "border-[#171717] bg-[#171717]"
-                                          : "border-[#C7C8C2] bg-white"
-                                          }`}
+                                        className={`relative flex h-5 w-5 items-center justify-center border ${
+                                          checked
+                                            ? "border-[#171717] bg-[#171717]"
+                                            : "border-[#C7C8C2] bg-white"
+                                        }`}
                                       >
                                         <input
                                           type="checkbox"
@@ -916,10 +1468,11 @@ function RoleWorkspace({
                                       </span>
 
                                       <span
-                                        className={`text-xs font-semibold ${checked
-                                          ? "text-[#171717]"
-                                          : "text-[#6B6B66]"
-                                          }`}
+                                        className={`text-xs font-semibold ${
+                                          checked
+                                            ? "text-[#171717]"
+                                            : "text-[#6B6B66]"
+                                        }`}
                                       >
                                         {permission.label}
                                       </span>
@@ -951,6 +1504,7 @@ function RoleWorkspace({
           </div>
 
           {/* Action dock */}
+
           <div className="sticky bottom-0 z-20 border-t border-[#DCDDD8] bg-white/95 px-5 py-4 backdrop-blur-sm sm:px-6">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex items-start gap-3">
@@ -984,8 +1538,8 @@ function RoleWorkspace({
                   whileHover={
                     canManageRoles
                       ? {
-                        x: -2,
-                      }
+                          x: -2,
+                        }
                       : undefined
                   }
                   whileTap={{
@@ -1007,8 +1561,8 @@ function RoleWorkspace({
                   whileHover={
                     !selectedRoleProtected && canManageRoles
                       ? {
-                        y: -2,
-                      }
+                          y: -2,
+                        }
                       : undefined
                   }
                   whileTap={{
@@ -1030,6 +1584,7 @@ function RoleWorkspace({
           </div>
 
           {/* Save feedback */}
+
           <AnimatePresence>
             {saveMessage?.id === selectedRole.id && (
               <motion.div
@@ -1045,10 +1600,11 @@ function RoleWorkspace({
                   opacity: 0,
                   height: 0,
                 }}
-                className={`overflow-hidden border-t ${saveMessage.type === "success"
-                  ? "border-[#D7E6B7] bg-[#F4F8EB]"
-                  : "border-red-200 bg-red-50"
-                  }`}
+                className={`overflow-hidden border-t ${
+                  saveMessage.type === "success"
+                    ? "border-[#D7E6B7] bg-[#F4F8EB]"
+                    : "border-red-200 bg-red-50"
+                }`}
               >
                 <div className="flex items-center gap-2.5 px-5 py-3 text-xs font-bold sm:px-6">
                   {saveMessage.type === "success" ? (
@@ -1166,10 +1722,11 @@ function PricingWorkspace({
             opacity: 1,
             y: 0,
           }}
-          className={`mb-5 flex items-center gap-3 border px-4 py-3 text-xs font-bold ${planSaveMsg.type === "success"
-            ? "border-[#D7E6B7] bg-[#F4F8EB] text-[#5D762C]"
-            : "border-red-200 bg-red-50 text-red-700"
-            }`}
+          className={`mb-5 flex items-center gap-3 border px-4 py-3 text-xs font-bold ${
+            planSaveMsg.type === "success"
+              ? "border-[#D7E6B7] bg-[#F4F8EB] text-[#5D762C]"
+              : "border-red-200 bg-red-50 text-red-700"
+          }`}
         >
           {planSaveMsg.type === "success" ? (
             <Check className="h-4 w-4 flex-shrink-0" strokeWidth={2} />
@@ -1228,10 +1785,11 @@ function PricingWorkspace({
                   whileHover={{
                     y: isEditing ? 0 : -5,
                   }}
-                  className={`group relative flex min-h-[470px] flex-col overflow-hidden border ${isPopular
-                    ? "border-[#171717] bg-[#171717] text-white"
-                    : "border-[#DCDDD8] bg-white text-[#171717]"
-                    }`}
+                  className={`group relative flex min-h-[470px] flex-col overflow-hidden border ${
+                    isPopular
+                      ? "border-[#171717] bg-[#171717] text-white"
+                      : "border-[#DCDDD8] bg-white text-[#171717]"
+                  }`}
                 >
                   <WireframeDecoration
                     variant={
@@ -1242,6 +1800,7 @@ function PricingWorkspace({
 
                   <div className="relative flex flex-1 flex-col p-6">
                     {/* Plan top */}
+
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3">
                         <motion.div
@@ -1253,25 +1812,28 @@ function PricingWorkspace({
                             duration: 0.25,
                             ease: EASE,
                           }}
-                          className={`flex h-10 w-10 items-center justify-center border ${isPopular
-                            ? "border-white/15 bg-white/8"
-                            : "border-[#DCDDD8] bg-[#F4F5F2]"
-                            }`}
+                          className={`flex h-10 w-10 items-center justify-center border ${
+                            isPopular
+                              ? "border-white/15 bg-white/8"
+                              : "border-[#DCDDD8] bg-[#F4F5F2]"
+                          }`}
                         >
                           {getTierIcon(plan.tier)}
                         </motion.div>
 
                         <div>
                           <p
-                            className={`text-[9px] font-bold uppercase tracking-[0.15em] ${isPopular ? "text-white/45" : "text-[#858780]"
-                              }`}
+                            className={`text-[9px] font-bold uppercase tracking-[0.15em] ${
+                              isPopular ? "text-white/45" : "text-[#858780]"
+                            }`}
                           >
                             Plan
                           </p>
 
                           <h3
-                            className={`mt-1 text-base font-bold capitalize ${isPopular ? "text-white" : "text-[#171717]"
-                              }`}
+                            className={`mt-1 text-base font-bold capitalize ${
+                              isPopular ? "text-white" : "text-[#171717]"
+                            }`}
                           >
                             {plan.tier}
                           </h3>
@@ -1286,10 +1848,12 @@ function PricingWorkspace({
                     </div>
 
                     {/* Price */}
+
                     <div className="relative mt-8">
                       <p
-                        className={`text-[9px] font-bold uppercase tracking-[0.15em] ${isPopular ? "text-white/45" : "text-[#858780]"
-                          }`}
+                        className={`text-[9px] font-bold uppercase tracking-[0.15em] ${
+                          isPopular ? "text-white/45" : "text-[#858780]"
+                        }`}
                       >
                         Harga / Bulan
                       </p>
@@ -1297,8 +1861,9 @@ function PricingWorkspace({
                       {isEditing ? (
                         <div className="mt-3 flex items-center gap-2">
                           <span
-                            className={`text-sm font-bold ${isPopular ? "text-white/55" : "text-[#6B6B66]"
-                              }`}
+                            className={`text-sm font-bold ${
+                              isPopular ? "text-white/55" : "text-[#6B6B66]"
+                            }`}
                           >
                             Rp
                           </span>
@@ -1311,12 +1876,17 @@ function PricingWorkspace({
                               setEditedPrice(event.target.value)
                             }
                             style={
-                              isPopular ? { colorScheme: "dark" } : undefined
+                              isPopular
+                                ? {
+                                    colorScheme: "dark",
+                                  }
+                                : undefined
                             }
-                            className={`min-w-0 flex-1 border px-3 py-3 text-xl font-bold outline-none ${isPopular
-                              ? "border-white/15 !bg-white/[0.08] !text-white caret-white focus:border-white/30"
-                              : "border-[#DCDDD8] bg-[#F9FAF7] text-[#171717] focus:border-[#9A9B95]"
-                              }`}
+                            className={`min-w-0 flex-1 border px-3 py-3 text-xl font-bold outline-none ${
+                              isPopular
+                                ? "border-white/15 !bg-white/[0.08] !text-white caret-white focus:border-white/30"
+                                : "border-[#DCDDD8] bg-[#F9FAF7] text-[#171717] focus:border-[#9A9B95]"
+                            }`}
                           />
                         </div>
                       ) : (
@@ -1330,8 +1900,9 @@ function PricingWorkspace({
                             opacity: 1,
                             y: 0,
                           }}
-                          className={`mt-2 text-3xl font-bold tracking-[-0.04em] ${isPopular ? "text-white" : "text-[#171717]"
-                            }`}
+                          className={`mt-2 text-3xl font-bold tracking-[-0.04em] ${
+                            isPopular ? "text-white" : "text-[#171717]"
+                          }`}
                         >
                           {plan.price === 0
                             ? "Gratis"
@@ -1341,24 +1912,29 @@ function PricingWorkspace({
                     </div>
 
                     {/* Divider */}
+
                     <div
-                      className={`mt-7 border-t ${isPopular ? "border-white/12" : "border-[#DCDDD8]"
-                        }`}
+                      className={`mt-7 border-t ${
+                        isPopular ? "border-white/12" : "border-[#DCDDD8]"
+                      }`}
                     />
 
                     {/* Features */}
+
                     <div className="relative flex-1 py-6">
                       <div className="flex items-center justify-between">
                         <p
-                          className={`text-[9px] font-bold uppercase tracking-[0.15em] ${isPopular ? "text-white/45" : "text-[#858780]"
-                            }`}
+                          className={`text-[9px] font-bold uppercase tracking-[0.15em] ${
+                            isPopular ? "text-white/45" : "text-[#858780]"
+                          }`}
                         >
                           Fitur Termasuk
                         </p>
 
                         <span
-                          className={`text-[9px] font-bold ${isPopular ? "text-white/35" : "text-[#A1A29C]"
-                            }`}
+                          className={`text-[9px] font-bold ${
+                            isPopular ? "text-white/35" : "text-[#A1A29C]"
+                          }`}
                         >
                           {plan.features?.length || 0} items
                         </span>
@@ -1373,12 +1949,17 @@ function PricingWorkspace({
                           rows={9}
                           placeholder="Satu fitur per baris..."
                           style={
-                            isPopular ? { colorScheme: "dark" } : undefined
+                            isPopular
+                              ? {
+                                  colorScheme: "dark",
+                                }
+                              : undefined
                           }
-                          className={`mt-4 w-full resize-none border px-3.5 py-3 text-xs font-medium leading-5 outline-none ${isPopular
-                            ? "border-white/15 !bg-white/[0.08] !text-white !placeholder:text-white/30 caret-white focus:border-white/30"
-                            : "border-[#DCDDD8] bg-[#F9FAF7] text-[#171717] placeholder:text-[#858780] focus:border-[#9A9B95]"
-                            }`}
+                          className={`mt-4 w-full resize-none border px-3.5 py-3 text-xs font-medium leading-5 outline-none ${
+                            isPopular
+                              ? "border-white/15 !bg-white/[0.08] !text-white !placeholder:text-white/30 caret-white focus:border-white/30"
+                              : "border-[#DCDDD8] bg-[#F9FAF7] text-[#171717] placeholder:text-[#858780] focus:border-[#9A9B95]"
+                          }`}
                         />
                       ) : plan.features?.length ? (
                         <ul className="mt-4 space-y-2.5">
@@ -1405,17 +1986,19 @@ function PricingWorkspace({
                                   rotate: -8,
                                   scale: 1.08,
                                 }}
-                                className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center border ${isPopular
-                                  ? "border-white/15 bg-white/6 text-white/80"
-                                  : "border-[#DCDDD8] bg-[#F4F5F2] text-[#33332F]"
-                                  }`}
+                                className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center border ${
+                                  isPopular
+                                    ? "border-white/15 bg-white/6 text-white/80"
+                                    : "border-[#DCDDD8] bg-[#F4F5F2] text-[#33332F]"
+                                }`}
                               >
                                 <Check className="h-3 w-3" strokeWidth={2} />
                               </motion.span>
 
                               <span
-                                className={`text-xs font-medium leading-5 ${isPopular ? "text-white/80" : "text-[#33332F]"
-                                  }`}
+                                className={`text-xs font-medium leading-5 ${
+                                  isPopular ? "text-white/80" : "text-[#33332F]"
+                                }`}
                               >
                                 {feature}
                               </span>
@@ -1424,10 +2007,11 @@ function PricingWorkspace({
                         </ul>
                       ) : (
                         <div
-                          className={`mt-4 border border-dashed px-4 py-8 text-center ${isPopular
-                            ? "border-white/15 text-white/40"
-                            : "border-[#DCDDD8] text-[#858780]"
-                            }`}
+                          className={`mt-4 border border-dashed px-4 py-8 text-center ${
+                            isPopular
+                              ? "border-white/15 text-white/40"
+                              : "border-[#DCDDD8] text-[#858780]"
+                          }`}
                         >
                           <Sparkles
                             className="mx-auto h-4 w-4"
@@ -1442,6 +2026,7 @@ function PricingWorkspace({
                     </div>
 
                     {/* Footer action */}
+
                     {isEditing ? (
                       <div className="flex gap-2">
                         <motion.button
@@ -1453,10 +2038,11 @@ function PricingWorkspace({
                           whileTap={{
                             scale: 0.98,
                           }}
-                          className={`inline-flex flex-1 items-center justify-center gap-1.5 px-4 py-3 text-xs font-bold ${isPopular
-                            ? "bg-white text-[#171717] hover:bg-[#F0F0EC]"
-                            : "bg-[#171717] text-white hover:bg-[#2A2A2A]"
-                            }`}
+                          className={`inline-flex flex-1 items-center justify-center gap-1.5 px-4 py-3 text-xs font-bold ${
+                            isPopular
+                              ? "bg-white text-[#171717] hover:bg-[#F0F0EC]"
+                              : "bg-[#171717] text-white hover:bg-[#2A2A2A]"
+                          }`}
                         >
                           <Save className="h-3.5 w-3.5" strokeWidth={2} />
                           Simpan
@@ -1471,10 +2057,11 @@ function PricingWorkspace({
                           whileTap={{
                             scale: 0.96,
                           }}
-                          className={`flex h-11 w-11 items-center justify-center border ${isPopular
-                            ? "border-white/15 bg-white/5 text-white/70"
-                            : "border-[#DCDDD8] bg-white text-[#6B6B66]"
-                            }`}
+                          className={`flex h-11 w-11 items-center justify-center border ${
+                            isPopular
+                              ? "border-white/15 bg-white/5 text-white/70"
+                              : "border-[#DCDDD8] bg-white text-[#6B6B66]"
+                          }`}
                           aria-label="Batal edit"
                         >
                           <X className="h-3.5 w-3.5" strokeWidth={2} />
@@ -1491,13 +2078,15 @@ function PricingWorkspace({
                         whileTap={{
                           scale: 0.98,
                         }}
-                        className={`inline-flex w-full items-center justify-center gap-1.5 px-4 py-3 text-xs font-bold transition-colors ${isPopular
-                          ? "bg-white text-[#171717] hover:bg-[#F0F0EC]"
-                          : "border border-[#DCDDD8] bg-white text-[#171717] hover:bg-[#F4F5F2]"
-                          } ${!canManagePricing
+                        className={`inline-flex w-full items-center justify-center gap-1.5 px-4 py-3 text-xs font-bold transition-colors ${
+                          isPopular
+                            ? "bg-white text-[#171717] hover:bg-[#F0F0EC]"
+                            : "border border-[#DCDDD8] bg-white text-[#171717] hover:bg-[#F4F5F2]"
+                        } ${
+                          !canManagePricing
                             ? "cursor-not-allowed opacity-50"
                             : ""
-                          }`}
+                        }`}
                       >
                         <motion.span
                           whileHover={{
@@ -1514,23 +2103,6 @@ function PricingWorkspace({
               );
             })}
           </div>
-
-          <motion.div
-            initial={{
-              opacity: 0,
-              y: 12,
-            }}
-            animate={{
-              opacity: 1,
-              y: 0,
-            }}
-            transition={{
-              duration: 0.5,
-              delay: 0.28,
-              ease: EASE,
-            }}
-            className="mt-4 grid gap-4 lg:grid-cols-[1fr_auto]"
-          ></motion.div>
         </>
       )}
     </div>
@@ -1549,9 +2121,12 @@ export default function AdminPage() {
   const canManageRoles = hasPermission("manage_roles");
   const canManagePricing = hasPermission("manage_pricing");
   const canManageUsers = hasPermission("manage_users");
-  const canOpenAdminPanel = canManageRoles || canManagePricing || canManageUsers;
+  const canOpenAdminPanel =
+    canManageRoles || canManagePricing || canManageUsers;
 
-  const [activeTab, setActiveTab] = useState<"roles" | "pricing" | "users">("roles");
+  const [activeTab, setActiveTab] = useState<"roles" | "pricing" | "users">(
+    "roles"
+  );
 
   /* ==========================================================
      ROLES
@@ -1576,9 +2151,15 @@ export default function AdminPage() {
   const [editedFeatures, setEditedFeatures] = useState("");
   const [planSaveMsg, setPlanSaveMsg] = useState<PlanSaveMessage>(null);
 
+  /* ==========================================================
+     USER PERMISSIONS
+  ========================================================== */
+
   const [managedUsers, setManagedUsers] = useState<ManagedUser[]>([]);
   const [selectedUserId, setSelectedUserId] = useState("");
-  const [editedUserPermissions, setEditedUserPermissions] = useState<string[]>([]);
+  const [editedUserPermissions, setEditedUserPermissions] = useState<string[]>(
+    []
+  );
   const [userPermissionMsg, setUserPermissionMsg] = useState("");
   const [userPermissionSaving, setUserPermissionSaving] = useState(false);
 
@@ -1713,21 +2294,50 @@ export default function AdminPage() {
     };
   }, [authLoading, user, canManagePricing]);
 
+  /* ==========================================================
+     FETCH USERS
+  ========================================================== */
+
   useEffect(() => {
-    if (authLoading || !user || !canManageUsers) return;
+    if (authLoading || !user || !canManageUsers) {
+      return;
+    }
+
+    let cancelled = false;
 
     Promise.all([
       api.get<ManagedUser[]>("/admin/users"),
       api.get<PermissionGroup[]>("/admin/permission-catalog"),
-    ]).then(([usersResponse, catalogResponse]) => {
-      setManagedUsers(usersResponse.data);
-      setPermissionGroups((previous) => previous.length ? previous : catalogResponse.data);
-      const first = usersResponse.data[0];
-      if (first) {
-        setSelectedUserId(first.id);
-        setEditedUserPermissions(first.permissions || []);
-      }
-    }).catch(() => setManagedUsers([]));
+    ])
+      .then(([usersResponse, catalogResponse]) => {
+        if (cancelled) {
+          return;
+        }
+
+        const fetchedUsers = usersResponse.data;
+
+        setManagedUsers(fetchedUsers);
+
+        setPermissionGroups((previous) =>
+          previous.length ? previous : catalogResponse.data
+        );
+
+        const first = fetchedUsers[0];
+
+        if (first) {
+          setSelectedUserId(first.id);
+          setEditedUserPermissions(first.permissions || []);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setManagedUsers([]);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [authLoading, user, canManageUsers]);
 
   /* ==========================================================
@@ -1739,28 +2349,61 @@ export default function AdminPage() {
     [roles, selectedRoleId]
   );
 
-  const selectedManagedUser = managedUsers.find((item) => item.id === selectedUserId);
+  const selectedManagedUser = managedUsers.find(
+    (item) => item.id === selectedUserId
+  );
 
   const selectManagedUser = (id: string) => {
     setSelectedUserId(id);
-    setEditedUserPermissions(managedUsers.find((item) => item.id === id)?.permissions || []);
+
+    setEditedUserPermissions(
+      managedUsers.find((item) => item.id === id)?.permissions || []
+    );
+
     setUserPermissionMsg("");
   };
 
   const toggleUserPermission = (permission: string) => {
-    if (!selectedManagedUser || selectedManagedUser.is_protected || selectedManagedUser.role === "god") return;
-    setEditedUserPermissions((previous) => previous.includes(permission)
-      ? previous.filter((item) => item !== permission)
-      : [...previous, permission]);
+    if (
+      !selectedManagedUser ||
+      selectedManagedUser.is_protected ||
+      selectedManagedUser.role === "god"
+    ) {
+      return;
+    }
+
+    setEditedUserPermissions((previous) =>
+      previous.includes(permission)
+        ? previous.filter((item) => item !== permission)
+        : [...previous, permission]
+    );
   };
 
   const saveUserPermissions = async () => {
-    if (!selectedManagedUser) return;
+    if (
+      !selectedManagedUser ||
+      selectedManagedUser.is_protected ||
+      selectedManagedUser.role === "god"
+    ) {
+      return;
+    }
+
     setUserPermissionSaving(true);
+
     try {
-      const { data } = await api.patch<ManagedUser>(`/admin/users/${selectedManagedUser.id}/permissions`, { permissions: editedUserPermissions });
-      setManagedUsers((previous) => previous.map((item) => item.id === data.id ? data : item));
+      const { data } = await api.patch<ManagedUser>(
+        `/admin/users/${selectedManagedUser.id}/permissions`,
+        {
+          permissions: editedUserPermissions,
+        }
+      );
+
+      setManagedUsers((previous) =>
+        previous.map((item) => (item.id === data.id ? data : item))
+      );
+
       setEditedUserPermissions(data.permissions || []);
+
       setUserPermissionMsg("Fitur user berhasil disimpan.");
     } catch {
       setUserPermissionMsg("Fitur user gagal disimpan.");
@@ -1902,15 +2545,17 @@ export default function AdminPage() {
   }
 
   const showRolesTab = canManageRoles;
+
   const showPricingTab = canManagePricing;
+
   const showUsersTab = canManageUsers;
 
   return (
     <main className="min-h-screen bg-[#F4F5F2] text-[#171717]">
       <div className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8">
         {/* ==================================================
-    PAGE HEADER
-=================================================== */}
+            PAGE HEADER
+        ================================================== */}
 
         <motion.header
           initial="hidden"
@@ -1934,9 +2579,10 @@ export default function AdminPage() {
             </div>
           </div>
         </motion.header>
+
         {/* ==================================================
             MODULE NAV
-        =================================================== */}
+        ================================================== */}
 
         {(showRolesTab || showPricingTab || showUsersTab) && (
           <motion.div
@@ -2025,10 +2671,29 @@ export default function AdminPage() {
               )}
 
               {showUsersTab && (
-                <button type="button" onClick={() => setActiveTab("users")} className="group relative flex items-center gap-2 py-3 text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("users")}
+                  className="group relative flex items-center gap-2 py-3 text-xs font-bold"
+                >
                   <AnimatedIcon icon={Users} active={activeTab === "users"} />
-                  <span className={activeTab === "users" ? "text-[#171717]" : "text-[#858780]"}>Fitur User</span>
-                  {activeTab === "users" && <motion.span layoutId="activeAdminTab" className="absolute bottom-[-1px] left-0 right-0 h-[2px] bg-[#171717]" />}
+
+                  <span
+                    className={
+                      activeTab === "users"
+                        ? "text-[#171717]"
+                        : "text-[#858780]"
+                    }
+                  >
+                    Fitur User
+                  </span>
+
+                  {activeTab === "users" && (
+                    <motion.span
+                      layoutId="activeAdminTab"
+                      className="absolute bottom-[-1px] left-0 right-0 h-[2px] bg-[#171717]"
+                    />
+                  )}
                 </button>
               )}
             </div>
@@ -2037,7 +2702,7 @@ export default function AdminPage() {
 
         {/* ==================================================
             CONTENT
-        =================================================== */}
+        ================================================== */}
 
         <AnimatePresence mode="wait">
           {activeTab === "roles" && showRolesTab && (
@@ -2123,7 +2788,25 @@ export default function AdminPage() {
           )}
 
           {activeTab === "users" && showUsersTab && (
-            <motion.div key="users" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+            <motion.div
+              key="users"
+              initial={{
+                opacity: 0,
+                y: 10,
+              }}
+              animate={{
+                opacity: 1,
+                y: 0,
+              }}
+              exit={{
+                opacity: 0,
+                y: -8,
+              }}
+              transition={{
+                duration: 0.3,
+                ease: EASE,
+              }}
+            >
               <UserPermissionWorkspace
                 users={managedUsers}
                 permissionGroups={permissionGroups}

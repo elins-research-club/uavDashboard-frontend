@@ -660,16 +660,6 @@ export default function SubscriptionPage() {
                     : "monthly"}
                 </p>
               </div>
-
-              <div className="rounded-2xl border border-white bg-white p-5 shadow-sm">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                  Cakupan
-                </p>
-
-                <p className="mt-2 text-lg font-bold text-[#123c28]">
-                  {currentScope ? currentScope.label : "Publik / Free"}
-                </p>
-              </div>
             </div>
           </div>
         </section>
