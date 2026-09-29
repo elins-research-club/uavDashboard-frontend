@@ -3,9 +3,7 @@
 /* ============================================================
    SHARED UI — HALAMAN PENGATURAN
 
-   Blok bangunan yang dipakai keempat panel (Umum, Preferensi,
-   Notifikasi, Agkun) supaya visual konsisten dengan desain
-   asli halaman settings.
+   Blok bangunan bersama untuk seluruh panel settings.
 ============================================================ */
 
 import Link from "next/link";
@@ -70,7 +68,7 @@ export function SectionHeader({
 }: {
   eyebrow: string;
   title: string;
-  description: string;
+  description?: string;
   icon: LucideIcon;
 }) {
   return (
@@ -130,7 +128,7 @@ export function WireframeDecoration() {
         ))}
 
         {Array.from({ length: 10 }).map((_, index) => (
-          <path key={`v-${index}`} d={`M70 ${16}V146`} />
+          <path key={`v-${index}`} d={`M70 16V146`} />
         ))}
 
         <path d="M135 44L196 25L272 48L210 69Z" />
@@ -142,7 +140,7 @@ export function WireframeDecoration() {
 }
 
 /* ============================================================
-   LINK ITEM (rail footer)
+   LINK ITEM
 ============================================================ */
 
 export function LinkItem({
@@ -154,7 +152,7 @@ export function LinkItem({
   href: string;
   icon: LucideIcon;
   label: string;
-  description: string;
+  description?: string;
 }) {
   return (
     <Link href={href}>
@@ -176,16 +174,19 @@ export function LinkItem({
             {label}
           </p>
 
-          <p className="mt-0.5 truncate text-[9px] font-medium text-[#858780] sm:text-[10px]">
-            {description}
-          </p>
+          {description && (
+            <p className="mt-0.5 truncate text-[9px] font-medium text-[#858780] sm:text-[10px]">
+              {description}
+            </p>
+          )}
         </div>
       </motion.div>
     </Link>
   );
 }
+
 /* ============================================================
-   SELECT FIELD (value-based)
+   SELECT FIELD
 ============================================================ */
 
 export function SelectField<T extends string | number>({
@@ -196,10 +197,13 @@ export function SelectField<T extends string | number>({
   options,
 }: {
   label: string;
-  description: string;
+  description?: string;
   value: T;
   onChange: (value: T) => void;
-  options: { value: T; label: string }[];
+  options: {
+    value: T;
+    label: string;
+  }[];
 }) {
   return (
     <label className="block">
@@ -207,30 +211,35 @@ export function SelectField<T extends string | number>({
         {label}
       </span>
 
-      <span className="mb-2 block text-[9px] font-medium leading-4 text-[#858780] sm:text-[10px]">
-        {description}
-      </span>
+      {description && (
+        <span className="mb-2 block text-[9px] font-medium leading-4 text-[#858780] sm:text-[10px]">
+          {description}
+        </span>
+      )}
 
       <span className="relative block">
         <select
-          value={value}
+          value={String(value)}
           onChange={(event) => {
-            const raw = event.target.value;
+            const selectedValue = options.find(
+              (option) => String(option.value) === event.target.value
+            )?.value;
 
-            onChange(
-              (typeof value === "number" ? Number(raw) : raw) as T
-            );
+            if (selectedValue !== undefined) {
+              onChange(selectedValue);
+            }
           }}
-          className="h-10 w-full appearance-none border border-[#DCDDD8] bg-[#FAFAF8] px-3 pr-10 text-[11px] font-semibold text-[#33332F] outline-none transition-colors focus:border-[#9A9B95] focus:bg-white sm:h-11 sm:px-3.5 sm:text-xs"
+          className="h-10 w-full appearance-none border border-[#DCDDD8] bg-[#FAFAF8] px-3 pr-9 text-[11px] font-semibold text-[#33332F] outline-none transition-colors hover:bg-white focus:border-[#9A9B95] focus:bg-white sm:h-11 sm:px-3.5 sm:pr-10 sm:text-xs"
         >
           {options.map((option) => (
-            <option key={option.value} value={option.value}>
+            <option key={String(option.value)} value={String(option.value)}>
               {option.label}
             </option>
           ))}
         </select>
 
         <ChevronDown
+          aria-hidden
           className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#858780]"
           strokeWidth={ICON_STROKE}
         />
@@ -253,7 +262,7 @@ export function TextField({
   icon: Icon,
 }: {
   label: string;
-  description: string;
+  description?: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
@@ -264,12 +273,15 @@ export function TextField({
     <label className="block">
       <span className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold text-[#171717] sm:text-xs">
         {Icon && <Icon className="h-3.5 w-3.5" strokeWidth={ICON_STROKE} />}
+
         {label}
       </span>
 
-      <span className="mb-2 block text-[9px] font-medium leading-4 text-[#858780] sm:text-[10px]">
-        {description}
-      </span>
+      {description && (
+        <span className="mb-2 block text-[9px] font-medium leading-4 text-[#858780] sm:text-[10px]">
+          {description}
+        </span>
+      )}
 
       <input
         type="text"
@@ -277,7 +289,7 @@ export function TextField({
         placeholder={placeholder}
         maxLength={maxLength}
         onChange={(event) => onChange(event.target.value)}
-        className="h-10 w-full border border-[#DCDDD8] bg-[#FAFAF8] px-3 text-[11px] font-semibold text-[#33332F] outline-none transition-colors placeholder:font-medium placeholder:text-[#A9ABA3] focus:border-[#9A9B95] focus:bg-white sm:h-11 sm:px-3.5 sm:text-xs"
+        className="h-10 w-full border border-[#DCDDD8] bg-[#FAFAF8] px-3 text-[11px] font-semibold text-[#33332F] outline-none transition-colors placeholder:font-medium placeholder:text-[#A9ABA3] hover:bg-white focus:border-[#9A9B95] focus:bg-white sm:h-11 sm:px-3.5 sm:text-xs"
       />
 
       <span className="mt-1 block text-right text-[9px] font-medium text-[#A9ABA3] sm:text-[10px]">
@@ -288,7 +300,7 @@ export function TextField({
 }
 
 /* ============================================================
-   RANGE FIELD (persen)
+   RANGE FIELD
 ============================================================ */
 
 export function RangeField({
@@ -301,7 +313,7 @@ export function RangeField({
   suffix = "%",
 }: {
   label: string;
-  description: string;
+  description?: string;
   value: number;
   onChange: (value: number) => void;
   min?: number;
@@ -321,9 +333,11 @@ export function RangeField({
         </span>
       </span>
 
-      <span className="mt-1 block text-[9px] font-medium leading-4 text-[#858780] sm:text-[10px]">
-        {description}
-      </span>
+      {description && (
+        <span className="mt-1 block text-[9px] font-medium leading-4 text-[#858780] sm:text-[10px]">
+          {description}
+        </span>
+      )}
 
       <input
         type="range"
@@ -337,6 +351,7 @@ export function RangeField({
     </label>
   );
 }
+
 /* ============================================================
    TOGGLE ROW
 ============================================================ */
@@ -351,7 +366,7 @@ export function ToggleRow({
 }: {
   icon: LucideIcon;
   label: string;
-  description: string;
+  description?: string;
   checked: boolean;
   onChange: (value: boolean) => void;
   badge?: string;
@@ -376,9 +391,11 @@ export function ToggleRow({
             )}
           </span>
 
-          <span className="mt-1 block max-w-xl text-[9px] font-medium leading-4 text-[#858780] sm:text-[10px]">
-            {description}
-          </span>
+          {description && (
+            <span className="mt-1 block max-w-xl text-[9px] font-medium leading-4 text-[#858780] sm:text-[10px]">
+              {description}
+            </span>
+          )}
         </span>
       </span>
 
@@ -446,6 +463,7 @@ export function InfoItem({
     </motion.div>
   );
 }
+
 /* ============================================================
    INFO BLOCK
 ============================================================ */
@@ -457,7 +475,7 @@ export function InfoBlock({
 }: {
   label: string;
   value: string;
-  description: string;
+  description?: string;
 }) {
   return (
     <motion.div
@@ -474,9 +492,11 @@ export function InfoBlock({
         {value}
       </p>
 
-      <p className="mt-1 text-[9px] font-medium leading-4 text-[#858780] sm:text-[10px]">
-        {description}
-      </p>
+      {description && (
+        <p className="mt-1 text-[9px] font-medium leading-4 text-[#858780] sm:text-[10px]">
+          {description}
+        </p>
+      )}
     </motion.div>
   );
 }
