@@ -24,6 +24,7 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [messageSuccess, setMessageSuccess] = useState(false);
 
   /* =========================================
      PASSWORD STRENGTH
@@ -66,6 +67,7 @@ export default function RegisterPage() {
 
     setLoading(true);
     setMessage("");
+    setMessageSuccess(false);
 
     try {
       const { data } = await api.post("/auth/register", {
@@ -74,9 +76,11 @@ export default function RegisterPage() {
         password,
       });
 
-      localStorage.setItem("token", data.access_token);
-
-      window.location.href = "/dashboard";
+      setMessage(data.message || "Registrasi berhasil. Silakan cek email untuk verifikasi.");
+      setMessageSuccess(true);
+      setUsername("");
+      setEmail("");
+      setPassword("");
     } catch (error: unknown) {
       const axiosError = error as {
         response?: {
@@ -488,7 +492,7 @@ export default function RegisterPage() {
 
                 {/* ERROR */}
                 {message && (
-                  <div className="rounded-xl border border-red-400/15 bg-red-400/[0.06] px-3.5 py-3 text-[11px] leading-4 text-red-300">
+                  <div className={`rounded-xl border px-3.5 py-3 text-[11px] leading-4 ${messageSuccess ? "border-[#76B900]/20 bg-[#76B900]/[0.08] text-[#B8E66B]" : "border-red-400/15 bg-red-400/[0.06] text-red-300"}`}>
                     {message}
                   </div>
                 )}
