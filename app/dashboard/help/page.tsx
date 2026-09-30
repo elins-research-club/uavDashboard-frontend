@@ -251,7 +251,7 @@ export default function HelpPage() {
               <SectionHeader
                 eyebrow="FAQ"
                 title="Pertanyaan Umum"
-                description="Temukan jawaban atas pertanyaan umum mengenai platform AMX GeoStream."
+                description=""
                 icon={BookOpen}
               />
             </div>
@@ -265,11 +265,10 @@ export default function HelpPage() {
                     <motion.div
                       key={faq.question}
                       layout
-                      className={`overflow-hidden border transition-colors duration-200 ${
-                        isOpen
-                          ? "border-[#CFCFC8] bg-[#FAFAF8]"
-                          : "border-[#DCDDD8] bg-white hover:bg-[#FAFAF8]"
-                      }`}
+                      className={`overflow-hidden border transition-colors duration-200 ${isOpen
+                        ? "border-[#CFCFC8] bg-[#FAFAF8]"
+                        : "border-[#DCDDD8] bg-white hover:bg-[#FAFAF8]"
+                        }`}
                     >
                       <button
                         type="button"
@@ -291,9 +290,8 @@ export default function HelpPage() {
                           </motion.span>
 
                           <span
-                            className={`min-w-0 text-[11px] font-bold leading-[1.55] sm:text-xs sm:leading-5 ${
-                              isOpen ? "text-[#171717]" : "text-[#33332F]"
-                            }`}
+                            className={`min-w-0 text-[11px] font-bold leading-[1.55] sm:text-xs sm:leading-5 ${isOpen ? "text-[#171717]" : "text-[#33332F]"
+                              }`}
                           >
                             {faq.question}
                           </span>
@@ -408,11 +406,10 @@ export default function HelpPage() {
                             scale: 1.08,
                             rotate: -4,
                           }}
-                          className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center border ${
-                            index === steps.length - 1
-                              ? "border-[#171717] bg-[#171717] text-white"
-                              : "border-[#DCDDD8] bg-[#F4F5F2] text-[#33332F]"
-                          }`}
+                          className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center border ${index === steps.length - 1
+                            ? "border-[#171717] bg-[#171717] text-white"
+                            : "border-[#DCDDD8] bg-[#F4F5F2] text-[#33332F]"
+                            }`}
                         >
                           <span className="text-[9px] font-bold">
                             {step.number}
@@ -558,11 +555,10 @@ export default function HelpPage() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`group relative flex min-w-0 items-start gap-3.5 p-4 outline-none transition-colors hover:bg-[#FAFAF8] focus-visible:bg-[#FAFAF8] sm:gap-4 sm:p-5 ${
-                    index < quickLinks.length - 1
-                      ? "border-b border-[#DCDDD8] md:border-b-0 md:border-r"
-                      : ""
-                  }`}
+                  className={`group relative flex min-w-0 items-start gap-3.5 p-4 outline-none transition-colors hover:bg-[#FAFAF8] focus-visible:bg-[#FAFAF8] sm:gap-4 sm:p-5 ${index < quickLinks.length - 1
+                    ? "border-b border-[#DCDDD8] md:border-b-0 md:border-r"
+                    : ""
+                    }`}
                 >
                   <motion.span
                     whileHover={{

@@ -79,6 +79,7 @@ interface MapData {
   file_size: number;
   file_format: string;
   locked_for_free: boolean;
+  allowed_tiers?: string[];
   purchasable: boolean;
   purchase_price?: number | null;
   created_at: string;
@@ -489,9 +490,7 @@ export default function MapsPage() {
     location: "",
     survey_date: "",
     description: "",
-    locked_for_free: false,
-    purchasable: false,
-    purchase_price: "" as string | number,
+    allowed_tiers: ["free", "desa", "kecamatan"],
   });
 
   const [isSavingEdit, setIsSavingEdit] = useState(false);
@@ -975,9 +974,11 @@ export default function MapsPage() {
       location: map.location || "",
       survey_date: map.survey_date ? map.survey_date.split("T")[0] : "",
       description: map.description || "",
-      locked_for_free: Boolean(map.locked_for_free),
-      purchasable: Boolean(map.purchasable),
-      purchase_price: map.purchase_price ?? "",
+      allowed_tiers: map.allowed_tiers?.length
+        ? map.allowed_tiers
+        : map.locked_for_free
+          ? ["desa", "kecamatan"]
+          : ["free", "desa", "kecamatan"],
     });
 
     setEditErrors({});
@@ -1025,12 +1026,7 @@ export default function MapsPage() {
         location: editForm.location.trim(),
         survey_date: editForm.survey_date,
         description: editForm.description.trim(),
-        locked_for_free: editForm.locked_for_free,
-        purchasable: editForm.purchasable,
-        purchase_price:
-          editForm.purchasable && editForm.purchase_price !== ""
-            ? Number(editForm.purchase_price)
-            : null,
+        allowed_tiers: editForm.allowed_tiers,
       });
 
       showNotice("Peta berhasil diperbarui.");
@@ -2400,75 +2396,52 @@ export default function MapsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  {/* LOCK */}
+                  <p className="text-[10px] font-medium leading-5 text-[#858780] sm:text-[11px]">
+                    Pilih tier member yang boleh mengakses peta ini.
+                  </p>
 
-                  <label
-                    className={cn(
-                      "flex cursor-pointer items-start gap-3 border p-3.5 transition-colors hover:border-[#BFC4B8] hover:bg-[#F7F8F5] sm:p-4",
+                  {[
+                    ["free", "Free", "Akses dasar tanpa langganan."],
+                    ["desa", "Desa", "Akses untuk pelanggan tier Desa."],
+                    ["kecamatan", "Kecamatan", "Akses untuk pelanggan tier Kecamatan."],
+                  ].map(([value, label, description]) => {
+                    const checked = editForm.allowed_tiers.includes(value);
 
-                      editForm.locked_for_free
-                        ? "border-[#BFC4B8] bg-[#F7F8F5]"
-                        : "border-[#E1E2DD] bg-white"
-                    )}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={editForm.locked_for_free}
-                      onChange={(event) =>
-                        setEditForm({
-                          ...editForm,
-                          locked_for_free: event.target.checked,
-                        })
-                      }
-                      className="mt-0.5 h-4 w-4 border-[#DCDDD8] text-[#171717] accent-[#171717] focus:ring-[#171717]/20"
-                    />
+                    return (
+                      <label
+                        key={value}
+                        className={cn(
+                          "flex cursor-pointer items-start gap-3 border p-3.5 transition-colors hover:border-[#BFC4B8] hover:bg-[#F7F8F5] sm:p-4",
+                          checked
+                            ? "border-[#BFC4B8] bg-[#F7F8F5]"
+                            : "border-[#E1E2DD] bg-white"
+                        )}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() =>
+                            setEditForm((current) => ({
+                              ...current,
+                              allowed_tiers: checked
+                                ? current.allowed_tiers.filter((tier) => tier !== value)
+                                : [...current.allowed_tiers, value],
+                            }))
+                          }
+                          className="mt-0.5 h-4 w-4 border-[#DCDDD8] text-[#171717] accent-[#171717] focus:ring-[#171717]/20"
+                        />
 
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-bold text-[#171717] sm:text-xs">
-                        Kunci untuk Member Free
-                      </p>
-
-                      <p className="mt-1 text-[10px] font-medium leading-5 text-[#858780] sm:text-[11px]">
-                        Hanya member berbayar (Tier Desa/Kecamatan) yang dapat
-                        mengakses data peta ini
-                      </p>
-                    </div>
-                  </label>
-
-                  {/* PURCHASE */}
-
-                  <label
-                    className={cn(
-                      "flex cursor-pointer items-start gap-3 border p-3.5 transition-colors hover:border-[#BFC4B8] hover:bg-[#F7F8F5] sm:p-4",
-
-                      editForm.purchasable
-                        ? "border-[#BFC4B8] bg-[#F7F8F5]"
-                        : "border-[#E1E2DD] bg-white"
-                    )}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={editForm.purchasable}
-                      onChange={(event) =>
-                        setEditForm({
-                          ...editForm,
-                          purchasable: event.target.checked,
-                        })
-                      }
-                      className="mt-0.5 h-4 w-4 border-[#DCDDD8] text-[#171717] accent-[#171717] focus:ring-[#171717]/20"
-                    />
-
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-bold text-[#171717] sm:text-xs">
-                        Tersedia untuk Pembelian Satuan
-                      </p>
-
-                      <p className="mt-1 text-[10px] font-medium leading-5 text-[#858780] sm:text-[11px]">
-                        User dapat membeli akses peta ini secara terpisah tanpa
-                        langganan
-                      </p>
-                    </div>
-                  </label>
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-bold text-[#171717] sm:text-xs">
+                            Tier {label}
+                          </p>
+                          <p className="mt-1 text-[10px] font-medium leading-5 text-[#858780] sm:text-[11px]">
+                            {description}
+                          </p>
+                        </div>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
             </div>
