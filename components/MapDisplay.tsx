@@ -8,12 +8,15 @@ import React, {
   useRef,
   useState,
 } from "react";
+
 import { AnimatePresence, motion } from "framer-motion";
 
 import * as maplibregl from "maplibre-gl";
+
 import "maplibre-gl/dist/maplibre-gl.css";
 
 import * as pmtiles from "pmtiles";
+
 import * as turf from "@turf/turf";
 
 import {
@@ -37,18 +40,26 @@ import {
 } from "lucide-react";
 
 import LayerControlPanel from "@/components/LayerControlPanel";
+
 import MapLegend from "@/components/MapLegend";
+
 import type { MapLayerItem } from "@/types/map";
+
 import { generatePetakGrid, type PetakProperties } from "@/lib/gridGenerator";
+
 import { cn } from "@/lib/utils";
+
 import { EASE, ICON_STROKE } from "@/app/dashboard/upload/upload-ui";
+
 import {
   getSettingsSnapshot,
   useSettingsStore,
 } from "@/lib/stores/settingsStore";
 
 /* =========================================================
+
    PMTILES REGISTRATION
+
 ========================================================= */
 
 let pmtilesRegistered = false;
@@ -74,25 +85,36 @@ if (typeof window !== "undefined") {
 }
 
 /* =========================================================
+
    TYPES
+
 ========================================================= */
 
 interface MapDisplayProps {
   mapId?: string;
+
   token?: string;
+
   mapFormat?: string;
+
   mapTitle?: string;
+
   mapLocation?: string;
+
   isFullscreen?: boolean;
+
   onToggleFullscreen?: () => void;
 }
 
 export interface MapHandle {
   zoomIn: () => void;
+
   zoomOut: () => void;
+
   resize: () => void;
 
   rotateLeft: () => void;
+
   rotateRight: () => void;
 
   resetNorth: () => void;
@@ -102,6 +124,7 @@ export interface MapHandle {
   setBearing: (deg: number) => void;
 
   tiltUp: () => void;
+
   tiltDown: () => void;
 
   resetView: () => void;
@@ -125,8 +148,14 @@ interface BoundsResponse {
   location?: string;
 }
 
+interface LayerTileJsonResponse {
+  pmtiles_url?: string | null;
+}
+
 /* =========================================================
+
    CONSTANTS
+
 ========================================================= */
 
 const DEFAULT_POSITION: [number, number] = [110.3695, -7.7956];
@@ -148,17 +177,23 @@ const BASEMAP_STREET_SOURCE_ID = "basemap-street-source";
 const BASEMAP_STREET_LAYER_ID = "basemap-street-layer";
 
 const UAV_RASTER_SOURCE_ID = "uav-raster";
+
 const UAV_RASTER_LAYER_ID = "uav-raster-layer";
 
 const UAV_IMAGE_SOURCE_ID = "uav-image";
+
 const UAV_IMAGE_LAYER_ID = "uav-image-layer";
 
 /* Warna aksen tema */
+
 const INK = "#171717";
+
 const ACCENT = "#76B900";
 
 /* =========================================================
+
    BASEMAPS
+
 ========================================================= */
 
 const BASEMAPS = {
@@ -191,7 +226,9 @@ const BASEMAPS = {
 };
 
 /* =========================================================
+
    SHARED UI BITS
+
 ========================================================= */
 
 const eyebrowClass =
@@ -200,21 +237,25 @@ const eyebrowClass =
 const hudCardMotion = {
   initial: {
     opacity: 0,
+
     y: -8,
   },
 
   animate: {
     opacity: 1,
+
     y: 0,
   },
 
   exit: {
     opacity: 0,
+
     y: -8,
   },
 
   transition: {
     duration: 0.25,
+
     ease: EASE,
   },
 } as const;
@@ -224,15 +265,23 @@ const hudCardClass =
 
 function ToolbarButton({
   active,
+
   title,
+
   label,
+
   onClick,
+
   children,
 }: {
   active?: boolean;
+
   title?: string;
+
   label: string;
+
   onClick: () => void;
+
   children: React.ReactNode;
 }) {
   return (
@@ -243,7 +292,9 @@ function ToolbarButton({
       aria-label={label}
       className={cn(
         "group relative flex h-9 w-9 shrink-0 items-center justify-center border outline-none transition-all duration-150",
+
         "focus-visible:ring-2 focus-visible:ring-[#76B900]/40",
+
         active
           ? "border-[#171717] bg-[#171717] text-white"
           : "border-transparent bg-white text-[#555750] hover:border-[#DCDDD8] hover:bg-[#F7F8F5] hover:text-[#171717]"
@@ -252,11 +303,15 @@ function ToolbarButton({
       {children}
 
       {/* TOOLTIP */}
+
       <span
         className={cn(
           "pointer-events-none absolute left-1/2 top-[calc(100%+6px)] z-[100] -translate-x-1/2 whitespace-nowrap",
+
           "border border-[#DCDDD8] bg-[#171717] px-2 py-1 text-[10px] font-medium text-white",
+
           "translate-y-[-2px] opacity-0 shadow-[0_8px_18px_rgba(0,0,0,0.10)] transition-all duration-150",
+
           "group-hover:translate-y-0 group-hover:opacity-100"
         )}
       >
@@ -268,17 +323,27 @@ function ToolbarButton({
 
 function HudHeader({
   eyebrow,
+
   title,
+
   onClose,
+
   closeLabel,
+
   meta,
+
   icon,
 }: {
   eyebrow: string;
+
   title: string;
+
   onClose: () => void;
+
   closeLabel: string;
+
   meta?: React.ReactNode;
+
   icon?: React.ReactNode;
 }) {
   return (
@@ -313,16 +378,22 @@ function HudHeader({
 }
 
 /* =========================================================
+
    SWEEP BUTTON
+
 ========================================================= */
 
 function SweepButton({
   children,
+
   onClick,
+
   title,
 }: {
   children: React.ReactNode;
+
   onClick?: () => void;
+
   title?: string;
 }) {
   return (
@@ -345,20 +416,30 @@ function SweepButton({
 }
 
 /* =========================================================
+
    ACCORDION ROW
+
 ========================================================= */
 
 function AccordionRow({
   title,
+
   badge,
+
   open,
+
   onToggle,
+
   children,
 }: {
   title: string;
+
   badge?: string;
+
   open: boolean;
+
   onToggle: () => void;
+
   children: React.ReactNode;
 }) {
   return (
@@ -381,6 +462,7 @@ function AccordionRow({
           <ChevronDown
             className={cn(
               "h-3.5 w-3.5 text-[#858780] transition-transform duration-200",
+
               open && "rotate-180"
             )}
             strokeWidth={ICON_STROKE}
@@ -402,24 +484,35 @@ const compareSelectClass =
   "h-9 w-full border border-[#DCDDD8] bg-[#FAFAF8] px-2.5 text-xs font-medium text-[#171717] outline-none transition-all hover:border-[#C8CAC4] focus:border-[#BFC4B8] focus:bg-white focus:ring-4 focus:ring-black/[0.03]";
 
 /* =========================================================
+
    COMPONENT
+
 ========================================================= */
 
 const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
   (
     {
       mapId,
+
       token,
+
       mapFormat,
+
       mapTitle,
+
       mapLocation,
+
       isFullscreen: isFullscreenProp,
+
       onToggleFullscreen,
     },
+
     ref
   ) => {
     /* =====================================================
+
        REFS
+
     ====================================================== */
 
     const containerRef = useRef<HTMLDivElement | null>(null);
@@ -442,8 +535,12 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
     const mapLayersRef = useRef<MapLayerItem[]>([]);
 
+    const pmtilesUrlCacheRef = useRef<Record<string, string>>({});
+
     /* =====================================================
+
        STATE
+
     ====================================================== */
 
     const [basemap, setBasemap] = useState<keyof typeof BASEMAPS>(
@@ -475,7 +572,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     const isFullscreen = isFullscreenProp ?? internalIsFullscreen;
 
     /* =====================================================
+
        SIDEBAR POSITION SYNC
+
     ===================================================== */
 
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -496,6 +595,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
         if (typeof customEvent.detail?.collapsed === "boolean") {
           setSidebarCollapsed(customEvent.detail.collapsed);
+
           return;
         }
 
@@ -510,16 +610,24 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     }, []);
 
     const mapUiLeft = sidebarCollapsed ? 100 : 282;
+
     /* =====================================================
+
        PRECISION FARMING & SPATIAL TOOLS
+
     ====================================================== */
 
     const [spatialInfo, setSpatialInfo] = useState<{
       area_hectares?: number | null;
+
       area_m2?: number | null;
+
       perimeter_meters?: number | null;
+
       centroid?: [number, number] | null;
+
       has_spatial_geometry?: boolean;
+
       geojson?: any;
     } | null>(null);
 
@@ -533,14 +641,20 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
     const [measuredMetrics, setMeasuredMetrics] = useState<{
       areaHa?: number;
+
       areaM2?: number;
+
       perimeterM?: number;
+
       distanceM?: number;
+
       distanceKm?: number;
     } | null>(null);
 
     /* =====================================================
+
        MULTILAYER COMPARE
+
     ====================================================== */
 
     const [compareMode, setCompareMode] = useState(false);
@@ -556,7 +670,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     const isComparingRef = useRef(false);
 
     /* =====================================================
+
        DYNAMIC GRID PETAK
+
     ====================================================== */
 
     const [gridEnabled, setGridEnabled] = useState(false);
@@ -569,6 +685,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
     const [petakScreenPos, setPetakScreenPos] = useState<{
       x: number;
+
       y: number;
     } | null>(null);
 
@@ -588,24 +705,31 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     useEffect(() => {
       const baseUrl =
         process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
+
       const headers = tokenRef.current
         ? { Authorization: `Bearer ${tokenRef.current}` }
         : undefined;
 
       Promise.all(
         mapLayers
+
           .filter((layer) => layer.layer_type?.toLowerCase() !== "ortho")
+
           .map(async (layer) => {
             try {
               const response = await fetch(
                 `${baseUrl}/maps/layers/${layer.id}/grid`,
+
                 { headers }
               );
+
               if (!response.ok) return;
+
               const data = (await response.json()) as GeoJSON.FeatureCollection<
                 GeoJSON.Polygon,
                 PetakProperties
               >;
+
               layerGridDataRef.current[layer.id] = data.features.map(
                 (feature) => feature.properties
               );
@@ -617,7 +741,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     }, [mapLayers, mapId]);
 
     /* =====================================================
+
        SYNC REFS
+
     ====================================================== */
 
     useEffect(() => {
@@ -645,7 +771,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     }, [currentMeta]);
 
     /* =====================================================
+
        BAKING POLL
+
     ====================================================== */
 
     useEffect(() => {
@@ -689,6 +817,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               return updated
                 ? {
                     ...l,
+
                     ...updated,
                   }
                 : l;
@@ -701,47 +830,20 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             return updated
               ? {
                   ...l,
+
                   ...updated,
                 }
               : l;
           });
 
-          const map = mapRef.current;
-
-          if (map && currentMetaRef.current) {
-            fresh.forEach((fl) => {
-              if (fl.conversion_status === "completed" && fl.pmtiles_url) {
-                const sourceId = `layer-source-${fl.id}`;
-
-                const layerId = `layer-render-${fl.id}`;
-
-                if (!map.getSource(sourceId)) {
-                  const apiOrigin = baseUrl.replace(/\/api\/?$/, "");
-
-                  map.addSource(sourceId, {
-                    type: "raster",
-                    url: `pmtiles://${apiOrigin}${fl.pmtiles_url}`,
-                    tileSize: 256,
-                  });
-                }
-
-                if (!map.getLayer(layerId)) {
-                  map.addLayer({
-                    id: layerId,
-                    type: "raster",
-                    source: sourceId,
-                    layout: {
-                      visibility: fl.is_visible ? "visible" : "none",
-                    },
-                    paint: {
-                      "raster-opacity": fl.default_opacity,
-                      "raster-resampling": "linear",
-                      "raster-fade-duration": 150,
-                    },
-                  });
-                }
-              }
-            });
+          if (currentMetaRef.current) {
+            /*
+             * Jangan lagi membuat source PMTiles langsung ke endpoint
+             * /pmtiles yang dilindungi JWT. setupUavLayer akan meminta
+             * TileJSON ter-authenticated terlebih dahulu, lalu memakai
+             * presigned R2 URL yang dikembalikan backend.
+             */
+            await setupUavLayer(currentMetaRef.current, fresh);
           }
         } catch {
           // network error — keep polling
@@ -754,12 +856,15 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
       return () => {
         cancelled = true;
+
         clearInterval(timer);
       };
     }, [mapId, mapLayers.map((l) => l.conversion_status).join(",")]);
 
     /* =====================================================
+
        AUTO RESIZE
+
     ====================================================== */
 
     useEffect(() => {
@@ -779,7 +884,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     }, []);
 
     /* =====================================================
+
        HELPERS
+
     ====================================================== */
 
     const normalizeBearing = useCallback((value: number) => {
@@ -819,7 +926,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     }, []);
 
     /* =====================================================
+
        CAMERA
+
     ====================================================== */
 
     const syncCameraState = useCallback(() => {
@@ -835,7 +944,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     }, [normalizeBearing]);
 
     /* =====================================================
+
        REMOVE UAV
+
     ====================================================== */
 
     const removeUavLayers = useCallback(() => {
@@ -877,7 +988,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     }, []);
 
     /* =====================================================
+
        BASEMAP
+
     ====================================================== */
 
     const setupInitialBasemaps = useCallback(() => {
@@ -892,9 +1005,13 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       if (!map.getSource(BASEMAP_STREET_SOURCE_ID)) {
         map.addSource(BASEMAP_STREET_SOURCE_ID, {
           type: "raster",
+
           tiles: [BASEMAPS.street.tiles],
+
           tileSize: 256,
+
           maxzoom: BASEMAPS.street.maxzoom,
+
           attribution: BASEMAPS.street.attribution,
         });
       }
@@ -902,13 +1019,18 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       if (!map.getLayer(BASEMAP_STREET_LAYER_ID)) {
         map.addLayer({
           id: BASEMAP_STREET_LAYER_ID,
+
           type: "raster",
+
           source: BASEMAP_STREET_SOURCE_ID,
+
           layout: {
             visibility: currentBm === "street" ? "visible" : "none",
           },
+
           paint: {
             "raster-opacity": 1,
+
             "raster-fade-duration": 150,
           },
         });
@@ -917,9 +1039,13 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       if (!map.getSource(BASEMAP_SATELLITE_SOURCE_ID)) {
         map.addSource(BASEMAP_SATELLITE_SOURCE_ID, {
           type: "raster",
+
           tiles: [BASEMAPS.satellite.tiles],
+
           tileSize: 256,
+
           maxzoom: BASEMAPS.satellite.maxzoom,
+
           attribution: BASEMAPS.satellite.attribution,
         });
       }
@@ -927,13 +1053,18 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       if (!map.getLayer(BASEMAP_SATELLITE_LAYER_ID)) {
         map.addLayer({
           id: BASEMAP_SATELLITE_LAYER_ID,
+
           type: "raster",
+
           source: BASEMAP_SATELLITE_SOURCE_ID,
+
           layout: {
             visibility: currentBm === "satellite" ? "visible" : "none",
           },
+
           paint: {
             "raster-opacity": 1,
+
             "raster-fade-duration": 150,
           },
         });
@@ -943,8 +1074,11 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         if (!map.getSource(SATELLITE_LABEL_SOURCE_ID)) {
           map.addSource(SATELLITE_LABEL_SOURCE_ID, {
             type: "raster",
+
             tiles: [BASEMAPS.satellite.labels],
+
             tileSize: 256,
+
             maxzoom: BASEMAPS.satellite.maxzoom,
           });
         }
@@ -952,13 +1086,18 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         if (!map.getLayer(SATELLITE_LABEL_LAYER_ID)) {
           map.addLayer({
             id: SATELLITE_LABEL_LAYER_ID,
+
             type: "raster",
+
             source: SATELLITE_LABEL_SOURCE_ID,
+
             layout: {
               visibility: currentBm === "satellite" ? "visible" : "none",
             },
+
             paint: {
               "raster-opacity": 0.9,
+
               "raster-fade-duration": 150,
             },
           });
@@ -978,7 +1117,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       if (map.getLayer(BASEMAP_SATELLITE_LAYER_ID)) {
         map.setLayoutProperty(
           BASEMAP_SATELLITE_LAYER_ID,
+
           "visibility",
+
           isSat ? "visible" : "none"
         );
       }
@@ -986,7 +1127,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       if (map.getLayer(SATELLITE_LABEL_LAYER_ID)) {
         map.setLayoutProperty(
           SATELLITE_LABEL_LAYER_ID,
+
           "visibility",
+
           isSat ? "visible" : "none"
         );
       }
@@ -994,14 +1137,18 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       if (map.getLayer(BASEMAP_STREET_LAYER_ID)) {
         map.setLayoutProperty(
           BASEMAP_STREET_LAYER_ID,
+
           "visibility",
+
           isSat ? "none" : "visible"
         );
       }
     }, []);
 
     /* =====================================================
+
        TERRAIN
+
     ====================================================== */
 
     const setupTerrain = useCallback(() => {
@@ -1015,20 +1162,25 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         if (!map.getSource(TERRAIN_SOURCE_ID)) {
           map.addSource(TERRAIN_SOURCE_ID, {
             type: "raster-dem",
+
             url: TERRAIN_SOURCE_URL,
+
             tileSize: 256,
+
             maxzoom: 14,
           });
         }
 
         map.setTerrain({
           source: TERRAIN_SOURCE_ID,
+
           exaggeration: 1.5,
         });
 
         if (map.getPitch() < 20) {
           map.easeTo({
             pitch: 45,
+
             duration: 700,
           });
         }
@@ -1037,17 +1189,79 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
         map.easeTo({
           pitch: 0,
+
           duration: 600,
         });
       }
     }, []);
 
     /* =====================================================
+
        UAV LAYER
+
     ====================================================== */
 
+    const getLayerPmtilesUrl = useCallback(async (layerId: string) => {
+      const activeMapId = mapIdRef.current;
+
+      if (!activeMapId) {
+        return null;
+      }
+
+      const cacheKey = `${activeMapId}:${layerId}`;
+      const cached = pmtilesUrlCacheRef.current[cacheKey];
+
+      if (cached) {
+        return cached;
+      }
+
+      const baseUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
+
+      const headers: Record<string, string> = {};
+
+      if (tokenRef.current) {
+        headers.Authorization = `Bearer ${tokenRef.current}`;
+      }
+
+      try {
+        /*
+         * Request TileJSON dengan JWT satu kali.
+         * Backend memverifikasi akses lalu mengembalikan presigned
+         * URL R2 untuk PMTiles. PMTiles di browser kemudian membaca
+         * R2 menggunakan HTTP Range tanpa Authorization header.
+         */
+        const response = await fetch(
+          `${baseUrl}/maps/${activeMapId}/layers/${layerId}/tilejson.json`,
+          { headers }
+        );
+
+        if (!response.ok) {
+          console.warn(
+            `[MapDisplay] TileJSON PMTiles gagal untuk layer ${layerId} (HTTP ${response.status})`
+          );
+          return null;
+        }
+
+        const data = (await response.json()) as LayerTileJsonResponse;
+        const pmtilesUrl = data.pmtiles_url?.trim() || null;
+
+        if (pmtilesUrl) {
+          pmtilesUrlCacheRef.current[cacheKey] = pmtilesUrl;
+        }
+
+        return pmtilesUrl;
+      } catch (error) {
+        console.warn(
+          `[MapDisplay] Gagal mengambil TileJSON PMTiles untuk layer ${layerId}:`,
+          error
+        );
+        return null;
+      }
+    }, []);
+
     const setupUavLayer = useCallback(
-      (meta: BoundsResponse, layersToRender?: MapLayerItem[]) => {
+      async (meta: BoundsResponse, layersToRender?: MapLayerItem[]) => {
         const map = mapRef.current;
 
         const activeMapId = mapIdRef.current;
@@ -1057,7 +1271,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         }
 
         if (!map.getStyle()) {
-          map.once("load", () => setupUavLayer(meta, layersToRender));
+          map.once("load", () => {
+            void setupUavLayer(meta, layersToRender);
+          });
 
           return;
         }
@@ -1108,12 +1324,12 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             ? "precision-measure-fill"
             : undefined;
 
-          currentLayers.forEach((layer) => {
+          for (const layer of currentLayers) {
             if (
               layer.conversion_status === "pending" ||
               layer.conversion_status === "processing"
             ) {
-              return;
+              continue;
             }
 
             const sourceId = `layer-source-${layer.id}`;
@@ -1122,15 +1338,30 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
             if (!map.getSource(sourceId)) {
               if (layer.pmtiles_url) {
-                const apiOrigin = baseUrl.replace(/\/api\/?$/, "");
+                const pmtilesUrl = await getLayerPmtilesUrl(layer.id);
 
-                const pmtilesUrl = `${apiOrigin}${layer.pmtiles_url}`;
-
-                map.addSource(sourceId, {
-                  type: "raster",
-                  url: `pmtiles://${pmtilesUrl}`,
-                  tileSize: 256,
-                });
+                if (pmtilesUrl) {
+                  map.addSource(sourceId, {
+                    type: "raster",
+                    url: `pmtiles://${pmtilesUrl}`,
+                    tileSize: 256,
+                  });
+                } else {
+                  /*
+                   * Endpoint /pmtiles memerlukan JWT dan tidak cocok
+                   * dipakai langsung oleh PMTiles browser. Jika
+                   * TileJSON tidak mengembalikan presigned URL, gunakan
+                   * endpoint XYZ sebagai fallback aplikasi yang ada.
+                   */
+                  map.addSource(sourceId, {
+                    type: "raster",
+                    tiles: [
+                      `${baseUrl}/maps/${activeMapId}/layers/${layer.id}/tiles/{z}/{x}/{y}.png`,
+                    ],
+                    tileSize: 256,
+                    maxzoom: 22,
+                  });
+                }
               } else {
                 map.addSource(sourceId, {
                   type: "raster",
@@ -1173,7 +1404,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                 layer.default_opacity
               );
             }
-          });
+          }
 
           return;
         }
@@ -1250,7 +1481,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
           }
         }
       },
-      []
+      [getLayerPmtilesUrl]
     );
 
     /* =====================================================
@@ -1305,6 +1536,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         try {
           const layersRes = await fetch(
             `${baseUrl}/maps/${activeMapId}/layers`,
+
             {
               headers,
             }
@@ -1317,13 +1549,13 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
             mapLayersRef.current = lData;
 
-            setupUavLayer(data as BoundsResponse, lData);
+            await setupUavLayer(data as BoundsResponse, lData);
           } else if (data) {
-            setupUavLayer(data);
+            await setupUavLayer(data);
           }
         } catch {
           if (data) {
-            setupUavLayer(data);
+            await setupUavLayer(data);
           }
         }
 
@@ -1332,11 +1564,13 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             headers,
           })
             .then((res) => (res.ok ? res.json() : null))
+
             .then((sData) => {
               if (sData) {
                 setSpatialInfo(sData);
               }
             })
+
             .catch(() => {});
         }
 
@@ -1350,18 +1584,25 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
           const bounds = new maplibregl.LngLatBounds(
             [west, south],
+
             [east, north]
           );
 
           map.fitBounds(bounds, {
             padding: {
               top: 80,
+
               bottom: 80,
+
               left: 80,
+
               right: 80,
             },
+
             maxZoom: 19,
+
             duration: 1000,
+
             essential: true,
           });
         } else if (data?.center) {
@@ -1369,10 +1610,15 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
           map.flyTo({
             center: [lng, lat],
+
             zoom: 16,
+
             pitch: terrainEnabledRef.current ? 45 : 0,
+
             bearing: 0,
+
             duration: 1000,
+
             essential: true,
           });
         }
@@ -1384,12 +1630,15 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     }, [setupUavLayer]);
 
     /* =====================================================
+
        FULLSCREEN
+
     ====================================================== */
 
     const handleToggleFullscreen = useCallback(async () => {
       if (onToggleFullscreen) {
         onToggleFullscreen();
+
         return;
       }
 
@@ -1413,7 +1662,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     }, [onToggleFullscreen]);
 
     /* =====================================================
+
        FULLSCREEN EVENT
+
     ====================================================== */
 
     useEffect(() => {
@@ -1436,13 +1687,16 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       return () => {
         document.removeEventListener(
           "fullscreenchange",
+
           handleFullscreenChange
         );
       };
     }, []);
 
     /* =====================================================
+
        CREATE MAP
+
     ====================================================== */
 
     useEffect(() => {
@@ -1493,9 +1747,12 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       map.addControl(
         new maplibregl.NavigationControl({
           showCompass: false,
+
           showZoom: false,
+
           visualizePitch: true,
         }),
+
         "top-left"
       );
 
@@ -1533,7 +1790,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     }, [setupInitialBasemaps, setupTerrain, syncCameraState]);
 
     /* =====================================================
+
        BASEMAP CHANGE
+
     ====================================================== */
 
     const handleChangeBasemap = useCallback(
@@ -1543,10 +1802,12 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         basemapRef.current = next;
 
         /* Sinkronkan ke preferensi user (halaman Pengaturan → Umum). */
+
         useSettingsStore.getState().update({ mapBasemap: next });
 
         applyBasemap(next);
       },
+
       [applyBasemap]
     );
 
@@ -1559,7 +1820,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     }, [basemap, mapReady, applyBasemap]);
 
     /* =====================================================
+
        TERRAIN CHANGE
+
     ====================================================== */
 
     useEffect(() => {
@@ -1571,7 +1834,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     }, [terrainEnabled, mapReady, setupTerrain]);
 
     /* =====================================================
+
        GRID PETAK
+
     ====================================================== */
 
     const updateGridOnMap = useCallback(
@@ -1617,6 +1882,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         try {
           const res = await fetch(
             `${baseUrl}/maps/layers/${activeAnalysisLayer.id}/grid`,
+
             {
               headers,
             }
@@ -1649,6 +1915,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
           fc = {
             type: "FeatureCollection",
+
             features: result.features,
           };
         }
@@ -1664,32 +1931,44 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         } else {
           map.addSource("grid-petak-source", {
             type: "geojson",
+
             data: fc as any,
           });
 
           map.addLayer({
             id: "grid-petak-fill",
+
             type: "fill",
+
             source: "grid-petak-source",
+
             layout: {
               visibility: "visible",
             },
+
             paint: {
               "fill-color": ["coalesce", ["get", "color"], "#4caf50"],
+
               "fill-opacity": 0.52,
             },
           });
 
           map.addLayer({
             id: "grid-petak-outline",
+
             type: "line",
+
             source: "grid-petak-source",
+
             layout: {
               visibility: "visible",
             },
+
             paint: {
               "line-color": "#ffffff",
+
               "line-width": 1.2,
+
               "line-opacity": 0.85,
             },
           });
@@ -1714,7 +1993,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             if (pt.y < 320 || pt.x < 170 || pt.x > w - 170 || pt.y > h - 80) {
               map.easeTo({
                 center: [props.center_lng, props.center_lat],
+
                 offset: [0, 80],
+
                 duration: 300,
               });
             }
@@ -1734,7 +2015,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
           map.setPaintProperty("grid-petak-fill", "fill-color", [
             "coalesce",
+
             ["get", "color"],
+
             "#4caf50",
           ]);
 
@@ -1747,6 +2030,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
           map.moveLayer("grid-petak-outline");
         }
       },
+
       [spatialInfo, currentMeta, mapLayers]
     );
 
@@ -1773,7 +2057,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     }, [gridEnabled, gridCellSize, mapReady, updateGridOnMap, mapLayers]);
 
     /* =====================================================
+
        PETAK SCREEN POSITION
+
     ====================================================== */
 
     const updatePetakScreenPos = useCallback(() => {
@@ -1787,11 +2073,13 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
       const p = map.project([
         selectedPetak.center_lng,
+
         selectedPetak.center_lat,
       ]);
 
       setPetakScreenPos({
         x: Math.round(p.x),
+
         y: Math.round(p.y),
       });
     }, [selectedPetak]);
@@ -1817,7 +2105,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     }, [selectedPetak, updatePetakScreenPos]);
 
     /* =====================================================
+
        SELECTED PETAK HIGHLIGHT
+
     ====================================================== */
 
     useEffect(() => {
@@ -1840,29 +2130,40 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       if (!map.getSource(sourceId)) {
         map.addSource(sourceId, {
           type: "geojson",
+
           data: {
             type: "FeatureCollection",
+
             features: [],
           },
         });
 
         map.addLayer({
           id: fillLayerId,
+
           type: "fill",
+
           source: sourceId,
+
           paint: {
             "fill-color": "#ffffff",
+
             "fill-opacity": 0.28,
           },
         });
 
         map.addLayer({
           id: outlineLayerId,
+
           type: "line",
+
           source: sourceId,
+
           paint: {
             "line-color": INK,
+
             "line-width": 3.5,
+
             "line-opacity": 1,
           },
         });
@@ -1871,20 +2172,28 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       if (!map.getSource(markerSourceId)) {
         map.addSource(markerSourceId, {
           type: "geojson",
+
           data: {
             type: "FeatureCollection",
+
             features: [],
           },
         });
 
         map.addLayer({
           id: markerLayerId,
+
           type: "circle",
+
           source: markerSourceId,
+
           paint: {
             "circle-radius": 5,
+
             "circle-color": INK,
+
             "circle-stroke-width": 2.5,
+
             "circle-stroke-color": "#ffffff",
           },
         });
@@ -1897,19 +2206,25 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
         const polyData: GeoJSON.FeatureCollection = {
           type: "FeatureCollection",
+
           features: feat ? [feat] : [],
         };
 
         const pointData: GeoJSON.FeatureCollection = {
           type: "FeatureCollection",
+
           features: [
             {
               type: "Feature",
+
               properties: {},
+
               geometry: {
                 type: "Point",
+
                 coordinates: [
                   selectedPetak.center_lng,
+
                   selectedPetak.center_lat,
                 ],
               },
@@ -1947,6 +2262,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       } else {
         const emptyFC: GeoJSON.FeatureCollection = {
           type: "FeatureCollection",
+
           features: [],
         };
 
@@ -1969,7 +2285,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     }, [selectedPetak]);
 
     /* =====================================================
+
        MEASUREMENT
+
     ====================================================== */
 
     const handleClearMeasurement = useCallback(() => {
@@ -1994,6 +2312,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       if (lineSrc) {
         lineSrc.setData({
           type: "FeatureCollection",
+
           features: [],
         });
       }
@@ -2005,6 +2324,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       if (polySrc) {
         polySrc.setData({
           type: "FeatureCollection",
+
           features: [],
         });
       }
@@ -2071,6 +2391,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         if (lineSrc) {
           lineSrc.setData({
             type: "FeatureCollection",
+
             features: [],
           });
         }
@@ -2082,6 +2403,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         if (polySrc) {
           polySrc.setData({
             type: "FeatureCollection",
+
             features: [],
           });
         }
@@ -2100,25 +2422,45 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         const isLastPoint = idx === measurePoints.length - 1;
 
         el.className = `
+
             flex
+
             items-center
+
             justify-center
+
             w-5
+
             h-5
+
             border-2
+
             border-white
+
             text-white
+
             text-[9px]
+
             font-black
+
             shadow-lg
+
             cursor-pointer
+
             transform
+
             hover:scale-125
+
             transition-transform
+
             select-none
+
             sm:w-6
+
             sm:h-6
+
             sm:text-[11px]
+
             ${
               isFirstInArea
                 ? "bg-[#76B900] ring-4 ring-[#76B900]/60 animate-pulse"
@@ -2126,6 +2468,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                 ? "bg-amber-500 ring-2 ring-amber-300"
                 : "bg-[#171717]"
             }
+
           `;
 
         el.innerText = `${idx + 1}`;
@@ -2136,9 +2479,12 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
         const marker = new maplibregl.Marker({
           element: el,
+
           anchor: "center",
         })
+
           .setLngLat(pt)
+
           .addTo(map);
 
         measureMarkersRef.current.push(marker);
@@ -2220,9 +2566,12 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             ? [
                 {
                   type: "Feature",
+
                   properties: {},
+
                   geometry: {
                     type: "LineString",
+
                     coordinates: lineCoords,
                   },
                 },
@@ -2240,9 +2589,12 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             ? [
                 {
                   type: "Feature",
+
                   properties: {},
+
                   geometry: {
                     type: "Polygon",
+
                     coordinates: [[...measurePoints, measurePoints[0]]],
                   },
                 },
@@ -2267,27 +2619,38 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       } else {
         map.addSource(LINE_SRC, {
           type: "geojson",
+
           data: lineGeoJson,
         });
 
         map.addLayer({
           id: CASING_LAYER,
+
           type: "line",
+
           source: LINE_SRC,
+
           paint: {
             "line-color": "#ffffff",
+
             "line-width": 5,
+
             "line-opacity": 0.9,
           },
         });
 
         map.addLayer({
           id: INNER_LAYER,
+
           type: "line",
+
           source: LINE_SRC,
+
           paint: {
             "line-color": INK,
+
             "line-width": 2.5,
+
             "line-dasharray": [2, 2],
           },
         });
@@ -2308,15 +2671,20 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       } else {
         map.addSource(POLY_SRC, {
           type: "geojson",
+
           data: polyGeoJson,
         });
 
         map.addLayer({
           id: FILL_LAYER,
+
           type: "fill",
+
           source: POLY_SRC,
+
           paint: {
             "fill-color": ACCENT,
+
             "fill-opacity": 0.35,
           },
         });
@@ -2340,7 +2708,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     }, [measurePoints, toolMode]);
 
     /* =====================================================
+
        MULTILAYER COMPARISON
+
     ====================================================== */
 
     const handleCloseCompare = useCallback(() => {
@@ -2360,13 +2730,17 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         if (map.getLayer(layerId)) {
           map.setLayoutProperty(
             layerId,
+
             "visibility",
+
             layer.is_visible ? "visible" : "none"
           );
 
           map.setPaintProperty(
             layerId,
+
             "raster-opacity",
+
             layer.default_opacity
           );
         }
@@ -2408,7 +2782,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     }, [compareMode, compareLayerA, compareLayerB, compareRatio]);
 
     /* =====================================================
+
        FALLBACK OVERLAY OPACITY
+
     ====================================================== */
 
     useEffect(() => {
@@ -2423,7 +2799,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       if (map.getLayer(UAV_RASTER_LAYER_ID)) {
         map.setPaintProperty(
           UAV_RASTER_LAYER_ID,
+
           "raster-opacity",
+
           overlayOpacity
         );
       }
@@ -2431,14 +2809,18 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       if (map.getLayer(UAV_IMAGE_LAYER_ID)) {
         map.setPaintProperty(
           UAV_IMAGE_LAYER_ID,
+
           "raster-opacity",
+
           overlayOpacity
         );
       }
     }, [overlayOpacity, mapReady]);
 
     /* =====================================================
+
        LOAD MAP DATA
+
     ====================================================== */
 
     useEffect(() => {
@@ -2470,11 +2852,14 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     }, [mapId, mapReady, loadBounds, removeUavLayers]);
 
     /* =====================================================
+
        IMPERATIVE HANDLE
+
     ====================================================== */
 
     useImperativeHandle(
       ref,
+
       () => ({
         zoomIn: () => {
           mapRef.current?.zoomIn({
@@ -2501,6 +2886,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
           map.easeTo({
             bearing: map.getBearing() - 45,
+
             duration: 500,
           });
         },
@@ -2514,6 +2900,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
           map.easeTo({
             bearing: map.getBearing() + 45,
+
             duration: 500,
           });
         },
@@ -2521,6 +2908,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         resetNorth: () => {
           mapRef.current?.easeTo({
             bearing: 0,
+
             duration: 600,
           });
         },
@@ -2532,6 +2920,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         setBearing: (deg: number) => {
           mapRef.current?.easeTo({
             bearing: deg,
+
             duration: 500,
           });
         },
@@ -2545,6 +2934,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
           map.easeTo({
             pitch: Math.min(map.getPitch() + 10, 45),
+
             duration: 400,
           });
         },
@@ -2558,6 +2948,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
           map.easeTo({
             pitch: Math.max(map.getPitch() - 10, 0),
+
             duration: 400,
           });
         },
@@ -2571,7 +2962,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
           map.easeTo({
             pitch: terrainEnabledRef.current ? 45 : 0,
+
             bearing: 0,
+
             duration: 700,
           });
         },
@@ -2584,16 +2977,20 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
           return terrainEnabledRef.current;
         },
       }),
+
       []
     );
 
     /* =====================================================
+
        LOCAL HANDLERS
+
     ====================================================== */
 
     const handleResetNorth = useCallback(() => {
       mapRef.current?.easeTo({
         bearing: 0,
+
         duration: 600,
       });
     }, []);
@@ -2607,6 +3004,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
       map.easeTo({
         bearing: map.getBearing() - 45,
+
         duration: 500,
       });
     }, []);
@@ -2620,6 +3018,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
       map.easeTo({
         bearing: map.getBearing() + 45,
+
         duration: 500,
       });
     }, []);
@@ -2641,6 +3040,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         const next = !current;
 
         /* Sinkronkan ke preferensi user (halaman Pengaturan → Umum). */
+
         useSettingsStore.getState().update({ mapTerrain: next });
 
         return next;
@@ -2648,7 +3048,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     }, []);
 
     /* =====================================================
+
        RENDER
+
     ====================================================== */
 
     const isPlainNavigation =
@@ -2660,26 +3062,33 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     return (
       <div className="relative h-full w-full overflow-hidden bg-[#F4F5F2]">
         {/* =================================================
+
               LOADING
+
         ================================================== */}
+
         <AnimatePresence>
           {loading && (
             <motion.div
               key="map-loading"
               initial={{
                 opacity: 0,
+
                 y: 8,
               }}
               animate={{
                 opacity: 1,
+
                 y: 0,
               }}
               exit={{
                 opacity: 0,
+
                 y: 8,
               }}
               transition={{
                 duration: 0.25,
+
                 ease: EASE,
               }}
               role="status"
@@ -2695,8 +3104,11 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         </AnimatePresence>
 
         {/* =================================================
+
               LAYER CONTROL PANEL
+
         ================================================== */}
+
         <LayerControlPanel
           mapId={mapId}
           layers={mapLayers}
@@ -2714,7 +3126,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             if (map && map.getLayer(targetId)) {
               map.setLayoutProperty(
                 targetId,
+
                 "visibility",
+
                 visible ? "visible" : "none"
               );
             }
@@ -2724,6 +3138,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                 layer.id === layerId
                   ? {
                       ...layer,
+
                       is_visible: visible,
                     }
                   : layer
@@ -2734,6 +3149,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               layer.id === layerId
                 ? {
                     ...layer,
+
                     is_visible: visible,
                   }
                 : layer
@@ -2753,6 +3169,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                 layer.id === layerId
                   ? {
                       ...layer,
+
                       default_opacity: opacity,
                     }
                   : layer
@@ -2763,6 +3180,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               layer.id === layerId
                 ? {
                     ...layer,
+
                     default_opacity: opacity,
                   }
                 : layer
@@ -2799,7 +3217,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                 mapLayersRef.current = data;
 
                 if (currentMetaRef.current) {
-                  setupUavLayer(currentMetaRef.current, data);
+                  await setupUavLayer(currentMetaRef.current, data);
                 }
               }
             } catch (error) {
@@ -2827,8 +3245,10 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             try {
               const res = await fetch(
                 `${baseUrl}/maps/${activeMapId}/layers/${layerId}`,
+
                 {
                   method: "DELETE",
+
                   headers,
                 }
               );
@@ -2883,8 +3303,10 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             try {
               const res = await fetch(
                 `${baseUrl}/maps/${activeMapId}/layers/${layerId}/convert`,
+
                 {
                   method: "POST",
+
                   headers,
                 }
               );
@@ -2895,7 +3317,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                     l.id === layerId
                       ? {
                           ...l,
+
                           conversion_status: "pending",
+
                           conversion_error: null,
                         }
                       : l
@@ -2906,7 +3330,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                   l.id === layerId
                     ? {
                         ...l,
+
                         conversion_status: "pending",
+
                         conversion_error: null,
                       }
                     : l
@@ -2928,6 +3354,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
             const updated = newLayers.map((layer, idx) => ({
               ...layer,
+
               display_order: idx,
             }));
 
@@ -2973,7 +3400,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                 updated.map((layer) =>
                   fetch(`${baseUrl}/maps/${activeMapId}/layers/${layer.id}`, {
                     method: "PATCH",
+
                     headers,
+
                     body: JSON.stringify({
                       display_order: layer.display_order,
                     }),
@@ -2995,6 +3424,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
             const updated = mapLayersRef.current.map((l) => ({
               ...l,
+
               is_base_layer: l.id === layerId,
             }));
 
@@ -3016,7 +3446,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             try {
               await fetch(`${baseUrl}/maps/${activeMapId}/layers/${layerId}`, {
                 method: "PATCH",
+
                 headers,
+
                 body: JSON.stringify({
                   is_base_layer: true,
                 }),
@@ -3028,8 +3460,11 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         />
 
         {/* =================================================
+
               PRECISION FARMING TOOLBAR
+
         ================================================== */}
+
         <div className="absolute inset-x-0 top-2 z-50 mx-auto flex w-fit max-w-[calc(100%-12px)] translate-x-8 items-center gap-1 border border-[#DCDDD8] bg-white/95 p-1 shadow-[0_10px_24px_rgba(0,0,0,0.07)] backdrop-blur-md sm:top-2.5">
           <ToolbarButton
             active={isPlainNavigation}
@@ -3162,8 +3597,11 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         </div>
 
         {/* =================================================
+
               MEASUREMENT STATUS CARD
+
         ================================================== */}
+
         <AnimatePresence>
           {toolMode !== "none" && (
             <motion.div
@@ -3171,6 +3609,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               {...hudCardMotion}
               className={cn(
                 hudCardClass,
+
                 "absolute inset-x-0 top-16 z-50 mx-auto w-[calc(100%-16px)] max-w-[310px]"
               )}
             >
@@ -3312,6 +3751,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                     disabled={measurePoints.length === 0}
                     className={cn(
                       "inline-flex items-center gap-1 border px-1.5 py-1 text-[10px] font-bold uppercase tracking-[0.05em] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#76B900]/40",
+
                       measurePoints.length === 0
                         ? "cursor-not-allowed border-transparent text-[#B0B1AB]"
                         : "border-transparent text-[#9B3E32] hover:border-[#E7D0CC] hover:bg-[#FFF7F5]"
@@ -3335,8 +3775,11 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         </AnimatePresence>
 
         {/* =================================================
+
               MULTILAYER COMPARISON
+
         ================================================== */}
+
         <AnimatePresence>
           {compareMode && (
             <motion.div
@@ -3344,6 +3787,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               {...hudCardMotion}
               className={cn(
                 hudCardClass,
+
                 "absolute inset-x-0 top-16 z-50 mx-auto w-[calc(100%-16px)] max-w-[520px]"
               )}
             >
@@ -3437,14 +3881,19 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                     {[
                       {
                         value: 0,
+
                         label: "100% A",
                       },
+
                       {
                         value: 50,
+
                         label: "50 / 50",
                       },
+
                       {
                         value: 100,
+
                         label: "100% B",
                       },
                     ].map((preset) => (
@@ -3455,6 +3904,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                         aria-pressed={compareRatio === preset.value}
                         className={cn(
                           "flex-1 border py-1 text-[10px] font-semibold uppercase tracking-[0.02em] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#76B900]/40",
+
                           compareRatio === preset.value
                             ? "border-[#171717] bg-[#171717] text-white"
                             : "border-[#DCDDD8] bg-white text-[#858780] hover:bg-[#F8F8F6] hover:text-[#171717]"
@@ -3471,8 +3921,11 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         </AnimatePresence>
 
         {/* =================================================
+
               POSTGIS GEODETIC DETAIL HUD CARD
+
         ================================================== */}
+
         <AnimatePresence>
           {postgisCardOpen && spatialInfo && (
             <motion.div
@@ -3480,6 +3933,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               {...hudCardMotion}
               className={cn(
                 hudCardClass,
+
                 "absolute inset-x-0 top-16 z-50 mx-auto w-[calc(100%-16px)] max-w-[325px]"
               )}
             >
@@ -3627,10 +4081,13 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                         map.fitBounds(
                           [
                             [west, south],
+
                             [east, north],
                           ],
+
                           {
                             padding: 40,
+
                             duration: 800,
                           }
                         );
@@ -3651,26 +4108,35 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         </AnimatePresence>
 
         {/* =================================================
+
               INSPEKSI PETAK
+
         ================================================== */}
+
         {selectedPetak &&
           petakScreenPos &&
           (() => {
             const cEl = containerRef.current;
 
             const containerW = cEl?.clientWidth || 800;
+
             const containerH = cEl?.clientHeight || 600;
 
             const isSmall = containerW < 640;
+
             const cardWidth = isSmall ? 220 : 260;
 
             const SAFE_TOP = 54;
+
             const SAFE_BOTTOM = 10;
+
             const SAFE_LEFT = 8;
+
             const SAFE_RIGHT = 8;
 
             const maxAllowedH = Math.max(
               190,
+
               containerH - SAFE_TOP - SAFE_BOTTOM
             );
 
@@ -3697,6 +4163,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
             const clampedTop = Math.max(
               SAFE_TOP,
+
               Math.min(containerH - SAFE_BOTTOM - currentCardH, rawTop)
             );
 
@@ -3704,11 +4171,13 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
             const clampedLeft = Math.max(
               SAFE_LEFT,
+
               Math.min(containerW - SAFE_RIGHT - cardWidth, rawLeft)
             );
 
             const arrowX = Math.max(
               16,
+
               Math.min(cardWidth - 16, petakScreenPos.x - clampedLeft)
             );
 
@@ -3716,7 +4185,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               petakScreenPos.y >= clampedTop + currentCardH / 2;
 
             /* =================================================
+
        HELPERS
+
     ================================================== */
 
             const normalizeLayerType = (type = "") => {
@@ -3758,6 +4229,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
             const isValidNumber = (value) => {
               const number = Number(value);
+
               return Number.isFinite(number);
             };
 
@@ -3770,7 +4242,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             };
 
             /* =================================================
+
        LAYER AKTIF
+
     ================================================== */
 
             const activeAnalysisLayer =
@@ -3785,12 +4259,19 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             );
 
             /*
+
              * PENTING:
+
              * Jangan lagi menjadikan selectedPetak sebagai sumber
+
              * angka utama setelah user mengganti layer.
+
              *
+
              * selectedPetak hanya menyimpan identitas petak.
+
              * Data numerik selalu diambil dari layer aktif.
+
              */
 
             const activeLayerPetak = activeAnalysisLayer
@@ -3808,16 +4289,24 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                 ? selectedPetak
                 : {
                     ...selectedPetak,
+
                     value_mean: undefined,
+
                     value_min: undefined,
+
                     value_max: undefined,
+
                     status: undefined,
+
                     color: undefined,
+
                     unit: undefined,
                   });
 
             /* =================================================
+
        INFORMASI LAYER
+
     ================================================== */
 
             const layerTitle =
@@ -3834,7 +4323,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             const valueMean = activePetak?.value_mean;
 
             /* =================================================
+
        STATUS + RINGKASAN
+
     ================================================== */
 
             const getDefaultStatus = (layerType, value) => {
@@ -3966,30 +4457,41 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             })();
 
             /* =================================================
+
        DAFTAR LAYER ANALISIS
+
     ================================================== */
 
             const analysisRows = [
               {
                 key: "ndvi",
+
                 label: "NDVI (Vegetasi)",
               },
+
               {
                 key: "nitrogen",
+
                 label: "Nitrogen (N)",
               },
+
               {
                 key: "phosphorus",
+
                 label: "Fosfor (P)",
               },
+
               {
                 key: "kalium",
+
                 label: "Kalium (K)",
               },
             ];
 
             /* =================================================
+
        REKOMENDASI
+
     ================================================== */
 
             const recommendations = analysisRows.flatMap(({ key, label }) => {
@@ -4039,7 +4541,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             });
 
             /* =================================================
+
        AVAILABLE LAYER COUNT
+
     ================================================== */
 
             const availableCount = analysisRows.filter(({ key }) =>
@@ -4049,7 +4553,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
             ).length;
 
             /* =================================================
+
        SELECT LAYER
+
     ================================================== */
 
             const selectLayer = (layerItem) => {
@@ -4060,6 +4566,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               setMapLayers((prevLayers) => {
                 const nextLayers = prevLayers.map((layer) => ({
                   ...layer,
+
                   is_visible:
                     normalizeLayerType(layer.layer_type) === "ortho"
                       ? layer.is_visible
@@ -4074,7 +4581,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                   if (map?.getLayer(renderId)) {
                     map.setLayoutProperty(
                       renderId,
+
                       "visibility",
+
                       layer.is_visible ? "visible" : "none"
                     );
                   }
@@ -4084,10 +4593,15 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               });
 
               /*
+
                * Jangan setSelectedPetak di sini.
+
                *
+
                * selectedPetak harus tetap menjadi petak yang sama.
+
                * Yang berubah hanya activeAnalysisLayer.
+
                */
             };
 
@@ -4104,11 +4618,14 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                 }}
                 className={cn(
                   "pointer-events-auto absolute z-30 flex flex-col transition-all duration-75 ease-out",
+
                   isSmall ? "w-[188px]" : "w-[208px]"
                 )}
                 style={{
                   left: `${clampedLeft}px`,
+
                   top: `${clampedTop}px`,
+
                   maxHeight: `${maxAllowedH}px`,
                 }}
               >
@@ -4131,20 +4648,25 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                 <motion.div
                   initial={{
                     opacity: 0,
+
                     scale: 0.97,
                   }}
                   animate={{
                     opacity: 1,
+
                     scale: 1,
                   }}
                   transition={{
                     duration: 0.18,
+
                     ease: EASE,
                   }}
                   className="relative flex max-h-[inherit] flex-col overflow-y-auto border border-[#DCDDD8] bg-white/95 shadow-[0_12px_28px_rgba(0,0,0,0.09)] backdrop-blur-md"
                 >
                   {/* =================================================
+
                 HEADER
+
           ================================================== */}
 
                   <div className="flex items-center justify-between gap-1.5 px-2 pt-2">
@@ -4169,7 +4691,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                   </div>
 
                   {/* =================================================
+
                 MAIN VALUE
+
           ================================================== */}
 
                   <div className="space-y-1 p-2">
@@ -4242,7 +4766,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                     </div>
 
                     {/* =================================================
+
                   SUMMARY
+
             ================================================== */}
 
                     <AccordionRow
@@ -4260,7 +4786,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                     </AccordionRow>
 
                     {/* =================================================
+
                   ANALYSIS LAYERS
+
             ================================================== */}
 
                     <AccordionRow
@@ -4306,6 +4834,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                                   event.key === " "
                                 ) {
                                   event.preventDefault();
+
                                   selectLayer(layerItem);
                                 }
                               }}
@@ -4313,7 +4842,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                               tabIndex={layerItem ? 0 : undefined}
                               className={cn(
                                 "flex items-center justify-between gap-1.5 border px-1 py-0.5 text-[10px]",
+
                                 layerItem ? "cursor-pointer" : "cursor-default",
+
                                 isCurrent
                                   ? "border-[#171717] bg-[#F7F8F5] font-bold text-[#171717]"
                                   : "border-transparent text-[#858780]"
@@ -4323,6 +4854,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                                 <span
                                   className={cn(
                                     "h-1 w-1 shrink-0",
+
                                     isCurrent
                                       ? "bg-[#76B900]"
                                       : layerItem
@@ -4360,7 +4892,9 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                     </AccordionRow>
 
                     {/* =================================================
+
                   RECOMMENDATIONS
+
             ================================================== */}
 
                     <AccordionRow
@@ -4397,17 +4931,24 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
           })()}
 
         {/* =================================================
+
               MAP LEGEND — BOTTOM CENTER DRAWER
+
         ================================================== */}
+
         <MapLegend layers={mapLayers} gridEnabled={gridEnabled} />
 
         {/* =================================================
+
       BOTTOM-LEFT CONTROLS
+
 ================================================== */}
+
         <div
           className="pointer-events-none absolute bottom-2 z-20 flex flex-col items-start gap-1 sm:bottom-3"
           style={{
             left: `${mapUiLeft}px`,
+
             transition: "left 300ms ease-out",
           }}
         >
@@ -4482,8 +5023,11 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         </div>
 
         {/* =================================================
+
               MAP CONTAINER
+
         ================================================== */}
+
         <div ref={containerRef} className="h-full w-full bg-[#F4F5F2]" />
       </div>
     );

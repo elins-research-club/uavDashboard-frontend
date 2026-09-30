@@ -1,26 +1,29 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
+
 import {
   ArrowDownAZ,
   ArrowUpAZ,
+  CheckCircle2,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  CircleAlert,
-  CircleCheck,
+  Clock3,
   Download,
   FileSpreadsheet,
   FileText,
   Loader2,
   Search,
   ShieldCheck,
-  Timer,
-  UserX,
-  Users,
+  UserRoundX,
+  UsersRound,
+  CircleAlert,
+  UserCheck,
+  X,
 } from "lucide-react";
 
 import api from "@/lib/api";
@@ -60,6 +63,8 @@ type SortDirection = "asc" | "desc";
 
 type SubscriptionState = "active" | "expiring" | "free" | "expired";
 
+type StatVisual = "bars" | "ring" | "line";
+
 const ICON_STROKE = 1.75;
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -80,17 +85,24 @@ const STATUS_LABELS: Record<SubscriptionState, string> = {
 };
 
 const STATUS_TEXT: Record<SubscriptionState, string> = {
-  active: "text-[#55731E]",
+  active: "text-[#4F6E16]",
   expiring: "text-[#8A6818]",
   free: "text-[#666861]",
-  expired: "text-[#994A40]",
+  expired: "text-[#98483F]",
+};
+
+const STATUS_BORDER: Record<SubscriptionState, string> = {
+  active: "border-[#B7CB8E]",
+  expiring: "border-[#D9C79A]",
+  free: "border-[#D6D7D2]",
+  expired: "border-[#D8B5AF]",
 };
 
 const STATUS_DOTS: Record<SubscriptionState, string> = {
-  active: "bg-[#76B900]",
-  expiring: "bg-[#C49A35]",
-  free: "bg-[#A0A29B]",
-  expired: "bg-[#C65D50]",
+  active: "bg-[#76A61C]",
+  expiring: "bg-[#C59A32]",
+  free: "bg-[#858780]",
+  expired: "bg-[#B85147]",
 };
 
 const COLUMNS: {
@@ -133,30 +145,84 @@ const COLUMNS: {
 
 function Avatar({ name }: { name: string }) {
   return (
-    <span className="flex h-9 w-9 shrink-0 items-center justify-center border border-[#D9DED2] bg-[#F5F8F1] text-[10px] font-bold text-[#62763D]">
+    <motion.span
+      initial={{
+        opacity: 0,
+        scale: 0.92,
+      }}
+      animate={{
+        opacity: 1,
+        scale: 1,
+      }}
+      whileHover={{
+        scale: 1.04,
+      }}
+      transition={{
+        duration: 0.28,
+        ease: EASE,
+      }}
+      className="
+        flex h-9 w-9 shrink-0
+        items-center justify-center
+        border border-[#D7DAD3]
+        bg-white
+        text-[10px] font-bold
+        text-[#3F4C2A]
+      "
+    >
       {name.slice(0, 2).toUpperCase()}
-    </span>
+    </motion.span>
   );
 }
 
 function StateBadge({ state }: { state: SubscriptionState }) {
+  const isActive = state === "active";
+
   return (
-    <span
-      className={`inline-flex items-center gap-2 border px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.08em] ${
-        STATUS_TEXT[state]
-      } ${
-        state === "active"
-          ? "border-[#DCE7CC] bg-[#F5F8F1]"
-          : state === "expiring"
-          ? "border-[#E9DFC2] bg-[#FCFAF3]"
-          : state === "expired"
-          ? "border-[#EBD4D0] bg-[#FDF7F6]"
-          : "border-[#E1E2DE] bg-[#F7F8F5]"
-      }`}
+    <motion.span
+      whileHover={{
+        y: -1,
+      }}
+      transition={{
+        duration: 0.18,
+      }}
+      className={`
+        inline-flex items-center gap-2
+        border
+        bg-white
+        px-2.5 py-1
+        text-[9px]
+        font-bold
+        uppercase
+        tracking-[0.08em]
+        ${STATUS_TEXT[state]}
+        ${STATUS_BORDER[state]}
+      `}
     >
-      <span className={`h-1.5 w-1.5 ${STATUS_DOTS[state]}`} />
+      <span className="relative flex h-1.5 w-1.5 shrink-0">
+        {isActive && (
+          <span
+            className="
+              absolute inset-0
+              animate-ping
+              rounded-full
+              bg-[#76A61C]
+              opacity-40
+            "
+          />
+        )}
+
+        <span
+          className={`
+            relative h-1.5 w-1.5
+            rounded-full
+            ${STATUS_DOTS[state]}
+          `}
+        />
+      </span>
+
       {STATUS_LABELS[state]}
-    </span>
+    </motion.span>
   );
 }
 
@@ -165,17 +231,33 @@ function TierBadge({ tier }: { tier: string }) {
   const isKecamatan = tier === "kecamatan";
 
   return (
-    <span
-      className={`inline-flex items-center border px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.08em] ${
-        isKecamatan
-          ? "border-[#E4D7B8] bg-[#FCF9F1] text-[#876A21]"
-          : isDesa
-          ? "border-[#DDE5D3] bg-[#F6F8F2] text-[#617A39]"
-          : "border-[#E1E2DE] bg-[#F7F8F5] text-[#666861]"
-      }`}
+    <motion.span
+      whileHover={{
+        y: -1,
+      }}
+      transition={{
+        duration: 0.18,
+      }}
+      className={`
+        inline-flex items-center
+        border
+        bg-white
+        px-2.5 py-1
+        text-[9px]
+        font-bold
+        uppercase
+        tracking-[0.08em]
+        ${
+          isKecamatan
+            ? "border-[#D8C695] text-[#7C601B]"
+            : isDesa
+            ? "border-[#BED09A] text-[#55701D]"
+            : "border-[#D6D7D2] text-[#666861]"
+        }
+      `}
     >
       {TIER_LABELS[tier] || TIER_LABELS.free}
-    </span>
+    </motion.span>
   );
 }
 
@@ -189,15 +271,30 @@ function RoleBadge({
   if (isProtected || role === "god") {
     return (
       <div className="flex items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 border border-[#DCDDD8] bg-[#F4F5F2] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.08em] text-[#33332F]">
+        <motion.span
+          whileHover={{
+            y: -1,
+          }}
+          className="
+            inline-flex items-center gap-1.5
+            border border-[#171717]
+            bg-white
+            px-2.5 py-1
+            text-[9px]
+            font-bold
+            uppercase
+            tracking-[0.08em]
+            text-[#171717]
+          "
+        >
           <ShieldCheck
-            className="h-3 w-3 text-[#76B900]"
+            className="h-3 w-3 text-[#6E5C88]"
             strokeWidth={ICON_STROKE}
           />
           God
-        </span>
+        </motion.span>
 
-        <span className="text-[9px] font-bold uppercase tracking-[0.08em] text-[#A1A39C]">
+        <span className="text-[9px] font-bold uppercase tracking-[0.08em] text-[#A0A29B]">
           Protected
         </span>
       </div>
@@ -205,25 +302,33 @@ function RoleBadge({
   }
 
   return (
-    <span
-      className={`inline-flex items-center border px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.08em] ${
-        role === "admin"
-          ? "border-[#DCE4D6] bg-[#F5F8F2] text-[#5F7444]"
-          : "border-[#E1E2DE] bg-[#F7F8F5] text-[#666861]"
-      }`}
+    <motion.span
+      whileHover={{
+        y: -1,
+      }}
+      className={`
+        inline-flex items-center
+        border
+        bg-white
+        px-2.5 py-1
+        text-[9px]
+        font-bold
+        uppercase
+        tracking-[0.08em]
+        ${
+          role === "admin"
+            ? "border-[#B7C89A] text-[#506B18]"
+            : "border-[#D6D7D2] text-[#666861]"
+        }
+      `}
     >
       {role === "admin" ? "Admin" : "Member"}
-    </span>
+    </motion.span>
   );
 }
 
 /* ============================================================
    SWEEP BUTTON
-   ------------------------------------------------------------
-   Hover: warna menyapu dari kiri ke kanan (transform-only,
-   jadi tetap 60fps). Saat hover dilepas, warna keluar ke
-   kanan, bukan mundur ke kiri, supaya terasa mengalir.
-   Sama dengan yang dipakai di halaman Subscription.
 ============================================================ */
 
 function SweepButton({
@@ -240,45 +345,265 @@ function SweepButton({
   className?: string;
 }) {
   return (
-    <button
+    <motion.button
       type="button"
       onClick={onClick}
       disabled={disabled}
       aria-expanded={ariaExpanded}
-      className={`group/sweep relative inline-flex items-center justify-center overflow-hidden border border-[#D8DAD4] bg-white text-[#555750] outline-none transition-[border-color,transform] duration-300 focus-visible:ring-2 focus-visible:ring-[#76B900] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 ${
-        disabled ? "" : "hover:border-[#171717] active:scale-[0.985]"
-      } ${className}`}
+      whileHover={
+        disabled
+          ? undefined
+          : {
+              y: -1,
+            }
+      }
+      whileTap={
+        disabled
+          ? undefined
+          : {
+              scale: 0.985,
+            }
+      }
+      className={`
+        group/sweep
+        relative
+        inline-flex
+        items-center
+        justify-center
+        overflow-hidden
+        border border-[#D2D5CD]
+        bg-white
+        text-[#555750]
+        outline-none
+        transition-all
+        duration-300
+        focus-visible:ring-2
+        focus-visible:ring-[#77B901]/40
+        focus-visible:ring-offset-2
+        ${disabled ? "cursor-not-allowed opacity-40" : "hover:border-[#171717]"}
+        ${className}
+      `}
     >
       {!disabled && (
         <span
           aria-hidden="true"
-          className="absolute inset-0 origin-right scale-x-0 transform-gpu bg-[#171717] transition-transform duration-[650ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform group-hover/sweep:origin-left group-hover/sweep:scale-x-100 motion-reduce:transition-none"
+          className="
+            absolute inset-0
+            origin-right
+            scale-x-0
+            bg-[#171717]
+            transition-transform
+            duration-[600ms]
+            ease-[cubic-bezier(0.22,1,0.36,1)]
+            group-hover/sweep:origin-left
+            group-hover/sweep:scale-x-100
+            motion-reduce:transition-none
+          "
         />
       )}
 
       <span
-        className={`relative z-10 inline-flex items-center justify-center gap-2 transition-colors duration-500 ease-out ${
-          disabled ? "" : "group-hover/sweep:text-white"
-        }`}
+        className={`
+          relative z-10
+          inline-flex items-center justify-center gap-2
+          transition-colors duration-500
+          ${!disabled ? "group-hover/sweep:text-white" : ""}
+        `}
       >
         {children}
       </span>
-    </button>
+    </motion.button>
+  );
+}
+
+/* ============================================================
+   STAT VISUAL — BARS
+============================================================ */
+
+function StatMiniBars({
+  percentage,
+  active,
+}: {
+  percentage: number;
+  active: boolean;
+}) {
+  const heights = [28, 40, 34, 52, 44, 64, 58, 76, 70, 88, 82, 100];
+
+  const visibleBars = Math.max(
+    2,
+    Math.round((percentage / 100) * heights.length)
+  );
+
+  return (
+    <div className="flex h-11 items-end gap-[2px]">
+      {heights.map((height, index) => {
+        const visible = index < visibleBars;
+
+        return (
+          <motion.span
+            key={index}
+            initial={{
+              height: 0,
+            }}
+            animate={{
+              height: `${visible ? height : 10}%`,
+            }}
+            transition={{
+              duration: 0.45,
+              delay: index * 0.025,
+              ease: EASE,
+            }}
+            className={`
+              w-[3px]
+              rounded-[1px]
+              transition-colors duration-500
+              ${
+                visible
+                  ? active
+                    ? "bg-[#DDF2A8]"
+                    : "bg-[#77B901]"
+                  : active
+                  ? "bg-white/10"
+                  : "bg-[#E9ECE5]"
+              }
+            `}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+/* ============================================================
+   STAT VISUAL — RING
+============================================================ */
+
+function StatMiniRing({
+  percentage,
+  active,
+}: {
+  percentage: number;
+  active: boolean;
+}) {
+  const radius = 17;
+  const circumference = 2 * Math.PI * radius;
+
+  return (
+    <div className="relative h-11 w-11">
+      <svg viewBox="0 0 40 40" className="h-full w-full -rotate-90">
+        <circle
+          cx="20"
+          cy="20"
+          r={radius}
+          fill="none"
+          stroke={active ? "rgba(255,255,255,0.12)" : "#E9ECE5"}
+          strokeWidth="4.5"
+        />
+
+        <motion.circle
+          cx="20"
+          cy="20"
+          r={radius}
+          fill="none"
+          stroke={active ? "#DDF2A8" : "#77B901"}
+          strokeWidth="4.5"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          initial={{
+            strokeDashoffset: circumference,
+          }}
+          animate={{
+            strokeDashoffset:
+              circumference - (percentage / 100) * circumference,
+          }}
+          transition={{
+            duration: 0.75,
+            ease: EASE,
+          }}
+        />
+      </svg>
+
+      <span
+        className={`
+          absolute inset-0
+          flex items-center justify-center
+          text-[8px]
+          font-bold
+          tabular-nums
+          transition-colors duration-300
+          ${active ? "text-white" : "text-[#666861]"}
+        `}
+      >
+        {percentage}%
+      </span>
+    </div>
+  );
+}
+
+/* ============================================================
+   STAT VISUAL — LINE
+============================================================ */
+
+function StatMiniLine({ active }: { percentage: number; active: boolean }) {
+  const points = [30, 33, 31, 40, 36, 48, 44, 57, 53, 72, 68, 88];
+
+  const path = points
+    .map((point, index) => {
+      const x = (index / (points.length - 1)) * 76 + 2;
+
+      const y = 46 - (point / 100) * 36;
+
+      return `${index === 0 ? "M" : "L"} ${x} ${y}`;
+    })
+    .join(" ");
+
+  const lastY = 46 - (points[points.length - 1] / 100) * 36;
+
+  return (
+    <div className="relative h-11 w-[78px]">
+      <svg viewBox="0 0 82 50" className="h-full w-full">
+        <path
+          d={path}
+          fill="none"
+          stroke={active ? "#DDF2A8" : "#77B901"}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+
+        <motion.circle
+          cx="78"
+          cy={lastY}
+          r="2.4"
+          initial={{
+            opacity: 0,
+            scale: 0,
+          }}
+          animate={{
+            opacity: 1,
+            scale: 1,
+          }}
+          transition={{
+            delay: 0.45,
+            duration: 0.25,
+          }}
+          fill={active ? "#DDF2A8" : "#77B901"}
+        />
+      </svg>
+    </div>
   );
 }
 
 /* ============================================================
    STAT CARD
-   ------------------------------------------------------------
-   Aksen kiri 3px tumbuh dari atas ke bawah saat hover / aktif,
-   sama dengan strip overview di halaman Subscription.
 ============================================================ */
 
 function StatCard({
   label,
   value,
+  total,
   icon: Icon,
-  iconClass,
+  valueClass,
   accent,
   active,
   onClick,
@@ -286,13 +611,16 @@ function StatCard({
 }: {
   label: string;
   value: number;
-  icon: typeof Users;
-  iconClass: string;
+  total: number;
+  icon: typeof CheckCircle2;
+  valueClass: string;
   accent: string;
   active: boolean;
   onClick: () => void;
   delay: number;
 }) {
+  const percentage = total > 0 ? Number(((value / total) * 100).toFixed(1)) : 0;
+
   return (
     <motion.button
       type="button"
@@ -306,39 +634,431 @@ function StatCard({
         opacity: 1,
         y: 0,
       }}
+      whileHover={{
+        y: -3,
+      }}
+      whileTap={{
+        scale: 0.985,
+      }}
       transition={{
-        duration: 0.45,
+        duration: 0.42,
         delay,
         ease: EASE,
       }}
-      className={`group/stat relative min-h-[96px] overflow-hidden p-5 pl-6 text-left outline-none transition-colors duration-300 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#767C6D]/40 ${
-        active ? "bg-[#F7F8F5]" : "bg-white hover:bg-[#FAFBF9]"
-      }`}
+      className="
+        group/stat
+        relative
+        min-h-[116px]
+        overflow-hidden
+        text-left
+        outline-none
+        focus-visible:ring-2
+        focus-visible:ring-inset
+        focus-visible:ring-[#77B901]/40
+      "
     >
-      <span
-        aria-hidden="true"
-        className={`absolute inset-y-0 left-0 w-[3px] origin-top transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${accent} ${
-          active ? "scale-y-100" : "scale-y-0 group-hover/stat:scale-y-100"
-        }`}
+      {/* ==================================================
+          BACKGROUND
+      ================================================== */}
+
+      <motion.div
+        initial={false}
+        animate={{
+          backgroundColor: active ? "#77B901" : "#FFFFFF",
+        }}
+        transition={{
+          duration: 0.5,
+          ease: EASE,
+        }}
+        className="absolute inset-0"
       />
 
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#969890]">
-            {label}
-          </p>
+      {/* Active moving glow */}
+      <motion.div
+        initial={false}
+        animate={{
+          opacity: active ? 1 : 0,
+          scale: active ? 1 : 0.65,
+          x: active ? 0 : 20,
+        }}
+        transition={{
+          duration: 0.65,
+          ease: EASE,
+        }}
+        className="
+          pointer-events-none
+          absolute
+          -right-8
+          -top-10
+          h-32
+          w-32
+          rounded-full
+          bg-[#DDF2A8]/25
+          blur-3xl
+        "
+      />
 
-          <strong
-            className={`mt-3 block text-[27px] font-bold tabular-nums tracking-[-0.045em] ${iconClass}`}
+      {/* ==================================================
+          LEFT ACTIVE BAR
+      ================================================== */}
+
+      <motion.span
+        initial={false}
+        animate={{
+          scaleY: active ? 1 : 0,
+        }}
+        transition={{
+          duration: 0.45,
+          ease: EASE,
+        }}
+        className={`
+          absolute
+          inset-y-0
+          left-0
+          w-[4px]
+          origin-top
+          ${active ? "bg-[#DDF2A8]" : accent}
+        `}
+      />
+
+      {/* ==================================================
+          CONTENT
+      ================================================== */}
+
+      <div className="relative z-10 flex h-full items-start justify-between gap-4 px-5 py-4">
+        {/* ==================================================
+            LEFT CONTENT
+        ================================================== */}
+
+        <div className="min-w-0">
+          {/* LABEL */}
+          <motion.p
+            animate={{
+              x: active ? 1 : 0,
+              opacity: active ? 1 : 0.95,
+            }}
+            transition={{
+              duration: 0.3,
+              ease: EASE,
+            }}
+            className={`
+              text-[9px]
+              font-bold
+              uppercase
+              tracking-[0.16em]
+              transition-colors duration-400
+              ${active ? "text-white/80" : "text-[#858780]"}
+            `}
+          >
+            {label}
+          </motion.p>
+
+          {/* VALUE */}
+          <motion.div
+            key={value}
+            initial={{
+              opacity: 0,
+              y: 6,
+              scale: 0.94,
+            }}
+            animate={{
+              opacity: 1,
+              y: 0,
+              scale: 1,
+            }}
+            transition={{
+              duration: 0.35,
+              ease: EASE,
+            }}
+            className={`
+              mt-1
+              text-[34px]
+              font-bold
+              leading-none
+              tracking-[-0.06em]
+              tabular-nums
+              transition-colors duration-400
+              sm:text-[38px]
+              ${active ? "text-white" : valueClass}
+            `}
           >
             {value}
-          </strong>
+          </motion.div>
+
+          {/* PERCENTAGE */}
+          <motion.div
+            animate={{
+              opacity: active ? 1 : 0.8,
+              y: active ? 0 : 1,
+            }}
+            transition={{
+              duration: 0.35,
+              ease: EASE,
+            }}
+            className="
+              mt-1.5
+              flex
+              items-center
+              gap-1.5
+            "
+          >
+            <span
+              className={`
+                text-[10px]
+                font-bold
+                tabular-nums
+                transition-colors duration-400
+                ${active ? "text-[#E4F5B7]" : "text-[#6F716B]"}
+              `}
+            >
+              {percentage}%
+            </span>
+
+            <span
+              className={`
+                text-[8px]
+                font-medium
+                transition-colors duration-400
+                ${active ? "text-white/55" : "text-[#A0A29B]"}
+              `}
+            >
+              dari seluruh user
+            </span>
+          </motion.div>
         </div>
 
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center border border-[#E0E1DC] bg-[#F7F8F5]">
-          <Icon className={`h-4 w-4 ${iconClass}`} strokeWidth={ICON_STROKE} />
-        </span>
+        {/* ==================================================
+            SINGLE ICON
+        ================================================== */}
+
+        <motion.div
+          className="
+            relative
+            mt-1
+            flex
+            h-12
+            w-12
+            shrink-0
+            items-center
+            justify-center
+          "
+          whileHover={{
+            scale: 1.14,
+            rotate: -8,
+          }}
+          whileTap={{
+            scale: 0.9,
+            rotate: 8,
+          }}
+          transition={{
+            type: "spring",
+            stiffness: 420,
+            damping: 16,
+          }}
+        >
+          {/* OUTER BURST */}
+          <motion.span
+            initial={false}
+            animate={{
+              scale: active ? 1 : 0.5,
+              opacity: active ? 1 : 0,
+              rotate: active ? 180 : 0,
+            }}
+            transition={{
+              duration: 0.65,
+              ease: EASE,
+            }}
+            className="
+              absolute
+              inset-0
+              rounded-full
+              border
+              border-[#DDF2A8]/40
+            "
+          />
+
+          {/* SECOND BURST */}
+          <motion.span
+            initial={false}
+            animate={{
+              scale: active ? 1.35 : 0.5,
+              opacity: active ? 0.35 : 0,
+              rotate: active ? -120 : 0,
+            }}
+            transition={{
+              duration: 0.8,
+              ease: EASE,
+            }}
+            className="
+              absolute
+              inset-[7px]
+              rounded-full
+              border
+              border-[#E4F5B7]/30
+            "
+          />
+
+          {/* GLOW */}
+          <motion.span
+            initial={false}
+            animate={{
+              scale: active ? 1.2 : 0.6,
+              opacity: active ? 1 : 0,
+            }}
+            transition={{
+              duration: 0.45,
+              ease: EASE,
+            }}
+            className="
+              absolute
+              inset-[5px]
+              rounded-full
+              bg-[#DDF2A8]/25
+              blur-md
+            "
+          />
+
+          {/* ICON CONTAINER */}
+          <motion.span
+            initial={false}
+            animate={{
+              backgroundColor: active ? "rgba(255,255,255,0.12)" : "#F4F6F0",
+              borderColor: active ? "rgba(228,245,183,0.28)" : "#E1E4DC",
+              scale: active ? 1.12 : 1,
+              rotate: active ? 0 : -4,
+            }}
+            transition={{
+              duration: 0.45,
+              ease: EASE,
+            }}
+            className="
+              relative
+              z-10
+              flex
+              h-10
+              w-10
+              items-center
+              justify-center
+              rounded-full
+              border
+            "
+          >
+            <motion.div
+              initial={false}
+              animate={{
+                rotate: active ? 360 : 0,
+                scale: active ? 1.1 : 1,
+              }}
+              transition={{
+                rotate: {
+                  duration: 0.7,
+                  ease: EASE,
+                },
+                scale: {
+                  duration: 0.35,
+                  ease: EASE,
+                },
+              }}
+            >
+              <Icon
+                className={`
+                  h-[21px]
+                  w-[21px]
+                  transition-colors duration-400
+                  ${active ? "text-[#E4F5B7]" : valueClass}
+                `}
+                strokeWidth={1.9}
+              />
+            </motion.div>
+          </motion.span>
+        </motion.div>
       </div>
+
+      {/* ==================================================
+          FOOTER
+      ================================================== */}
+
+      <motion.div
+        initial={false}
+        animate={{
+          backgroundColor: active ? "rgba(0,0,0,0.07)" : "#FBFCFA",
+          borderColor: active ? "rgba(255,255,255,0.10)" : "#ECEDE9",
+        }}
+        transition={{
+          duration: 0.45,
+          ease: EASE,
+        }}
+        className="
+          relative
+          z-10
+          flex
+          h-8
+          items-center
+          justify-between
+          border-t
+          px-5
+        "
+      >
+        <motion.span
+          animate={{
+            x: active ? 2 : 0,
+          }}
+          transition={{
+            duration: 0.3,
+            ease: EASE,
+          }}
+          className={`
+            text-[8px]
+            font-semibold
+            sm:text-[9px]
+            ${active ? "text-white/75" : "text-[#6F716B]"}
+          `}
+        >
+          {active ? "Filter aktif" : "Lihat pengguna"}
+        </motion.span>
+
+        <motion.span
+          whileHover={{
+            x: 4,
+          }}
+          transition={{
+            duration: 0.2,
+          }}
+          className={`
+            text-[13px]
+            leading-none
+            transition-colors duration-400
+            ${active ? "text-[#E4F5B7]" : "text-[#777A73]"}
+          `}
+        >
+          →
+        </motion.span>
+      </motion.div>
+
+      {/* ==================================================
+          ACTIVE FLASH LINE
+      ================================================== */}
+
+      <motion.span
+        initial={false}
+        animate={{
+          scaleX: active ? 1 : 0,
+          opacity: active ? 1 : 0,
+        }}
+        transition={{
+          duration: 0.55,
+          ease: EASE,
+        }}
+        className="
+          absolute
+          bottom-0
+          left-5
+          h-[2px]
+          w-10
+          origin-left
+          bg-[#E4F5B7]
+        "
+      />
     </motion.button>
   );
 }
@@ -416,6 +1136,8 @@ export default function UsersPage() {
         }
 
         setMessage(error.response?.data?.detail || "Gagal memuat daftar user.");
+
+        setMsgType("error");
       })
       .finally(() => {
         if (!cancelled) {
@@ -481,7 +1203,7 @@ export default function UsersPage() {
 
     window.setTimeout(() => {
       setMessage("");
-    }, 3000);
+    }, 3200);
   };
 
   /* ==========================================================
@@ -653,6 +1375,8 @@ export default function UsersPage() {
     URL.revokeObjectURL(url);
 
     setExportOpen(false);
+
+    showMessage("Data user berhasil diekspor.", "success");
   };
 
   const exportPdf = () => {
@@ -707,7 +1431,7 @@ export default function UsersPage() {
             }
 
             th {
-              background: #f1f3ee;
+              background: #f4f5f2;
             }
           </style>
         </head>
@@ -741,55 +1465,49 @@ export default function UsersPage() {
     printWindow.close();
 
     setExportOpen(false);
+
+    showMessage("Dokumen berhasil disiapkan.", "success");
   };
 
   /* ==========================================================
-     RENDER GUARDS
+     GUARD
   ========================================================== */
 
   if (authLoading || !user || !canManageUsers) {
     return null;
   }
-
-  /* ==========================================================
-     STAT CARDS
-  ========================================================== */
-
   const statCards = [
     {
       state: "active" as SubscriptionState,
       label: "Active Users",
       value: stats.active,
-      icon: CircleCheck,
-      iconClass: "text-[#5F7D29]",
-      accent: "bg-[#76B900]",
+      icon: CheckCircle2,
+      valueClass: "text-[#4F6E16]",
+      accent: "bg-[#91B928]",
     },
-
     {
       state: "expiring" as SubscriptionState,
       label: "Hampir Berakhir",
       value: stats.expiring,
-      icon: Timer,
-      iconClass: "text-[#8A6818]",
-      accent: "bg-[#C49A35]",
+      icon: Clock3,
+      valueClass: "text-[#876516]",
+      accent: "bg-[#C59A32]",
     },
-
     {
       state: "free" as SubscriptionState,
       label: "User Free",
       value: stats.free,
-      icon: Users,
-      iconClass: "text-[#666861]",
-      accent: "bg-[#A0A29B]",
+      icon: UsersRound,
+      valueClass: "text-[#5F625C]",
+      accent: "bg-[#858780]",
     },
-
     {
       state: "expired" as SubscriptionState,
       label: "Langganan Berakhir",
       value: stats.expired,
-      icon: UserX,
-      iconClass: "text-[#994A40]",
-      accent: "bg-[#C65D50]",
+      icon: UserRoundX,
+      valueClass: "text-[#98483F]",
+      accent: "bg-[#B85147]",
     },
   ];
 
@@ -807,24 +1525,28 @@ export default function UsersPage() {
         <motion.header
           initial={{
             opacity: 0,
-            y: 12,
+            y: 10,
           }}
           animate={{
             opacity: 1,
             y: 0,
           }}
           transition={{
-            duration: 0.5,
+            duration: 0.45,
             ease: EASE,
           }}
-          className="mb-8"
+          className="mb-7"
         >
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h1 className="text-[34px] font-bold leading-[1.05] tracking-[-0.045em] text-[#111111] sm:text-[42px]">
-                Manajemen <span className="text-[#171717]">User</span>
+              <h1 className="text-[32px] font-bold leading-none tracking-[-0.045em] text-[#111111] sm:text-[40px]">
+                Manajemen User
               </h1>
 
+              <p className="mt-3 max-w-xl text-[11px] font-medium leading-5 text-[#777972] sm:text-xs">
+                Kelola identitas, role, subscription, dan akses pengguna dalam
+                workspace.
+              </p>
             </div>
 
             <div className="relative">
@@ -856,44 +1578,83 @@ export default function UsersPage() {
                   <motion.div
                     initial={{
                       opacity: 0,
-                      y: -6,
+                      y: -5,
+                      scale: 0.98,
                     }}
                     animate={{
                       opacity: 1,
                       y: 0,
+                      scale: 1,
                     }}
                     transition={{
                       duration: 0.2,
                       ease: EASE,
                     }}
-                    className="absolute right-0 z-20 mt-2 w-52 border border-[#DCDDD8] bg-white p-1 shadow-[0_18px_45px_rgba(0,0,0,0.08)]"
+                    className="
+                      absolute right-0 z-20 mt-2
+                      w-52
+                      border border-[#DCDDD8]
+                      bg-white
+                      p-1
+                      shadow-[0_16px_40px_rgba(0,0,0,0.09)]
+                    "
                   >
                     <button
                       type="button"
                       onClick={exportPdf}
-                      className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-xs font-semibold text-[#555750] transition-colors hover:bg-[#F7F8F5] hover:text-[#171717]"
+                      className="
+                        flex w-full items-center gap-3
+                        px-3 py-2.5
+                        text-left
+                        transition-colors
+                        hover:bg-[#F5F6F3]
+                      "
                     >
-                      <span className="flex h-7 w-7 items-center justify-center border border-[#E0E1DC] bg-[#F7F8F5]">
+                      <span className="flex h-8 w-8 items-center justify-center border border-[#DCDDD8] bg-white">
                         <FileText
-                          className="h-3.5 w-3.5"
+                          className="h-3.5 w-3.5 text-[#555750]"
                           strokeWidth={ICON_STROKE}
                         />
                       </span>
-                      PDF (Print)
+
+                      <span>
+                        <span className="block text-[11px] font-bold text-[#171717]">
+                          PDF
+                        </span>
+
+                        <span className="mt-0.5 block text-[9px] font-medium text-[#969890]">
+                          Print document
+                        </span>
+                      </span>
                     </button>
 
                     <button
                       type="button"
                       onClick={exportExcel}
-                      className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-xs font-semibold text-[#555750] transition-colors hover:bg-[#F7F8F5] hover:text-[#171717]"
+                      className="
+                        flex w-full items-center gap-3
+                        px-3 py-2.5
+                        text-left
+                        transition-colors
+                        hover:bg-[#F5F6F3]
+                      "
                     >
-                      <span className="flex h-7 w-7 items-center justify-center border border-[#E0E1DC] bg-[#F7F8F5]">
+                      <span className="flex h-8 w-8 items-center justify-center border border-[#DCDDD8] bg-white">
                         <FileSpreadsheet
-                          className="h-3.5 w-3.5"
+                          className="h-3.5 w-3.5 text-[#555750]"
                           strokeWidth={ICON_STROKE}
                         />
                       </span>
-                      Excel (CSV)
+
+                      <span>
+                        <span className="block text-[11px] font-bold text-[#171717]">
+                          CSV
+                        </span>
+
+                        <span className="mt-0.5 block text-[9px] font-medium text-[#969890]">
+                          Spreadsheet export
+                        </span>
+                      </span>
                     </button>
                   </motion.div>
                 </>
@@ -905,58 +1666,142 @@ export default function UsersPage() {
         {/* ==================================================
             STAT CARDS
         ================================================== */}
-
-        <div className="mb-5 grid gap-px overflow-hidden border border-[#DCDDD8] bg-[#DCDDD8] sm:grid-cols-2 xl:grid-cols-4">
+        <motion.div
+          initial={{
+            opacity: 0,
+            y: 8,
+          }}
+          animate={{
+            opacity: 1,
+            y: 0,
+          }}
+          transition={{
+            duration: 0.42,
+            delay: 0.08,
+            ease: EASE,
+          }}
+          className="
+    mb-5
+    grid
+    overflow-hidden
+    border border-[#DCDDD8]
+    bg-[#DCDDD8]
+    sm:grid-cols-2
+    xl:grid-cols-4
+  "
+        >
           {statCards.map((card, index) => (
             <StatCard
               key={card.state}
               label={card.label}
               value={card.value}
+              total={users.length}
               icon={card.icon}
-              iconClass={card.iconClass}
+              valueClass={card.valueClass}
               accent={card.accent}
               active={stateFilter === card.state}
               onClick={() => toggleStateFilter(card.state)}
-              delay={index * 0.06}
+              delay={index * 0.05}
             />
           ))}
-        </div>
+        </motion.div>
 
         {/* ==================================================
-            TOAST
+            MESSAGE
         ================================================== */}
 
-        {message && (
-          <motion.div
-            initial={{
-              opacity: 0,
-              y: 8,
-            }}
-            animate={{
-              opacity: 1,
-              y: 0,
-            }}
-            className={`mb-5 flex items-center gap-3 border px-4 py-3 text-sm font-semibold ${
-              msgType === "success"
-                ? "border-[#D8DED0] bg-[#F6F8F2] text-[#5D7042]"
-                : "border-[#E7D0CC] bg-[#FFF7F5] text-[#9B3E32]"
-            }`}
-          >
-            {msgType === "success" ? (
-              <CircleCheck
-                className="h-4 w-4 shrink-0"
-                strokeWidth={ICON_STROKE}
-              />
-            ) : (
-              <CircleAlert
-                className="h-4 w-4 shrink-0"
-                strokeWidth={ICON_STROKE}
-              />
-            )}
+        <AnimatePresence mode="wait">
+          {message && (
+            <motion.div
+              key={`${msgType}-${message}`}
+              initial={{
+                opacity: 0,
+                y: -6,
+              }}
+              animate={{
+                opacity: 1,
+                y: 0,
+              }}
+              exit={{
+                opacity: 0,
+                y: -5,
+              }}
+              transition={{
+                duration: 0.22,
+                ease: EASE,
+              }}
+              className={`
+                mb-5
+                flex items-start gap-3
+                border
+                bg-white
+                px-4 py-3.5
+                shadow-[0_8px_25px_rgba(0,0,0,0.03)]
+                ${
+                  msgType === "success"
+                    ? "border-[#C5D7A7] text-[#4F6E16]"
+                    : "border-[#DFC1BC] text-[#93443A]"
+                }
+              `}
+            >
+              <span
+                className={`
+                  mt-0.5
+                  flex h-7 w-7 shrink-0
+                  items-center justify-center
+                  border
+                  bg-white
+                  ${
+                    msgType === "success"
+                      ? "border-[#D4E0BE]"
+                      : "border-[#E5CEC9]"
+                  }
+                `}
+              >
+                {msgType === "success" ? (
+                  <UserCheck
+                    className="h-3.5 w-3.5"
+                    strokeWidth={ICON_STROKE}
+                  />
+                ) : (
+                  <CircleAlert
+                    className="h-3.5 w-3.5"
+                    strokeWidth={ICON_STROKE}
+                  />
+                )}
+              </span>
 
-            {message}
-          </motion.div>
-        )}
+              <div className="min-w-0 flex-1 pt-0.5">
+                <p className="text-[11px] font-bold">
+                  {msgType === "success"
+                    ? "Perubahan berhasil"
+                    : "Tidak dapat melanjutkan"}
+                </p>
+
+                <p className="mt-0.5 text-[10px] font-medium leading-4 text-[#73746E] sm:text-[11px]">
+                  {message}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setMessage("")}
+                className="
+                  mt-0.5
+                  flex h-6 w-6
+                  shrink-0
+                  items-center justify-center
+                  text-[#9A9B95]
+                  transition-colors
+                  hover:text-[#171717]
+                "
+                aria-label="Tutup notifikasi"
+              >
+                <X className="h-3.5 w-3.5" strokeWidth={2} />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* ==================================================
             TABLE
@@ -965,78 +1810,217 @@ export default function UsersPage() {
         <motion.section
           initial={{
             opacity: 0,
-            y: 12,
+            y: 10,
           }}
           animate={{
             opacity: 1,
             y: 0,
           }}
           transition={{
-            duration: 0.5,
-            delay: 0.24,
+            duration: 0.45,
+            delay: 0.18,
             ease: EASE,
           }}
-          className="overflow-hidden border border-[#DCDDD8] bg-white"
+          className="
+            overflow-hidden
+            border border-[#DCDDD8]
+            bg-white
+            shadow-[0_12px_35px_rgba(0,0,0,0.035)]
+          "
         >
           {/* TOOLBAR */}
 
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#E5E6E1] p-5">
-            <div className="flex flex-wrap items-center gap-3">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#999B94]">
-                  Directory
-                </p>
+          <div className="border-b border-[#E5E6E1] p-5 sm:p-6">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex flex-wrap items-center gap-3">
+                <div>
+                  <div className="mb-1 flex items-center gap-2">
+                    <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#969890]">
+                      Directory
+                    </p>
+                  </div>
 
-                <h2 className="mt-1 text-base font-bold text-[#171717]">
-                  Semua Pengguna
-                </h2>
+                  <h2 className="text-base font-bold tracking-[-0.02em] text-[#171717]">
+                    Semua Pengguna
+                  </h2>
+                </div>
+
+                <motion.span
+                  key={sortedUsers.length}
+                  initial={{
+                    opacity: 0,
+                    scale: 0.9,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    scale: 1,
+                  }}
+                  className="
+                    border
+                    border-[#DCDDD8]
+                    bg-white
+                    px-2.5 py-1
+                    text-[9px]
+                    font-bold
+                    tabular-nums
+                    tracking-[0.08em]
+                    text-[#666861]
+                  "
+                >
+                  {sortedUsers.length}
+                </motion.span>
+
+                {stateFilter && (
+                  <motion.button
+                    initial={{
+                      opacity: 0,
+                      scale: 0.94,
+                    }}
+                    animate={{
+                      opacity: 1,
+                      scale: 1,
+                    }}
+                    type="button"
+                    onClick={() => toggleStateFilter(stateFilter)}
+                    className="
+                      inline-flex items-center gap-1.5
+                      border border-[#B7CB8E]
+                      bg-white
+                      px-2.5 py-1
+                      text-[9px]
+                      font-bold
+                      uppercase
+                      tracking-[0.08em]
+                      text-[#55721D]
+                      transition-colors
+                      hover:border-[#171717]
+                      hover:text-[#171717]
+                    "
+                  >
+                    {STATUS_LABELS[stateFilter]}
+
+                    <X className="h-3 w-3" strokeWidth={2} />
+                  </motion.button>
+                )}
               </div>
 
-              <span className="border border-[#E0E1DC] bg-[#F7F8F5] px-2.5 py-1 text-[9px] font-bold tabular-nums uppercase tracking-[0.08em] text-[#666861]">
-                {sortedUsers.length}
-              </span>
+              <div className="relative w-full lg:w-[330px]">
+                <Search
+                  className="
+                    pointer-events-none
+                    absolute left-3.5 top-1/2
+                    h-3.5 w-3.5
+                    -translate-y-1/2
+                    text-[#92948D]
+                  "
+                  strokeWidth={ICON_STROKE}
+                />
 
-              {stateFilter && (
-                <button
-                  type="button"
-                  onClick={() => toggleStateFilter(stateFilter)}
-                  className="border border-[#DCDDD8] bg-white px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.08em] text-[#666861] transition-colors duration-300 hover:border-[#171717] hover:bg-[#171717] hover:text-white"
-                >
-                  Filter: {STATUS_LABELS[stateFilter]} ×
-                </button>
-              )}
-            </div>
+                <input
+                  value={search}
+                  onChange={(event) => {
+                    setSearch(event.target.value);
+                    setPage(1);
+                  }}
+                  placeholder="Cari nama, email, role..."
+                  className="
+                    h-10 w-full
+                    border border-[#DCDDD8]
+                    bg-white
+                    pl-10 pr-10
+                    text-[11px]
+                    font-medium
+                    text-[#171717]
+                    outline-none
+                    transition-all
+                    duration-300
+                    placeholder:text-[#A0A29B]
+                    focus:border-[#171717]
+                    focus:ring-4
+                    focus:ring-[#77B901]/10
+                  "
+                />
 
-            <div className="relative w-full sm:w-72">
-              <Search
-                className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#92948D]"
-                strokeWidth={ICON_STROKE}
-              />
-
-              <input
-                value={search}
-                onChange={(event) => {
-                  setSearch(event.target.value);
-                  setPage(1);
-                }}
-                placeholder="Cari nama atau email..."
-                className="h-10 w-full border border-[#DCDDD8] bg-[#FAFAF8] pl-10 pr-4 text-xs font-medium text-[#171717] outline-none transition-all placeholder:text-[#A0A29B] focus:border-[#BFC4B8] focus:bg-white focus:ring-4 focus:ring-black/[0.025]"
-              />
+                <AnimatePresence>
+                  {search && (
+                    <motion.button
+                      initial={{
+                        opacity: 0,
+                        scale: 0.8,
+                      }}
+                      animate={{
+                        opacity: 1,
+                        scale: 1,
+                      }}
+                      exit={{
+                        opacity: 0,
+                        scale: 0.8,
+                      }}
+                      type="button"
+                      aria-label="Bersihkan pencarian"
+                      onClick={() => {
+                        setSearch("");
+                        setPage(1);
+                      }}
+                      className="
+                        absolute right-2 top-1/2
+                        flex h-6 w-6
+                        -translate-y-1/2
+                        items-center justify-center
+                        text-[#92948D]
+                        transition-colors
+                        hover:text-[#171717]
+                      "
+                    >
+                      <X className="h-3 w-3" strokeWidth={2} />
+                    </motion.button>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
           </div>
 
-          {/* BODY */}
+          {/* TABLE */}
 
           {loading ? (
-            <div className="flex items-center justify-center gap-3 p-14 text-[#555750]">
-              <Loader2 className="h-5 w-5 animate-spin" />
+            <div className="p-5 sm:p-6">
+              <div className="space-y-2">
+                {Array.from({
+                  length: 7,
+                }).map((_, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{
+                      opacity: 0,
+                    }}
+                    animate={{
+                      opacity: [0.45, 0.9, 0.45],
+                    }}
+                    transition={{
+                      duration: 1.3,
+                      repeat: Infinity,
+                      delay: index * 0.06,
+                    }}
+                    className="
+                        h-14
+                        bg-[#F0F1ED]
+                      "
+                  />
+                ))}
+              </div>
 
-              <span className="text-sm font-medium">Memuat daftar user...</span>
+              <div className="flex items-center justify-center gap-2 py-6 text-[#666861]">
+                <Loader2 className="h-4 w-4 animate-spin" />
+
+                <span className="text-[11px] font-semibold">
+                  Memuat daftar user...
+                </span>
+              </div>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[1100px] text-left">
-                <thead className="border-b border-[#E5E6E1] bg-[#F8F9F6]">
+                <thead className="border-b border-[#E4E5E1] bg-[#F8F9F6]">
                   <tr>
                     {COLUMNS.map(({ key, label }) => (
                       <th
@@ -1049,33 +2033,40 @@ export default function UsersPage() {
                               : "descending"
                             : "none"
                         }
-                        className="px-4 py-3"
+                        className="px-4 py-3.5"
                       >
                         <button
                           type="button"
                           onClick={() => sortBy(key)}
-                          aria-label={`Urutkan berdasarkan ${label}`}
-                          className="inline-flex items-center gap-1.5 px-1 py-0.5 outline-none focus-visible:ring-2 focus-visible:ring-[#767C6D]/30"
+                          className="
+                              inline-flex items-center gap-1.5
+                              px-1 py-0.5
+                              outline-none
+                              transition-colors
+                              hover:text-[#171717]
+                              focus-visible:ring-2
+                              focus-visible:ring-[#77B901]/40
+                            "
                         >
-                          <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#8F918A]">
+                          <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#7E817A]">
                             {label}
                           </span>
 
                           {sortKey === key ? (
                             sortDirection === "asc" ? (
                               <ArrowUpAZ
-                                className="h-3.5 w-3.5 text-[#666861]"
+                                className="h-3.5 w-3.5 text-[#171717]"
                                 strokeWidth={ICON_STROKE}
                               />
                             ) : (
                               <ArrowDownAZ
-                                className="h-3.5 w-3.5 text-[#666861]"
+                                className="h-3.5 w-3.5 text-[#171717]"
                                 strokeWidth={ICON_STROKE}
                               />
                             )
                           ) : (
                             <ArrowDownAZ
-                              className="h-3.5 w-3.5 text-[#C0C2BC]"
+                              className="h-3.5 w-3.5 text-[#C1C3BD]"
                               strokeWidth={ICON_STROKE}
                             />
                           )}
@@ -1086,168 +2077,273 @@ export default function UsersPage() {
                 </thead>
 
                 <tbody className="divide-y divide-[#ECEDE9]">
-                  {visibleUsers.map((item, index) => {
-                    const state = getState(item);
+                  <AnimatePresence initial={false}>
+                    {visibleUsers.map((item, index) => {
+                      const state = getState(item);
 
-                    const tier = item.subscription?.tier || "free";
+                      const tier = item.subscription?.tier || "free";
 
-                    const isSelf = item.id === user?.id;
+                      const isSelf = item.id === user?.id;
 
-                    const isProtected =
-                      Boolean(item.is_protected) || item.role === "god";
+                      const isProtected =
+                        Boolean(item.is_protected) || item.role === "god";
 
-                    const canEditRole =
-                      canManageUsers && !isSelf && !isProtected;
+                      const canEditRole =
+                        canManageUsers && !isSelf && !isProtected;
 
-                    return (
-                      <motion.tr
-                        key={item.id}
-                        initial={{
-                          opacity: 0,
-                          y: 6,
-                        }}
-                        animate={{
-                          opacity: 1,
-                          y: 0,
-                        }}
-                        transition={{
-                          duration: 0.35,
-                          delay: Math.min(index, 10) * 0.03,
-                          ease: EASE,
-                        }}
-                        className="group/row transition-colors duration-300 hover:bg-[#FAFBF9]"
-                      >
-                        {/* USER */}
+                      return (
+                        <motion.tr
+                          key={item.id}
+                          initial={{
+                            opacity: 0,
+                            y: 5,
+                          }}
+                          animate={{
+                            opacity: 1,
+                            y: 0,
+                          }}
+                          transition={{
+                            duration: 0.3,
+                            delay: Math.min(index, 10) * 0.025,
+                            ease: EASE,
+                          }}
+                          className="
+                              group/row
+                              transition-colors
+                              duration-300
+                              hover:bg-[#FBFCFA]
+                            "
+                        >
+                          {/* USER */}
 
-                        <td className="relative px-4 py-4 before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:origin-top before:scale-y-0 before:bg-[#76B900] before:transition-transform before:duration-500 before:ease-[cubic-bezier(0.22,1,0.36,1)] group-hover/row:before:scale-y-100">
-                          <div className="flex items-center gap-3">
-                            <Avatar name={item.username} />
+                          <td
+                            className="
+                                relative
+                                px-4 py-4
+                                before:absolute
+                                before:inset-y-0
+                                before:left-0
+                                before:w-[2px]
+                                before:origin-top
+                                before:scale-y-0
+                                before:bg-[#77B901]
+                                before:transition-transform
+                                before:duration-400
+                                before:ease-[cubic-bezier(0.22,1,0.36,1)]
+                                group-hover/row:before:scale-y-100
+                              "
+                          >
+                            <div className="flex items-center gap-3">
+                              <Avatar name={item.username} />
 
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2">
-                                <p className="text-sm font-bold text-[#171717]">
-                                  {item.username}
-                                </p>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-bold text-[#171717]">
+                                    {item.username}
+                                  </p>
 
-                                {isProtected && (
-                                  <ShieldCheck
-                                    className="h-3.5 w-3.5 text-[#715F92]"
-                                    strokeWidth={ICON_STROKE}
-                                    aria-label="Protected account"
-                                  />
+                                  {isProtected && (
+                                    <motion.div
+                                      animate={{
+                                        y: [0, -1.5, 0],
+                                      }}
+                                      transition={{
+                                        duration: 2.8,
+                                        repeat: Infinity,
+                                        ease: "easeInOut",
+                                      }}
+                                    >
+                                      <ShieldCheck
+                                        className="h-3.5 w-3.5 text-[#6E5C88]"
+                                        strokeWidth={ICON_STROKE}
+                                        aria-label="Protected account"
+                                      />
+                                    </motion.div>
+                                  )}
+                                </div>
+
+                                {isSelf && (
+                                  <span
+                                    className="
+                                        mt-1
+                                        inline-flex
+                                        border border-[#BED09A]
+                                        bg-white
+                                        px-2 py-0.5
+                                        text-[8px]
+                                        font-bold
+                                        uppercase
+                                        tracking-[0.08em]
+                                        text-[#55701D]
+                                      "
+                                  >
+                                    Anda
+                                  </span>
                                 )}
                               </div>
-
-                              {isSelf && (
-                                <span className="mt-1 inline-flex border border-[#DCE5D2] bg-[#F5F8F1] px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.08em] text-[#607A3B]">
-                                  Anda
-                                </span>
-                              )}
                             </div>
-                          </div>
-                        </td>
+                          </td>
 
-                        {/* EMAIL */}
+                          {/* EMAIL */}
 
-                        <td className="px-4 py-4 text-sm font-medium text-[#6F716B]">
-                          {item.email}
-                        </td>
+                          <td className="px-4 py-4 text-sm font-medium text-[#6F716B]">
+                            {item.email}
+                          </td>
 
-                        {/* CREATED */}
+                          {/* CREATED */}
 
-                        <td className="px-4 py-4 text-sm font-medium tabular-nums text-[#6F716B]">
-                          {new Date(item.created_at).toLocaleDateString(
-                            "id-ID",
-                            {
-                              day: "numeric",
-                              month: "short",
-                              year: "numeric",
-                            }
-                          )}
-                        </td>
+                          <td className="px-4 py-4 text-sm font-medium tabular-nums text-[#6F716B]">
+                            {new Date(item.created_at).toLocaleDateString(
+                              "id-ID",
+                              {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                              }
+                            )}
+                          </td>
 
-                        {/* ROLE */}
+                          {/* ROLE */}
 
-                        <td className="px-4 py-4">
-                          {isProtected ? (
-                            <RoleBadge role={item.role} isProtected={true} />
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <select
-                                value={item.role}
-                                disabled={
-                                  !canEditRole || updatingId === item.id
-                                }
-                                onChange={(event) =>
-                                  updateRole(
-                                    item.id,
-                                    event.target.value as "admin" | "member"
-                                  )
-                                }
-                                className="h-9 border border-[#DCDDD8] bg-white px-3 text-xs font-semibold text-[#555750] outline-none transition focus:border-[#BFC4B8] focus:ring-4 focus:ring-black/[0.025] disabled:cursor-not-allowed disabled:bg-[#F5F6F3] disabled:opacity-50"
-                              >
-                                <option value="member">Member</option>
+                          <td className="px-4 py-4">
+                            {isProtected ? (
+                              <RoleBadge role={item.role} isProtected={true} />
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <select
+                                  value={item.role}
+                                  disabled={
+                                    !canEditRole || updatingId === item.id
+                                  }
+                                  onChange={(event) =>
+                                    updateRole(
+                                      item.id,
+                                      event.target.value as "admin" | "member"
+                                    )
+                                  }
+                                  className="
+                                      h-9
+                                      border
+                                      border-[#D6D8D3]
+                                      bg-white
+                                      px-3
+                                      text-xs
+                                      font-semibold
+                                      text-[#555750]
+                                      outline-none
+                                      transition-all
+                                      focus:border-[#171717]
+                                      focus:ring-4
+                                      focus:ring-[#77B901]/10
+                                      disabled:cursor-not-allowed
+                                      disabled:bg-[#F4F5F2]
+                                      disabled:opacity-50
+                                    "
+                                >
+                                  <option value="member">Member</option>
 
-                                <option value="admin">Admin</option>
-                              </select>
+                                  <option value="admin">Admin</option>
+                                </select>
 
-                              {isSelf && (
-                                <span className="text-[9px] font-medium text-[#A0A29B]">
-                                  Akun aktif
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </td>
+                                {updatingId === item.id && (
+                                  <Loader2
+                                    className="
+                                        h-3.5 w-3.5
+                                        animate-spin
+                                        text-[#77B901]
+                                      "
+                                  />
+                                )}
 
-                        {/* TIER */}
+                                {isSelf && (
+                                  <span className="text-[9px] font-medium text-[#A0A29B]">
+                                    Akun aktif
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </td>
 
-                        <td className="px-4 py-4">
-                          <TierBadge tier={tier} />
-                        </td>
+                          {/* TIER */}
 
-                        {/* STATUS */}
+                          <td className="px-4 py-4">
+                            <TierBadge tier={tier} />
+                          </td>
 
-                        <td className="px-4 py-4">
-                          <StateBadge state={state} />
-                        </td>
+                          {/* STATUS */}
 
-                        {/* REMAINING */}
+                          <td className="px-4 py-4">
+                            <StateBadge state={state} />
+                          </td>
 
-                        <td className="px-4 py-4">
-                          <p className="text-sm font-semibold tabular-nums text-[#171717]">
-                            {remaining(item)}
-                          </p>
+                          {/* REMAINING */}
 
-                          {item.subscription?.end_date && (
-                            <p className="mt-0.5 text-xs font-medium tabular-nums text-[#92948D]">
-                              s/d{" "}
-                              {new Date(
-                                item.subscription.end_date
-                              ).toLocaleDateString("id-ID")}
+                          <td className="px-4 py-4">
+                            <p className="text-sm font-semibold tabular-nums text-[#171717]">
+                              {remaining(item)}
                             </p>
-                          )}
-                        </td>
-                      </motion.tr>
-                    );
-                  })}
+
+                            {item.subscription?.end_date && (
+                              <p className="mt-0.5 text-xs font-medium tabular-nums text-[#92948D]">
+                                s/d{" "}
+                                {new Date(
+                                  item.subscription.end_date
+                                ).toLocaleDateString("id-ID")}
+                              </p>
+                            )}
+                          </td>
+                        </motion.tr>
+                      );
+                    })}
+                  </AnimatePresence>
 
                   {visibleUsers.length === 0 && (
                     <tr>
                       <td colSpan={COLUMNS.length} className="px-4 py-14">
-                        <div className="mx-auto max-w-sm text-center">
-                          <span className="mx-auto flex h-12 w-12 items-center justify-center border border-[#E0E1DC] bg-[#F7F8F5]">
+                        <motion.div
+                          initial={{
+                            opacity: 0,
+                            y: 6,
+                          }}
+                          animate={{
+                            opacity: 1,
+                            y: 0,
+                          }}
+                          transition={{
+                            duration: 0.3,
+                            ease: EASE,
+                          }}
+                          className="mx-auto max-w-sm text-center"
+                        >
+                          <motion.span
+                            animate={{
+                              y: [0, -2, 0],
+                            }}
+                            transition={{
+                              duration: 2.6,
+                              repeat: Infinity,
+                              ease: "easeInOut",
+                            }}
+                            className="
+                              mx-auto
+                              flex h-11 w-11
+                              items-center justify-center
+                              border border-[#DCDDD8]
+                              bg-white
+                              text-[#737770]
+                            "
+                          >
                             <Search
-                              className="h-5 w-5 text-[#777972]"
+                              className="h-5 w-5"
                               strokeWidth={ICON_STROKE}
                             />
-                          </span>
+                          </motion.span>
 
                           <p className="mt-4 text-sm font-bold text-[#171717]">
                             User tidak ditemukan
                           </p>
 
-                          <p className="mt-1 text-xs font-medium text-[#858780]">
+                          <p className="mt-1 text-xs font-medium leading-5 text-[#858780]">
                             Coba kata kunci lain atau hapus filter status.
                           </p>
 
@@ -1255,9 +2351,7 @@ export default function UsersPage() {
                             <SweepButton
                               onClick={() => {
                                 setSearch("");
-
                                 setStateFilter(null);
-
                                 setPage(1);
                               }}
                               className="mt-4 px-4 py-2.5 text-xs font-bold"
@@ -1265,7 +2359,7 @@ export default function UsersPage() {
                               Reset pencarian
                             </SweepButton>
                           )}
-                        </div>
+                        </motion.div>
                       </td>
                     </tr>
                   )}
@@ -1279,7 +2373,15 @@ export default function UsersPage() {
           ================================================== */}
 
           {!loading && (
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#E5E6E1] px-4 py-3.5">
+            <div
+              className="
+                flex flex-wrap
+                items-center justify-between
+                gap-3
+                border-t border-[#E5E6E1]
+                px-4 py-3.5
+              "
+            >
               <span className="text-xs font-medium tabular-nums text-[#858780]">
                 Menampilkan{" "}
                 <strong className="text-[#171717]">
@@ -1292,33 +2394,145 @@ export default function UsersPage() {
               </span>
 
               <div className="flex items-center gap-2">
-                <button
+                <motion.button
                   type="button"
                   disabled={page === 1}
                   onClick={() => setPage(page - 1)}
+                  whileHover={
+                    page === 1
+                      ? undefined
+                      : {
+                          y: -1,
+                        }
+                  }
+                  whileTap={
+                    page === 1
+                      ? undefined
+                      : {
+                          scale: 0.96,
+                        }
+                  }
                   aria-label="Halaman sebelumnya"
-                  className="flex h-9 w-9 items-center justify-center border border-[#DCDDD8] bg-white text-[#666861] outline-none transition-colors duration-300 hover:border-[#171717] hover:bg-[#171717] hover:text-white focus-visible:ring-2 focus-visible:ring-[#76B900] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-[#DCDDD8] disabled:hover:bg-white disabled:hover:text-[#666861]"
+                  className="
+                    flex h-9 w-9
+                    items-center justify-center
+                    border border-[#D6D8D3]
+                    bg-white
+                    text-[#666861]
+                    outline-none
+                    transition-colors
+                    duration-300
+                    hover:border-[#171717]
+                    hover:bg-[#171717]
+                    hover:text-white
+                    focus-visible:ring-2
+                    focus-visible:ring-[#77B901]
+                    disabled:cursor-not-allowed
+                    disabled:opacity-40
+                  "
                 >
                   <ChevronLeft className="h-4 w-4" strokeWidth={ICON_STROKE} />
-                </button>
+                </motion.button>
 
-                <span className="inline-flex h-9 items-center border border-[#DCDDD8] bg-[#F7F8F5] px-3 text-xs font-bold tabular-nums text-[#555750]">
+                <motion.span
+                  key={page}
+                  initial={{
+                    opacity: 0.5,
+                    y: 2,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                  }}
+                  className="
+                    inline-flex h-9
+                    items-center
+                    border border-[#171717]
+                    bg-white
+                    px-3
+                    text-xs
+                    font-bold
+                    tabular-nums
+                    text-[#171717]
+                  "
+                >
                   {page} / {totalPages}
-                </span>
+                </motion.span>
 
-                <button
+                <motion.button
                   type="button"
                   disabled={page === totalPages}
                   onClick={() => setPage(page + 1)}
+                  whileHover={
+                    page === totalPages
+                      ? undefined
+                      : {
+                          y: -1,
+                        }
+                  }
+                  whileTap={
+                    page === totalPages
+                      ? undefined
+                      : {
+                          scale: 0.96,
+                        }
+                  }
                   aria-label="Halaman berikutnya"
-                  className="flex h-9 w-9 items-center justify-center border border-[#DCDDD8] bg-white text-[#666861] outline-none transition-colors duration-300 hover:border-[#171717] hover:bg-[#171717] hover:text-white focus-visible:ring-2 focus-visible:ring-[#76B900] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-[#DCDDD8] disabled:hover:bg-white disabled:hover:text-[#666861]"
+                  className="
+                    flex h-9 w-9
+                    items-center justify-center
+                    border border-[#D6D8D3]
+                    bg-white
+                    text-[#666861]
+                    outline-none
+                    transition-colors
+                    duration-300
+                    hover:border-[#171717]
+                    hover:bg-[#171717]
+                    hover:text-white
+                    focus-visible:ring-2
+                    focus-visible:ring-[#77B901]
+                    disabled:cursor-not-allowed
+                    disabled:opacity-40
+                  "
                 >
                   <ChevronRight className="h-4 w-4" strokeWidth={ICON_STROKE} />
-                </button>
+                </motion.button>
               </div>
             </div>
           )}
         </motion.section>
+
+        {/* ==================================================
+            FOOTER
+        ================================================== */}
+
+        <motion.div
+          initial={{
+            opacity: 0,
+          }}
+          animate={{
+            opacity: 1,
+          }}
+          transition={{
+            delay: 0.45,
+            duration: 0.35,
+          }}
+          className="
+            mt-4
+            flex items-center
+            justify-between gap-3
+            text-[9px]
+            font-semibold
+            uppercase
+            tracking-[0.13em]
+            text-[#9A9C95]
+          "
+        >
+          <span>User access · Role based</span>
+
+          <span>AMX UAV DaaS</span>
+        </motion.div>
       </div>
     </main>
   );
