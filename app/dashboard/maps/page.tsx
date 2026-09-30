@@ -34,6 +34,7 @@ import {
 
 import type { MapHandle } from "@/components/MapDisplay";
 import type { GeoMetadata } from "@/types/map";
+import type { MapLayerItem } from "@/types/map";
 
 /* =========================================================
    MAP DISPLAY
@@ -477,6 +478,8 @@ export default function MapsPage() {
 
   /* Metadata */
   const [metadataMap, setMetadataMap] = useState<MapData | null>(null);
+  const [metadataLayers, setMetadataLayers] = useState<MapLayerItem[]>([]);
+  const [metadataLayerId, setMetadataLayerId] = useState<string>("");
 
   /* Edit */
   const [editingMap, setEditingMap] = useState<MapData | null>(null);
@@ -622,6 +625,29 @@ export default function MapsPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!metadataMap) {
+      setMetadataLayers([]);
+      setMetadataLayerId("");
+      return;
+    }
+
+    api
+      .get<MapLayerItem[]>(`/maps/${metadataMap.id}/layers`)
+      .then(({ data }) => {
+        setMetadataLayers(data);
+        setMetadataLayerId(
+          String(
+            data.find((layer) => layer.is_base_layer)?.id || data[0]?.id || ""
+          )
+        );
+      })
+      .catch(() => {
+        setMetadataLayers([]);
+        setMetadataLayerId("");
+      });
+  }, [metadataMap]);
+
   /* =========================================================
      FULLSCREEN
   ========================================================== */
@@ -692,6 +718,13 @@ export default function MapsPage() {
   const selectedMap = mapLayers.find((layer) => layer.id === selectedLayer);
 
   const selectedMapRaw = maps.find((map) => map.id === selectedLayer) || null;
+  const metadataLayer = metadataLayers.find(
+    (layer) => String(layer.id) === metadataLayerId
+  );
+  const metadataGeo = metadataLayer?.geo_metadata || metadataMap?.geo_metadata;
+  const metadataFileFormat = metadataLayer?.file_url
+    ? metadataLayer.file_url.split(".").pop()?.toUpperCase()
+    : metadataMap?.file_format?.toUpperCase();
 
   /* =========================================================
      DISPLAY-ONLY DERIVATIONS
@@ -1398,7 +1431,7 @@ export default function MapsPage() {
                       </span>
 
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-[11px] font-bold leading-tight sm:text-[12px]">
+                        <p className="line-clamp-2 break-words text-[11px] font-bold leading-tight sm:text-[12px]">
                           {layer.name}
                         </p>
 
@@ -1799,7 +1832,7 @@ export default function MapsPage() {
                 </p>
 
                 <h3 className="mt-1 text-[18px] font-bold tracking-[-0.03em] text-[#171717] sm:text-xl">
-                  Metadata Peta
+                  {metadataLayer ? `Metadata Layer — ${metadataLayer.name}` : "Metadata Peta"}
                 </h3>
               </div>
 
@@ -1815,6 +1848,29 @@ export default function MapsPage() {
             {/* CONTENT */}
 
             <div className="flex-1 space-y-5 overflow-y-auto px-4 py-4 sm:space-y-6 sm:px-6 sm:py-6">
+              {metadataLayers.length > 0 && (
+                <div className="border border-[#E0E1DC] bg-[#F7F8F5] p-3">
+                  <label
+                    htmlFor="metadata-layer"
+                    className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#999B94]"
+                  >
+                    Sumber Metadata
+                  </label>
+                  <select
+                    id="metadata-layer"
+                    value={metadataLayerId}
+                    onChange={(event) => setMetadataLayerId(event.target.value)}
+                    className="mt-2 h-9 w-full border border-[#DCDDD8] bg-white px-2.5 text-xs font-medium text-[#171717] outline-none focus:border-[#76B900] focus:ring-2 focus:ring-[#76B900]/20"
+                  >
+                    {metadataLayers.map((layer) => (
+                      <option key={String(layer.id)} value={String(layer.id)}>
+                        {layer.name} · {layer.layer_type.toUpperCase()}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               {/* BASIC */}
 
               <div>
@@ -1824,7 +1880,7 @@ export default function MapsPage() {
 
                 <div className="divide-y divide-[#E7E8E3] border border-[#E0E1DC] bg-[#F7F8F5]">
                   {[
-                    ["Nama", metadataMap.title],
+                    ["Nama", metadataLayer?.name || metadataMap.title],
 
                     ["Lokasi", metadataMap.location],
 
@@ -1837,14 +1893,29 @@ export default function MapsPage() {
 
                     [
                       "Format File",
-                      `.${metadataMap.file_format?.toUpperCase()}`,
+                      metadataFileFormat ? `.${metadataFileFormat}` : "—",
                     ],
 
-                    ["Ukuran File", formatSize(metadataMap.file_size)],
+                    ...(metadataLayer
+                      ? [
+                          [
+                            "Tipe Layer",
+                            metadataLayer.layer_type.toUpperCase(),
+                          ],
+                          ["Satuan", metadataLayer.unit || "—"],
+                        ]
+                      : []),
+
+                    [
+                      "Ukuran File",
+                      formatSize(metadataLayer?.file_size || metadataMap.file_size),
+                    ],
 
                     [
                       "Dibuat",
-                      new Date(metadataMap.created_at).toLocaleDateString(
+                      new Date(
+                        metadataLayer?.created_at || metadataMap.created_at
+                      ).toLocaleDateString(
                         "id-ID"
                       ),
                     ],
@@ -1858,7 +1929,7 @@ export default function MapsPage() {
 
               {/* GEO METADATA */}
 
-              {metadataMap.geo_metadata ? (
+              {metadataGeo ? (
                 <div>
                   <p className="mb-2.5 text-[9px] font-bold uppercase tracking-[0.12em] text-[#999B94] sm:text-[10px] sm:tracking-[0.14em]">
                     Metadata Geospasial &amp; Raster
@@ -1866,12 +1937,12 @@ export default function MapsPage() {
 
                   <div className="divide-y divide-[#E7E8E3] border border-[#E0E1DC] bg-[#F7F8F5]">
                     <InfoRow label="Sistem Koordinat (CRS)">
-                      {metadataMap.geo_metadata.crs}
+                      {metadataGeo.crs}
                     </InfoRow>
 
                     <InfoRow label="Dimensi Citra">
-                      {metadataMap.geo_metadata.width?.toLocaleString()} ×{" "}
-                      {metadataMap.geo_metadata.height?.toLocaleString()} piksel
+                      {metadataGeo.width?.toLocaleString()} ×{" "}
+                      {metadataGeo.height?.toLocaleString()} piksel
                     </InfoRow>
 
                     <div className="px-3.5 py-3 text-[11px] transition-colors hover:bg-white sm:px-4 sm:text-xs">
@@ -1882,18 +1953,18 @@ export default function MapsPage() {
                           </span>
 
                           <p className="mt-1 text-[10px] font-semibold leading-4 text-[#171717] sm:text-[11px]">
-                            {metadataMap.geo_metadata.band_type ||
-                              (metadataMap.geo_metadata.bands === 3
+                            {metadataGeo.band_type ||
+                              (metadataGeo.bands === 3
                                 ? "Ortho True-Color (3 Saluran RGB)"
-                                : metadataMap.geo_metadata.bands === 1
+                                : metadataGeo.bands === 1
                                   ? "Single-Band (Analisis Indeks / Unsur Hara)"
-                                  : `${metadataMap.geo_metadata.bands} Saluran Multispektral`)}
+                                  : `${metadataGeo.bands} Saluran Multispektral`)}
                           </p>
                         </div>
 
                         <span className="shrink-0 border border-[#E0E1DC] bg-white px-2 py-0.5 font-mono text-[10px] font-bold text-[#171717]">
-                          {metadataMap.geo_metadata.bands} Saluran (
-                          {metadataMap.geo_metadata.dtypes?.join(", ") ||
+                          {metadataGeo.bands} Saluran (
+                          {metadataGeo.dtypes?.join(", ") ||
                             "uint8"}
                           )
                         </span>
@@ -1903,23 +1974,23 @@ export default function MapsPage() {
 
                       {(() => {
                         const bandsList =
-                          metadataMap.geo_metadata.band_details &&
-                            metadataMap.geo_metadata.band_details.length > 0
-                            ? metadataMap.geo_metadata.band_details
+                          metadataGeo.band_details &&
+                            metadataGeo.band_details.length > 0
+                            ? metadataGeo.band_details
                             : Array.from(
                               {
-                                length: metadataMap.geo_metadata.bands || 1,
+                                length: metadataGeo.bands || 1,
                               },
                               (_, idx) => {
                                 const b = idx + 1;
 
                                 const dtype =
-                                  metadataMap.geo_metadata.dtypes?.[idx] ||
+                                  metadataGeo.dtypes?.[idx] ||
                                   "uint8";
 
                                 let label = `Saluran ${b}`;
 
-                                if (metadataMap.geo_metadata.bands === 3) {
+                                if (metadataGeo.bands === 3) {
                                   label =
                                     b === 1
                                       ? "Red (Merah)"
@@ -1927,7 +1998,7 @@ export default function MapsPage() {
                                         ? "Green (Hijau)"
                                         : "Blue (Biru)";
                                 } else if (
-                                  metadataMap.geo_metadata.bands === 1
+                                  metadataGeo.bands === 1
                                 ) {
                                   label = "Nilai Analisis / Indeks";
                                 }
@@ -2006,24 +2077,24 @@ export default function MapsPage() {
                     </div>
 
                     <InfoRow label="Driver Raster">
-                      {metadataMap.geo_metadata.driver || "GTiff"}
+                      {metadataGeo.driver || "GTiff"}
                     </InfoRow>
 
                     <InfoRow label="Format Tiling">
-                      {metadataMap.geo_metadata.is_tiled
-                        ? "Tiled (Cloud-Optimized)"
+                      {metadataGeo.is_tiled
+                        ? "Tiled"
                         : "Strip / Standar"}
                     </InfoRow>
 
-                    {metadataMap.geo_metadata.nodata !== undefined &&
-                      metadataMap.geo_metadata.nodata !== null && (
+                      {metadataGeo.nodata !== undefined &&
+                      metadataGeo.nodata !== null && (
                         <InfoRow label="Nilai NoData">
-                          {metadataMap.geo_metadata.nodata}
+                          {metadataGeo.nodata}
                         </InfoRow>
                       )}
                   </div>
 
-                  {metadataMap.geo_metadata.bounds_wgs84 && (
+                  {metadataGeo.bounds_wgs84 && (
                     <div className="mt-3 border border-[#E0E1DC] bg-[#F7F8F5] p-3.5 sm:p-4">
                       <p className="mb-3 text-[9px] font-bold uppercase tracking-[0.12em] text-[#999B94] sm:text-[10px] sm:tracking-[0.14em]">
                         Cakupan Wilayah (WGS 84 Bounds)
@@ -2036,7 +2107,7 @@ export default function MapsPage() {
                           </span>
 
                           <span className="mt-0.5 block font-bold tabular-nums text-[#171717]">
-                            {metadataMap.geo_metadata.bounds_wgs84.min_lon}°
+                    {metadataGeo.bounds_wgs84.min_lon}°
                           </span>
                         </div>
 
@@ -2046,7 +2117,7 @@ export default function MapsPage() {
                           </span>
 
                           <span className="mt-0.5 block font-bold tabular-nums text-[#171717]">
-                            {metadataMap.geo_metadata.bounds_wgs84.max_lon}°
+                    {metadataGeo.bounds_wgs84.max_lon}°
                           </span>
                         </div>
 
@@ -2056,7 +2127,7 @@ export default function MapsPage() {
                           </span>
 
                           <span className="mt-0.5 block font-bold tabular-nums text-[#171717]">
-                            {metadataMap.geo_metadata.bounds_wgs84.min_lat}°
+                    {metadataGeo.bounds_wgs84.min_lat}°
                           </span>
                         </div>
 
@@ -2066,7 +2137,7 @@ export default function MapsPage() {
                           </span>
 
                           <span className="mt-0.5 block font-bold tabular-nums text-[#171717]">
-                            {metadataMap.geo_metadata.bounds_wgs84.max_lat}°
+                    {metadataGeo.bounds_wgs84.max_lat}°
                           </span>
                         </div>
                       </div>

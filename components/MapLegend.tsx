@@ -21,32 +21,32 @@ interface LegendConfig {
 }
 
 const VEGETATION_GRADIENT =
-  "linear-gradient(to right, #d73027 0%, #fc8d59 25%, #fee08b 55%, #1a9850 100%)";
+  "linear-gradient(to right, #c62828 0%, #c62828 25%, #f57c00 25%, #f57c00 50%, #fdd835 50%, #fdd835 75%, #2e7d32 75%, #2e7d32 100%)";
 
 const VEGETATION_SEGMENTS: LegendConfig["segments"] = [
   {
-    color: "#d73027",
+    color: "#c62828",
     label: "Non Vegetasi",
     valueRange: "< 0.11",
     tickValue: "< 0.11",
   },
   {
-    color: "#fc8d59",
+    color: "#f57c00",
     label: "Rendah",
     valueRange: "0.11 - 0.22",
     tickValue: "0.22",
   },
   {
-    color: "#fee08b",
+    color: "#fdd835",
     label: "Sedang",
     valueRange: "0.22 - 0.42",
     tickValue: "0.42",
   },
   {
-    color: "#1a9850",
+    color: "#2e7d32",
     label: "Tinggi",
-    valueRange: "0.42 - 1.00",
-    tickValue: "1.00",
+    valueRange: "≥ 0.42",
+    tickValue: "≥ 0.42",
   },
 ];
 
@@ -72,26 +72,28 @@ const LEGEND_PRESETS: Record<string, LegendConfig> = {
     unit: "mg/kg",
     description: "Status Ketersediaan Unsur Hara N",
     gradient:
-      "linear-gradient(to right, #fde725 0%, #21918c 50%, #440154 100%)",
+      "linear-gradient(to right, #c62828 0%, #c62828 20%, #f57c00 20%, #f57c00 40%, #fdd835 40%, #fdd835 60%, #7ec850 60%, #7ec850 80%, #2e7d32 80%, #2e7d32 100%)",
     segments: [
       {
-        color: "#fde725",
-        label: "Defisit Rendah",
-        valueRange: "< 35",
-        tickValue: "< 35",
+        color: "#c62828",
+        label: "Sangat Rendah",
+        valueRange: "< 1.000",
+        tickValue: "< 1.000",
       },
       {
-        color: "#21918c",
-        label: "Optimal / Cukup",
-        valueRange: "35 - 70",
-        tickValue: "70",
+        color: "#f57c00",
+        label: "Rendah",
+        valueRange: "1.000 - 2.099",
+        tickValue: "2.100",
       },
       {
-        color: "#440154",
-        label: "Tinggi / Berlebih",
-        valueRange: "> 70",
-        tickValue: "> 70",
+        color: "#fdd835",
+        label: "Sedang",
+        valueRange: "2.100 - 5.099",
+        tickValue: "5.100",
       },
+      { color: "#7ec850", label: "Tinggi", valueRange: "5.100 - 7.500", tickValue: "7.500" },
+      { color: "#2e7d32", label: "Sangat Tinggi", valueRange: "> 7.500", tickValue: "> 7.500" },
     ],
   },
 
@@ -100,26 +102,19 @@ const LEGEND_PRESETS: Record<string, LegendConfig> = {
     unit: "mg/kg",
     description: "Status Ketersediaan Unsur Hara P",
     gradient:
-      "linear-gradient(to right, #fca35d 0%, #b63679 50%, #420a68 100%)",
+      "linear-gradient(to right, #c62828 0%, #c62828 20%, #f57c00 20%, #f57c00 40%, #fdd835 40%, #fdd835 60%, #7ec850 60%, #7ec850 80%, #2e7d32 80%, #2e7d32 100%)",
     segments: [
       {
-        color: "#fca35d",
-        label: "Defisit Rendah",
-        valueRange: "< 15",
-        tickValue: "< 15",
+        color: "#c62828", label: "Sangat Rendah", valueRange: "< 100", tickValue: "< 100",
       },
       {
-        color: "#b63679",
-        label: "Optimal / Cukup",
-        valueRange: "15 - 30",
-        tickValue: "30",
+        color: "#f57c00", label: "Rendah", valueRange: "100 - 209", tickValue: "210",
       },
       {
-        color: "#420a68",
-        label: "Tinggi",
-        valueRange: "> 30",
-        tickValue: "> 30",
+        color: "#fdd835", label: "Sedang", valueRange: "210 - 409", tickValue: "410",
       },
+      { color: "#7ec850", label: "Tinggi", valueRange: "410 - 600", tickValue: "600" },
+      { color: "#2e7d32", label: "Sangat Tinggi", valueRange: "> 600", tickValue: "> 600" },
     ],
   },
 
@@ -128,26 +123,19 @@ const LEGEND_PRESETS: Record<string, LegendConfig> = {
     unit: "mg/kg",
     description: "Status Ketersediaan Unsur Hara K",
     gradient:
-      "linear-gradient(to right, #fe9f6d 0%, #de4968 50%, #65156e 100%)",
+      "linear-gradient(to right, #c62828 0%, #c62828 20%, #f57c00 20%, #f57c00 40%, #fdd835 40%, #fdd835 60%, #7ec850 60%, #7ec850 80%, #2e7d32 80%, #2e7d32 100%)",
     segments: [
       {
-        color: "#fe9f6d",
-        label: "Defisit Rendah",
-        valueRange: "< 80",
-        tickValue: "< 80",
+        color: "#c62828", label: "Sangat Rendah", valueRange: "< 100", tickValue: "< 100",
       },
       {
-        color: "#de4968",
-        label: "Optimal / Cukup",
-        valueRange: "80 - 150",
-        tickValue: "150",
+        color: "#f57c00", label: "Rendah", valueRange: "100 - 209", tickValue: "210",
       },
       {
-        color: "#65156e",
-        label: "Tinggi",
-        valueRange: "> 150",
-        tickValue: "> 150",
+        color: "#fdd835", label: "Sedang", valueRange: "210 - 409", tickValue: "410",
       },
+      { color: "#7ec850", label: "Tinggi", valueRange: "410 - 600", tickValue: "600" },
+      { color: "#2e7d32", label: "Sangat Tinggi", valueRange: "> 600", tickValue: "> 600" },
     ],
   },
 
@@ -316,7 +304,7 @@ export default function MapLegend({
               </div>
 
               <div
-                className="ml-1 h-3 w-[120px] shrink-0 border border-black/10 sm:w-[180px]"
+                className="isolate ml-1 h-3 w-[120px] shrink-0 overflow-hidden sm:w-[180px]"
                 style={{
                   background: config.gradient,
                 }}
@@ -417,7 +405,7 @@ export default function MapLegend({
 
                 {/* GRADIENT */}
                 <div
-                  className="h-3 w-full border border-black/10"
+                  className="isolate h-3 w-full overflow-hidden"
                   style={{
                     background: config.gradient,
                   }}

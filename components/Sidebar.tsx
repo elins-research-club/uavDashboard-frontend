@@ -25,6 +25,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   ChevronRight,
+  UserRound,
 } from "lucide-react";
 
 /* ============================================================
@@ -290,8 +291,6 @@ export default function Sidebar({
   ========================================================== */
 
   const userName = user?.username || "Pengguna";
-
-  const userInitials = userName.slice(0, 2).toUpperCase();
 
   const profileLabel = isGod
     ? `${userName} · God · Protected`
@@ -566,11 +565,11 @@ export default function Sidebar({
 
             <span
               className={[
-                "flex shrink-0 items-center justify-center border uav-border-accent-soft uav-bg-accent-tint font-bold uav-text-accent",
+                "flex shrink-0 items-center justify-center border uav-border-accent-soft font-bold uav-text-accent",
                 isCollapsed ? "h-9 w-9 text-[11px]" : "h-9 w-9 text-[10px]",
               ].join(" ")}
             >
-              {userInitials}
+              <UserRound size={18} strokeWidth={ICON_STROKE} />
             </span>
 
             {!isCollapsed && (
@@ -581,29 +580,21 @@ export default function Sidebar({
                   </span>
 
                   <span className="mt-1 flex min-w-0 items-center gap-1.5">
+                    <span className="truncate text-[9px] font-semibold text-[#777972]">
+                      {isGod ? "God" : user?.role === "admin" ? "Admin" : "Member"}
+                    </span>
+                    {user?.role === "member" && user?.tier && (
+                      <span className="truncate text-[9px] font-medium text-[#999B94]">
+                        · Tier {user.tier}
+                      </span>
+                    )}
                     {isGod ? (
                       <>
-                        <ShieldCheck
-                          size={11}
-                          strokeWidth={ICON_STROKE}
-                          className="shrink-0 uav-text-accent"
-                        />
-
-                        <span className="truncate text-[9px] font-bold uav-text-accent">
-                          God · Protected
-                        </span>
+                        <span className="sr-only">Protected</span>
                       </>
                     ) : user?.role === "admin" ? (
                       <>
-                        <ShieldCheck
-                          size={11}
-                          strokeWidth={ICON_STROKE}
-                          className="shrink-0 text-[#6E7169]"
-                        />
-
-                        <span className="truncate text-[9px] font-semibold text-[#777972]">
-                          Administrator
-                        </span>
+                        <span className="sr-only">Administrator</span>
                       </>
                     ) : null}
                   </span>

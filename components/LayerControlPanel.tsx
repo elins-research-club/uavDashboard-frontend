@@ -511,6 +511,15 @@ export default function LayerControlPanel({
     });
   }, [layers]);
 
+  const analysisLayers = orderedLayers.filter((layer) =>
+    ["ndvi", "nitrogen", "phosphorus", "kalium"].includes(
+      String(layer.layer_type || "").toLowerCase()
+    )
+  );
+  const orthoLayer = orderedLayers.find(
+    (layer) => String(layer.layer_type || "").toLowerCase() === "ortho"
+  );
+
   const visibleLayerCount = orderedLayers.filter(
     (layer) => layer.is_visible
   ).length;
@@ -836,17 +845,13 @@ export default function LayerControlPanel({
         <div className="shrink-0 border-b border-[#E7E8E3] bg-white">
           <div className="flex items-center justify-between gap-2 px-2.5 py-2">
             <div className="flex min-w-0 items-center gap-2">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center border border-[#DCDDD8] bg-[#F7F8F5] text-[#171717]">
-                <Layers3 className="h-3.5 w-3.5" strokeWidth={1.8} />
-              </span>
+
 
               <div className="min-w-0">
-                <p className="truncate text-[9px] font-bold uppercase tracking-[0.14em] text-[#999B94]">
-                  Data Layers
-                </p>
+
 
                 <div className="mt-0.5 flex items-center gap-1.5">
-                  <span className="text-[12px] font-bold tracking-[-0.02em] text-[#171717]">
+                  <span className="truncate text-[15px] font-bold uppercase tracking-[-0.05em] text-[#171717]">
                     Layer Control
                   </span>
 
@@ -893,7 +898,7 @@ export default function LayerControlPanel({
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-2 border-t border-[#F0F1ED] px-2.5 py-1.5">
+          {/* <div className="flex items-center justify-between gap-2 border-t border-[#F0F1ED] px-2.5 py-1.5">
             <div className="flex items-center gap-1.5">
               <span className="flex items-center gap-1 text-[9px] font-medium text-[#777972]">
                 <span className="h-1.5 w-1.5 bg-[#76B900]" />
@@ -913,7 +918,7 @@ export default function LayerControlPanel({
                 Seret untuk urutkan
               </span>
             )}
-          </div>
+          </div> */}
         </div>
 
         {/* =================================================
@@ -1086,7 +1091,7 @@ export default function LayerControlPanel({
               Basemap
             </span>
 
-            <span className="text-[8px] font-medium text-[#B0B1AB]">
+            <span className="text-[8px] font-bold uppercase tracking-[0.12em] text-[#999B94]">
               {basemap === "satellite" ? "Satelit" : "OpenStreetMap"}
             </span>
           </div>
@@ -1136,7 +1141,7 @@ export default function LayerControlPanel({
                 </span>
 
                 <div className="min-w-0">
-                  <p className="text-[9px] font-bold text-[#171717]">
+                  <p className="text-[12px] font-bold text-[#171717]">
                     Terrain 3D
                   </p>
 
@@ -1165,6 +1170,44 @@ export default function LayerControlPanel({
                   ].join(" ")}
                 />
               </button>
+            </div>
+          </div>
+        )}
+
+        {(orthoLayer || analysisLayers.length > 0) && (
+          <div className="shrink-0 border-b border-[#E7E8E3] bg-white px-2 py-1.5">
+            <div className="mb-1 flex items-center justify-between">
+              <span className="text-[8px] font-bold uppercase tracking-[0.12em] text-[#999B94]">
+                Pilihan Layer
+              </span>
+
+            </div>
+
+            <div className="grid grid-cols-2 gap-1">
+              {[...(orthoLayer ? [orthoLayer] : []), ...analysisLayers].map((layer) => {
+                const config = getLayerConfig(layer);
+                const Icon = config.icon;
+                const active = Boolean(layer.is_visible);
+
+                return (
+                  <button
+                    key={String(layer.id)}
+                    type="button"
+                    onClick={() => onToggleVisibility(layer.id, true)}
+                    aria-pressed={active}
+                    className={[
+                      "flex min-w-0 items-center gap-1.5 border px-2 py-1.5 text-left text-[9px] font-semibold outline-none transition-colors",
+                      "focus-visible:ring-2 focus-visible:ring-[#76B900]/40",
+                      active
+                        ? "border-[#171717] bg-[#171717] text-white"
+                        : "border-[#DCDDD8] bg-[#FAFAF8] text-[#666861] hover:border-[#BFC1BB] hover:bg-white hover:text-[#171717]",
+                    ].join(" ")}
+                  >
+                    <Icon className="h-3 w-3 shrink-0" strokeWidth={1.8} />
+                    <span className="truncate">{config.shortLabel}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -1249,7 +1292,7 @@ export default function LayerControlPanel({
                     }}
                     onDrop={(event) => handleDrop(event, layer.id)}
                     className={[
-                      "relative overflow-hidden border bg-white transition-all",
+                      "relative overflow-hidden border-b bg-white transition-all",
                       isDragging ? "z-20 scale-[0.985] opacity-45" : "",
                       isDropTarget
                         ? "border-[#171717] shadow-[0_0_0_2px_rgba(118,185,0,0.16)]"
@@ -1288,10 +1331,8 @@ export default function LayerControlPanel({
                       )}
 
                       <span
-                        className="flex h-7 w-7 shrink-0 items-center justify-center border"
+                        className="flex h-6 w-6 shrink-0 items-center justify-center"
                         style={{
-                          borderColor: `${config.accent}35`,
-                          backgroundColor: config.soft,
                           color: config.accent,
                         }}
                       >
@@ -1326,11 +1367,6 @@ export default function LayerControlPanel({
                             {config.shortLabel}
                           </span>
 
-                          <span className="text-[8px] text-[#B0B1AB]">•</span>
-
-                          <span className="shrink-0 text-[8px] font-medium tabular-nums text-[#898B84]">
-                            {formatOpacity(opacity)}
-                          </span>
                         </div>
                       </div>
 
@@ -1395,7 +1431,7 @@ export default function LayerControlPanel({
                     </div>
 
                     {/* OPACITY */}
-                    <div className="border-t border-[#F0F1ED] px-2 py-1.5">
+                    <div className="px-2 pb-2 pt-0.5">
                       <div className="flex items-center gap-2">
                         <span className="shrink-0 text-[8px] font-semibold uppercase tracking-[0.05em] text-[#A0A19B]">
                           Opacity

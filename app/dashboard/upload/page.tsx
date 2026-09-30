@@ -964,11 +964,12 @@ export default function UploadPage() {
         .replace(/\.[^/.]+$/, "")
         .replace(/[_-]/g, " ")
         .replace(/ortho|rgb|citra|ndvi|dsm/gi, "")
+        .replace(/\bmg\s*kg\b/gi, "")
         .replace(/\s+/g, " ")
         .trim();
 
       if (firstClean) {
-        setTitle(`Survei Fotogrametri ${firstClean}`);
+        setTitle(`Survei Data Lahan ${firstClean}`);
       }
     }
 
@@ -1388,6 +1389,7 @@ export default function UploadPage() {
     "Tobelo, Halmahera Utara",
     "Galela, Halmahera Utara",
     "Kao Barat, Halmahera Utara",
+    "Mamuya, Halmahera Utara",
   ];
 
   const modes = [
@@ -2348,7 +2350,7 @@ export default function UploadPage() {
               className="mt-4 flex items-center justify-between gap-4 px-1"
             >
               <p className="text-[10px] font-medium text-[#858780]">
-                AMX GeoStream · Upload Center
+                AMX GeoStream | Upload Map Center
               </p>
 
               <div className="flex items-center gap-2">
