@@ -291,7 +291,7 @@ function RoleBadge({
             className="h-3 w-3 text-[#6E5C88]"
             strokeWidth={ICON_STROKE}
           />
-          God
+          Super Admin
         </motion.span>
 
         <span className="text-[9px] font-bold uppercase tracking-[0.08em] text-[#A0A29B]">
@@ -1306,7 +1306,7 @@ export default function UsersPage() {
 
     if (target.is_protected || target.role === "god") {
       showMessage(
-        "Akun God adalah protected account dan tidak dapat diubah.",
+        "Akun Super Admin adalah protected account dan tidak dapat diubah.",
         "error"
       );
       return;

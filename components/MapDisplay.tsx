@@ -3120,40 +3120,43 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
           onToggleFullscreen={handleToggleFullscreen}
           onToggleVisibility={(layerId, visible) => {
             const map = mapRef.current;
-
-            const targetId = `layer-render-${layerId}`;
-
-            if (map && map.getLayer(targetId)) {
-              map.setLayoutProperty(
-                targetId,
-
-                "visibility",
-
-                visible ? "visible" : "none"
-              );
-            }
-
-            setMapLayers((prev) =>
-              prev.map((layer) =>
-                layer.id === layerId
-                  ? {
-                      ...layer,
-
-                      is_visible: visible,
-                    }
-                  : layer
-              )
+            const selectedLayer = mapLayersRef.current.find(
+              (layer) => layer.id === layerId
             );
+            const selectedType = selectedLayer?.layer_type?.toLowerCase();
+            const analysisTypes = new Set([
+              "ndvi",
+              "nitrogen",
+              "phosphorus",
+              "kalium",
+            ]);
+            const isAnalysis = analysisTypes.has(selectedType || "");
 
-            mapLayersRef.current = mapLayersRef.current.map((layer) =>
-              layer.id === layerId
-                ? {
-                    ...layer,
+            const nextLayers = mapLayersRef.current.map((layer) => {
+              const type = layer.layer_type?.toLowerCase();
+              const hideOtherAnalysis =
+                visible && isAnalysis && analysisTypes.has(type || "") && layer.id !== layerId;
 
-                    is_visible: visible,
-                  }
-                : layer
-            );
+              return layer.id === layerId
+                ? { ...layer, is_visible: visible }
+                : hideOtherAnalysis
+                  ? { ...layer, is_visible: false }
+                  : layer;
+            });
+
+            nextLayers.forEach((layer) => {
+              const targetId = `layer-render-${layer.id}`;
+              if (map?.getLayer(targetId)) {
+                map.setLayoutProperty(
+                  targetId,
+                  "visibility",
+                  layer.is_visible ? "visible" : "none"
+                );
+              }
+            });
+
+            mapLayersRef.current = nextLayers;
+            setMapLayers(nextLayers);
           }}
           onChangeOpacity={(layerId, opacity) => {
             const map = mapRef.current;

@@ -1291,7 +1291,9 @@ export default function UploadPage() {
         headers: {
           // Biarkan Axios/browser menambahkan boundary multipart otomatis.
         },
-        timeout: 15 * 60 * 1000,
+        // Upload GeoTIFF besar tidak boleh diputus oleh timeout frontend.
+        // Backend tetap menjadi sumber status proses upload dan konversi.
+        timeout: 0,
 
         onUploadProgress: ({ loaded, total }) => {
           if (!total) {
@@ -1314,8 +1316,9 @@ export default function UploadPage() {
       setPmtilesStatus("baking");
       setPmtilesProgress({ completed: 0, total: totalLayers });
 
-      const maxAttempts = 60; // 60 * 1.5s = 90 detik batas waktu polling
-      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      // Tunggu sampai seluruh layer benar-benar selesai diproses.
+      // Tidak ada batas waktu buatan di frontend untuk file raster besar.
+      for (;;) {
         if (!isMounted.current) break;
         await new Promise((r) => setTimeout(r, 1500));
         if (!isMounted.current) break;

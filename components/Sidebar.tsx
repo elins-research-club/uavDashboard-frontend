@@ -293,7 +293,7 @@ export default function Sidebar({
   const userName = user?.username || "Pengguna";
 
   const profileLabel = isGod
-    ? `${userName} · God · Protected`
+    ? `${userName} · Super Admin · Protected`
     : user?.role === "admin"
     ? `${userName} · Administrator`
     : userName;
@@ -581,7 +581,7 @@ export default function Sidebar({
 
                   <span className="mt-1 flex min-w-0 items-center gap-1.5">
                     <span className="truncate text-[9px] font-semibold text-[#777972]">
-                      {isGod ? "God" : user?.role === "admin" ? "Admin" : "Member"}
+                      {isGod ? "Super Admin" : user?.role === "admin" ? "Admin" : "Member"}
                     </span>
                     {user?.role === "member" && user?.tier && (
                       <span className="truncate text-[9px] font-medium text-[#999B94]">

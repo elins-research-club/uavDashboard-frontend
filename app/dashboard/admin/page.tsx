@@ -2574,7 +2574,7 @@ export default function AdminPage() {
               </p>
 
               <p className="mt-1 text-xs font-bold text-[#171717]">
-                {user.role === "god" ? "God Administrator" : "Administrator"}
+{user.role === "god" ? "Super Admin" : "Administrator"}
               </p>
             </div>
           </div>
