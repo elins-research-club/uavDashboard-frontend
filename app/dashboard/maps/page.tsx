@@ -1440,14 +1440,6 @@ export default function MapsPage() {
                           {layer.location}
                         </p>
 
-                        <p
-                          className={cn(
-                            "mt-0.5 text-[9px] font-medium leading-tight sm:text-[10px]",
-                            active ? "text-white/65" : "text-[#858780]"
-                          )}
-                        >
-                          {layer.date}
-                        </p>
                       </div>
 
                       <span
