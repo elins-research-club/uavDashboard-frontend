@@ -133,10 +133,10 @@ export function classifyParam(param: string, value: number | null | undefined): 
   }
   switch (param) {
     case "nitrogen":
-      if (value < 30) return { nama: "Sangat Rendah", warna: "#e8f5e9", isWarning: true };
-      if (value < 60) return { nama: "Rendah", warna: "#a5d6a7", isWarning: true };
-      if (value < 95) return { nama: "Sedang", warna: "#4caf50" };
-      return { nama: "Tinggi", warna: "#1b5e20" };
+      if (value < 0.1) return { nama: "Tidak Sesuai", warna: "#c62828", isWarning: true };
+      if (value < 0.15) return { nama: "Kurang Sesuai", warna: "#f57c00", isWarning: true };
+      if (value < 0.2) return { nama: "Sesuai", warna: "#fdd835" };
+      return { nama: "Sangat Sesuai", warna: "#2e7d32" };
     case "phospor":
       if (value < 12) return { nama: "Sangat Rendah", warna: "#f3e5f5", isWarning: true };
       if (value < 25) return { nama: "Rendah", warna: "#ce93d8", isWarning: true };

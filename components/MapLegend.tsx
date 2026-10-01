@@ -69,38 +69,37 @@ const LEGEND_PRESETS: Record<string, LegendConfig> = {
 
   nitrogen: {
     title: "Nitrogen",
-    unit: "mg/kg",
-    description: "Status Ketersediaan Unsur Hara N",
+    unit: "%",
+    description: "Patokan kondisi tanah yang baik untuk kelapa · SNI 9229:2023",
     gradient:
-      "linear-gradient(to right, #c62828 0%, #c62828 20%, #f57c00 20%, #f57c00 40%, #fdd835 40%, #fdd835 60%, #7ec850 60%, #7ec850 80%, #2e7d32 80%, #2e7d32 100%)",
+      "linear-gradient(to right, #c62828 0%, #c62828 25%, #f57c00 25%, #f57c00 50%, #fdd835 50%, #fdd835 75%, #2e7d32 75%, #2e7d32 100%)",
     segments: [
       {
         color: "#c62828",
-        label: "Sangat Rendah",
-        valueRange: "< 1.000",
-        tickValue: "< 1.000",
+        label: "Tidak Sesuai",
+        valueRange: "< 0,10%",
+        tickValue: "< 0,10%",
       },
       {
         color: "#f57c00",
-        label: "Rendah",
-        valueRange: "1.000 - 2.099",
-        tickValue: "2.100",
+        label: "Kurang Sesuai",
+        valueRange: "0,10% - 0,15%",
+        tickValue: "0,15%",
       },
       {
         color: "#fdd835",
-        label: "Sedang",
-        valueRange: "2.100 - 5.099",
-        tickValue: "5.100",
+        label: "Sesuai",
+        valueRange: "0,15% - 0,20%",
+        tickValue: "0,20%",
       },
-      { color: "#7ec850", label: "Tinggi", valueRange: "5.100 - 7.500", tickValue: "7.500" },
-      { color: "#2e7d32", label: "Sangat Tinggi", valueRange: "> 7.500", tickValue: "> 7.500" },
+      { color: "#2e7d32", label: "Sangat Sesuai", valueRange: "> 0,20%", tickValue: "> 0,20%" },
     ],
   },
 
   phosphorus: {
     title: "Fosfor",
     unit: "mg/kg",
-    description: "Status Ketersediaan Unsur Hara P",
+    description: "Patokan kondisi tanah yang baik untuk kelapa · SNI 9229:2023",
     gradient:
       "linear-gradient(to right, #c62828 0%, #c62828 20%, #f57c00 20%, #f57c00 40%, #fdd835 40%, #fdd835 60%, #7ec850 60%, #7ec850 80%, #2e7d32 80%, #2e7d32 100%)",
     segments: [
@@ -121,7 +120,7 @@ const LEGEND_PRESETS: Record<string, LegendConfig> = {
   kalium: {
     title: "Kalium",
     unit: "mg/kg",
-    description: "Status Ketersediaan Unsur Hara K",
+    description: "Patokan kondisi tanah yang baik untuk kelapa · SNI 9229:2023",
     gradient:
       "linear-gradient(to right, #c62828 0%, #c62828 20%, #f57c00 20%, #f57c00 40%, #fdd835 40%, #fdd835 60%, #7ec850 60%, #7ec850 80%, #2e7d32 80%, #2e7d32 100%)",
     segments: [
