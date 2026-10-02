@@ -1318,7 +1318,7 @@ export default function UploadPage() {
 
       // Tunggu sampai seluruh layer benar-benar selesai diproses.
       // Tidak ada batas waktu buatan di frontend untuk file raster besar.
-      for (;;) {
+      for (; ;) {
         if (!isMounted.current) break;
         await new Promise((r) => setTimeout(r, 1500));
         if (!isMounted.current) break;
@@ -2356,13 +2356,7 @@ export default function UploadPage() {
                 AMX GeoStream | Upload Map Center
               </p>
 
-              <div className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 bg-[#76B900]" />
 
-                <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#858780]">
-                  Dataset diperiksa otomatis
-                </span>
-              </div>
             </motion.div>
           </fieldset>
         </form>
