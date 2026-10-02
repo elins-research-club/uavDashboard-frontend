@@ -385,9 +385,9 @@ export function AccountPanel({ onLogout }: { onLogout: () => void }) {
         ================================================== */}
 
         <SectionHeader
-          eyebrow="Identity"
-          title="Akun"
-          description="Identitas akun, keamanan password, dan kontrol sesi perangkat ini."
+          eyebrow="Account"
+          title="Identitas Akun, Keamanan Password."
+          description=""
           icon={UserRound}
         />
 
@@ -402,7 +402,7 @@ export function AccountPanel({ onLogout }: { onLogout: () => void }) {
             value={user?.username || "-"}
           />
 
-          <InfoItem icon={Mail} label="Email" value={user?.email || "-"} />
+          <InfoItem icon={Mail} label="Email" value={user?.email?.toLowerCase() || "-"} />
 
           <InfoItem
             icon={ShieldCheck}
@@ -424,18 +424,16 @@ export function AccountPanel({ onLogout }: { onLogout: () => void }) {
         <section>
           <div className="mb-4">
             <h3 className="text-[13px] font-bold text-[#171717] sm:text-sm">
-              Ubah Nama Tampil
+              Ubah Nama Tampilan
             </h3>
 
-            <p className="mt-1 text-[10px] font-medium leading-4 text-[#858780] sm:text-xs">
-              Nama ini tampil pada sidebar dan kartu profil.
-            </p>
+
           </div>
 
           <div className="border border-[#DCDDD8] bg-white p-4 sm:p-5">
             <TextField
               icon={UsersRound}
-              label="Nama tampil"
+              label="Nama Pengguna"
               description="Maksimal 60 karakter."
               value={username}
               placeholder={user?.username || "Nama Anda"}

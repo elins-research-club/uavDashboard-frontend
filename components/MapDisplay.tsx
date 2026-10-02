@@ -1545,11 +1545,24 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
           if (layersRes.ok) {
             const lData = (await layersRes.json()) as MapLayerItem[];
 
-            setMapLayers(lData);
+            // Halaman peta dibuka dengan satu layer analisis saja: NDVI.
+            const hasNdvi = lData.some(
+              (layer) => layer.layer_type?.toLowerCase() === "ndvi"
+            );
+            const initialLayers = hasNdvi
+              ? lData.map((layer) => ({
+                ...layer,
+                is_visible:
+                  layer.layer_type?.toLowerCase() === "ortho" ||
+                  layer.layer_type?.toLowerCase() === "ndvi",
+              }))
+              : lData;
 
-            mapLayersRef.current = lData;
+            setMapLayers(initialLayers);
 
-            await setupUavLayer(data as BoundsResponse, lData);
+            mapLayersRef.current = initialLayers;
+
+            await setupUavLayer(data as BoundsResponse, initialLayers);
           } else if (data) {
             await setupUavLayer(data);
           }

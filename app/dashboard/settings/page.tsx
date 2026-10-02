@@ -57,25 +57,25 @@ const tabs: SettingsTabItem[] = [
   {
     key: "general",
     label: "Umum",
-    description: "Workspace",
+    description: "",
     icon: Settings2,
   },
   {
     key: "preferences",
     label: "Preferensi",
-    description: "Tampilan",
+    description: "",
     icon: Palette,
   },
   {
     key: "notifications",
     label: "Notifikasi",
-    description: "Pemberitahuan",
+    description: "",
     icon: Bell,
   },
   {
     key: "account",
     label: "Akun",
-    description: "Profil & sesi",
+    description: "",
     icon: UserRound,
   },
 ];
@@ -195,11 +195,10 @@ export default function SettingsPage() {
                       onClick={() => setActiveTab(tab.key)}
                       whileHover={{ x: 2 }}
                       whileTap={{ scale: 0.99 }}
-                      className={`group relative flex w-full min-w-0 items-center gap-2.5 border px-2.5 py-2.5 text-left transition-colors sm:gap-3 sm:px-3.5 sm:py-3 ${
-                        active
-                          ? "border-[#CFCFC8] bg-white"
-                          : "border-transparent hover:border-[#DCDDD8] hover:bg-white"
-                      }`}
+                      className={`group relative flex w-full min-w-0 items-center gap-2.5 border px-2.5 py-2.5 text-left transition-colors sm:gap-3 sm:px-3.5 sm:py-3 ${active
+                        ? "border-[#CFCFC8] bg-white"
+                        : "border-transparent hover:border-[#DCDDD8] hover:bg-white"
+                        }`}
                     >
                       {active && (
                         <motion.span
@@ -220,25 +219,22 @@ export default function SettingsPage() {
                           rotate: -5,
                           scale: 1.06,
                         }}
-                        className={`flex h-8 w-8 shrink-0 items-center justify-center border ${
-                          active
-                            ? "border-[#DCDDD8] bg-[#F4F5F2]"
-                            : "border-[#E3E3DE] bg-white"
-                        }`}
+                        className={`flex h-8 w-8 shrink-0 items-center justify-center border ${active
+                          ? "border-[#DCDDD8] bg-[#F4F5F2]"
+                          : "border-[#E3E3DE] bg-white"
+                          }`}
                       >
                         <Icon
-                          className={`h-4 w-4 ${
-                            active ? "text-[#171717]" : "text-[#858780]"
-                          }`}
+                          className={`h-4 w-4 ${active ? "text-[#171717]" : "text-[#858780]"
+                            }`}
                           strokeWidth={ICON_STROKE}
                         />
                       </motion.span>
 
                       <div className="min-w-0">
                         <p
-                          className={`truncate text-[11px] font-bold sm:text-xs ${
-                            active ? "text-[#171717]" : "text-[#33332F]"
-                          }`}
+                          className={`truncate text-[11px] font-bold sm:text-xs ${active ? "text-[#171717]" : "text-[#33332F]"
+                            }`}
                         >
                           {tab.label}
                         </p>
@@ -258,7 +254,7 @@ export default function SettingsPage() {
                 href="/dashboard/help"
                 icon={CircleHelp}
                 label="Pusat Bantuan"
-                description="Bantuan & dokumentasi"
+                description=""
               />
             </div>
           </nav>

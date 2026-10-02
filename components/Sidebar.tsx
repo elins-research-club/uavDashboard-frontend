@@ -174,6 +174,20 @@ export default function Sidebar({
     if (stored === "true") {
       setCollapsed(true);
     }
+
+    const handleSidebarToggle = (event: Event) => {
+      const customEvent = event as CustomEvent<{ collapsed?: boolean }>;
+
+      if (typeof customEvent.detail?.collapsed === "boolean") {
+        setCollapsed(customEvent.detail.collapsed);
+      }
+    };
+
+    window.addEventListener("sidebar:toggle", handleSidebarToggle);
+
+    return () => {
+      window.removeEventListener("sidebar:toggle", handleSidebarToggle);
+    };
   }, [collapsible]);
 
   const toggleCollapsed = (next: boolean) => {

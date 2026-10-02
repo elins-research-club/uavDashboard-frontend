@@ -514,6 +514,24 @@ export default function MapsPage() {
   ========================================================== */
 
   useEffect(() => {
+    const previousCollapsed = localStorage.getItem("sidebar:collapsed") === "true";
+
+    localStorage.setItem("sidebar:collapsed", "true");
+    window.dispatchEvent(
+      new CustomEvent("sidebar:toggle", { detail: { collapsed: true } })
+    );
+
+    return () => {
+      localStorage.setItem("sidebar:collapsed", String(previousCollapsed));
+      window.dispatchEvent(
+        new CustomEvent("sidebar:toggle", {
+          detail: { collapsed: previousCollapsed },
+        })
+      );
+    };
+  }, []);
+
+  useEffect(() => {
     const syncSidebar = () => {
       const stored = localStorage.getItem("sidebar:collapsed");
 
