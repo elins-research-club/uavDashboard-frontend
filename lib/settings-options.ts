@@ -64,18 +64,18 @@ export const THEME_OPTIONS: {
   description: string;
   beta?: boolean;
 }[] = [
-  {
-    value: "light",
-    label: "Terang",
-    description: "Tampilan default platform",
-  },
-  {
-    value: "dark",
-    label: "Gelap",
-    description: "Permukaan gelap, kontras tinggi",
-    beta: true,
-  },
-];
+    {
+      value: "light",
+      label: "Terang",
+      description: "Tampilan default platform",
+    },
+    {
+      value: "dark",
+      label: "Gelap",
+      description: "Permukaan gelap, kontras tinggi",
+      beta: true,
+    },
+  ];
 
 export const ACCENT_OPTIONS: {
   value: AccentKey;
@@ -84,45 +84,45 @@ export const ACCENT_OPTIONS: {
   tint: string;
   border: string;
 }[] = [
-  {
-    value: "hijau",
-    label: "Hijau AMX",
-    accent: "#76B900",
-    tint: "#F1F6EB",
-    border: "#DDE3D3",
-  },
-  {
-    value: "biru",
-    label: "Biru Presisi",
-    accent: "#0E7490",
-    tint: "#ECF6F9",
-    border: "#CFE4EA",
-  },
-  {
-    value: "amber",
-    label: "Amber Panen",
-    accent: "#B45309",
-    tint: "#FDF5EA",
-    border: "#EEDCC4",
-  },
-  {
-    value: "ungu",
-    label: "Ungu Geodesi",
-    accent: "#7C3AED",
-    tint: "#F4EFFD",
-    border: "#E0D4F7",
-  },
-];
+    {
+      value: "hijau",
+      label: "Hijau",
+      accent: "#76B900",
+      tint: "#F1F6EB",
+      border: "#DDE3D3",
+    },
+    {
+      value: "biru",
+      label: "Biru",
+      accent: "#0E7490",
+      tint: "#ECF6F9",
+      border: "#CFE4EA",
+    },
+    {
+      value: "amber",
+      label: "Amber",
+      accent: "#B45309",
+      tint: "#FDF5EA",
+      border: "#EEDCC4",
+    },
+    {
+      value: "ungu",
+      label: "Ungu",
+      accent: "#7C3AED",
+      tint: "#F4EFFD",
+      border: "#E0D4F7",
+    },
+  ];
 
 export const TIMEZONE_OPTIONS: {
   value: TimezoneKey;
   label: string;
   iana: string;
 }[] = [
-  { value: "wib", label: "WIB (UTC+07:00)", iana: "Asia/Jakarta" },
-  { value: "wita", label: "WITA (UTC+08:00)", iana: "Asia/Makassar" },
-  { value: "wit", label: "WIT (UTC+09:00)", iana: "Asia/Jayapura" },
-];
+    { value: "wib", label: "WIB (UTC+07:00)", iana: "Asia/Jakarta" },
+    { value: "wita", label: "WITA (UTC+08:00)", iana: "Asia/Makassar" },
+    { value: "wit", label: "WIT (UTC+09:00)", iana: "Asia/Jayapura" },
+  ];
 
 export const LOCALE_OPTIONS: { value: LocaleKey; label: string }[] = [
   { value: "id-ID", label: "Bahasa Indonesia" },
@@ -134,78 +134,78 @@ export const DATE_FORMAT_OPTIONS: {
   label: string;
   sample: string;
 }[] = [
-  { value: "dd/mm/yyyy", label: "31/12/2026", sample: "dd/mm/yyyy" },
-  { value: "dd mmm yyyy", label: "31 Des 2026", sample: "dd mmm yyyy" },
-  { value: "iso", label: "2026-12-31", sample: "yyyy-mm-dd" },
-];
+    { value: "dd/mm/yyyy", label: "31/12/2026", sample: "dd/mm/yyyy" },
+    { value: "dd mmm yyyy", label: "31 Des 2026", sample: "dd mmm yyyy" },
+    { value: "iso", label: "2026-12-31", sample: "yyyy-mm-dd" },
+  ];
 
 export const LANDING_PAGE_OPTIONS: {
   value: LandingPageKey;
   label: string;
   description: string;
 }[] = [
-  {
-    value: "/dashboard",
-    label: "Ringkasan",
-    description: "Statistik dan aktivitas terbaru",
-  },
-  {
-    value: "/dashboard/maps",
-    label: "Peta Saya",
-    description: "Langsung membuka WebGIS",
-  },
-  {
-    value: "/dashboard/subscription",
-    label: "Langganan",
-    description: "Paket dan riwayat pembayaran",
-  },
-];
+    {
+      value: "/dashboard",
+      label: "Ringkasan",
+      description: "Statistik dan aktivitas terbaru",
+    },
+    {
+      value: "/dashboard/maps",
+      label: "Peta Saya",
+      description: "Langsung membuka WebGIS",
+    },
+    {
+      value: "/dashboard/subscription",
+      label: "Langganan",
+      description: "Paket dan riwayat pembayaran",
+    },
+  ];
 
 export const SIDEBAR_SIZE_OPTIONS: {
   value: SidebarSizeKey;
   label: string;
   width: number;
 }[] = [
-  { value: "kecil", label: "Kecil (220px)", width: 220 },
-  { value: "sedang", label: "Sedang (258px)", width: 258 },
-  { value: "besar", label: "Besar (290px)", width: 290 },
-];
+    { value: "kecil", label: "Kecil (220px)", width: 220 },
+    { value: "sedang", label: "Sedang (258px)", width: 258 },
+    { value: "besar", label: "Besar (290px)", width: 290 },
+  ];
 
 export const ICON_SIZE_OPTIONS: {
   value: IconSizeKey;
   label: string;
   size: number;
 }[] = [
-  { value: "kecil", label: "Kecil (16px)", size: 16 },
-  { value: "sedang", label: "Sedang (18px)", size: 18 },
-  { value: "besar", label: "Besar (21px)", size: 21 },
-];
+    { value: "kecil", label: "Kecil (16px)", size: 16 },
+    { value: "sedang", label: "Sedang (18px)", size: 18 },
+    { value: "besar", label: "Besar (21px)", size: 21 },
+  ];
 
 export const MAP_BASEMAP_OPTIONS: {
   value: MapBasemapKey;
   label: string;
   description: string;
 }[] = [
-  {
-    value: "street",
-    label: "Peta Jalan (OSM)",
-    description: "Cocok untuk orientasi batas lahan",
-  },
-  {
-    value: "satellite",
-    label: "Satelit Bumi",
-    description: "Cocok untuk konteks visual lapangan",
-  },
-];
+    {
+      value: "street",
+      label: "Peta Jalan (OSM)",
+      description: "Cocok untuk orientasi batas lahan",
+    },
+    {
+      value: "satellite",
+      label: "Satelit Bumi",
+      description: "Cocok untuk konteks visual lapangan",
+    },
+  ];
 
 export const SUBSCRIPTION_LEAD_OPTIONS: {
   value: SubscriptionLeadDays;
   label: string;
 }[] = [
-  { value: 3, label: "3 hari sebelum berakhir" },
-  { value: 7, label: "7 hari sebelum berakhir" },
-  { value: 14, label: "14 hari sebelum berakhir" },
-];
+    { value: 3, label: "3 hari sebelum berakhir" },
+    { value: 7, label: "7 hari sebelum berakhir" },
+    { value: 14, label: "14 hari sebelum berakhir" },
+  ];
 
 /* ============================================================
    DEFAULTS
