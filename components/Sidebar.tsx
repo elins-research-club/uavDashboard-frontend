@@ -26,6 +26,7 @@ import {
   PanelLeftOpen,
   ChevronRight,
   UserRound,
+  X,
 } from "lucide-react";
 
 /* ============================================================
@@ -159,6 +160,11 @@ export default function Sidebar({
   const { user, hasPermission, isGod } = useUserRole();
 
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   /* ==========================================================
      COLLAPSE STORAGE
@@ -203,7 +209,7 @@ export default function Sidebar({
       })
     );
   };
-  const isCollapsed = collapsible && collapsed;
+  const isCollapsed = !mobileOpen && collapsible && collapsed;
 
   /* Preferensi user (halaman Pengaturan) */
   const sidebarSize = useSettingsStore((state) => state.sidebarSize);
@@ -323,6 +329,7 @@ export default function Sidebar({
       <Link
         href={item.href}
         aria-current={active ? "page" : undefined}
+        onClick={() => setMobileOpen(false)}
         aria-label={isCollapsed ? item.label : undefined}
         className={[
           "group relative flex items-center transition-all duration-200",
@@ -418,212 +425,249 @@ export default function Sidebar({
   ========================================================== */
 
   return (
-    <aside
-      className={[
-        "sticky top-3 z-40 flex h-[calc(100vh-1.5rem)] shrink-0 flex-col overflow-hidden",
-        "border border-[#DCDDD8] bg-[#F8F9F6]",
-        "shadow-[0_8px_30px_rgba(0,0,0,0.04)]",
-        "transition-[width,margin] duration-300",
-        "ml-3",
-      ].join(" ")}
-      style={{ width: sidebarWidth }}
-    >
-      {/* ==================================================
+    <>
+      <button
+        type="button"
+        onClick={() => setMobileOpen((current) => !current)}
+        aria-label={mobileOpen ? "Tutup menu navigasi" : "Buka menu navigasi"}
+        aria-expanded={mobileOpen}
+        className="fixed left-3 top-3 z-[110] flex h-10 w-10 items-center justify-center border border-[#DCDDD8] bg-white/95 text-[#171717] shadow-[0_10px_24px_rgba(0,0,0,0.08)] backdrop-blur-md transition-all active:scale-[0.97] lg:hidden"
+      >
+        {mobileOpen ? (
+          <X size={18} strokeWidth={ICON_STROKE} />
+        ) : (
+          <PanelLeftOpen size={18} strokeWidth={ICON_STROKE} />
+        )}
+      </button>
+
+      {mobileOpen && (
+        <button
+          type="button"
+          onClick={() => setMobileOpen(false)}
+          aria-label="Tutup navigasi"
+          className="fixed inset-0 z-[95] bg-black/25 backdrop-blur-[1px] lg:hidden"
+        />
+      )}
+
+      <aside
+        className={[
+          "fixed inset-y-0 left-0 z-[100] flex h-screen shrink-0 flex-col overflow-hidden",
+          "w-[min(300px,88vw)]",
+          "border border-[#DCDDD8] bg-[#F8F9F6]",
+          "shadow-[0_8px_30px_rgba(0,0,0,0.10)]",
+          "transition-[transform,width,margin] duration-300",
+          mobileOpen ? "translate-x-0" : "-translate-x-full",
+          "lg:sticky lg:top-3 lg:z-40 lg:h-[calc(100vh-1.5rem)] lg:w-[var(--sidebar-width)] lg:translate-x-0 lg:shadow-[0_8px_30px_rgba(0,0,0,0.04)] lg:ml-3",
+        ].join(" ")}
+        style={
+          { "--sidebar-width": `${sidebarWidth}px` } as React.CSSProperties
+        }
+      >
+        {/* ==================================================
           HEADER
       =================================================== */}
 
-      <div
-        className={[
-          "flex h-[76px] shrink-0 items-center border-b border-[#E5E6E1]",
-          isCollapsed ? "justify-center px-3" : "justify-between px-4",
-        ].join(" ")}
-      >
-        {isCollapsed ? (
-          <SidebarTooltip label="Buka sidebar">
-            <button
-              type="button"
-              onClick={() => toggleCollapsed(false)}
-              aria-label="Buka sidebar"
-              aria-expanded={false}
-              className="group flex h-10 w-10 items-center justify-center border border-[#DCDDD8] bg-white text-[#171717] shadow-[0_4px_14px_rgba(0,0,0,0.03)] transition-all duration-200 hover:border-[#C9CCC3] hover:bg-[#F7F8F5]"
-            >
-              {/* LOGO NORMAL */}
-
-              <Drone
-                size={19}
-                strokeWidth={ICON_STROKE}
-                className="transition-all duration-200 group-hover:hidden"
-              />
-
-              {/* OPEN ICON ON HOVER */}
-
-              <PanelLeftOpen
-                size={menuIconSize}
-                strokeWidth={ICON_STROKE}
-                className="hidden transition-all duration-200 group-hover:block group-hover:uav-text-accent"
-              />
-            </button>
-          </SidebarTooltip>
-        ) : (
-          <>
-            <Link
-              href="/dashboard"
-              className="group flex min-w-0 items-center gap-3 px-2 py-1.5"
-            >
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center bg-[#171717] text-white shadow-[0_6px_18px_rgba(0,0,0,0.08)] transition-transform duration-200 group-hover:-translate-y-0.5">
-                <Drone size={19} strokeWidth={ICON_STROKE} />
-              </span>
-
-              <span className="min-w-0">
-                <span className="block text-[13px] font-bold tracking-[-0.02em] text-[#171717]">
-                  UAV
-                </span>
-
-                <span className="mt-0.5 block text-[8px] font-bold uppercase tracking-[0.16em] text-[#999B94]">
-                  DAAS Platform
-                </span>
-              </span>
-            </Link>
-
-            {collapsible && (
+        <div
+          className={[
+            "flex h-[76px] shrink-0 items-center border-b border-[#E5E6E1]",
+            isCollapsed ? "justify-center px-3" : "justify-between px-4",
+          ].join(" ")}
+        >
+          {isCollapsed ? (
+            <SidebarTooltip label="Buka sidebar">
               <button
                 type="button"
-                onClick={() => toggleCollapsed(true)}
-                aria-label="Tutup sidebar"
-                aria-expanded={true}
-                className="flex h-9 w-9 shrink-0 items-center justify-center border border-transparent text-[#8A8C85] transition-all hover:border-[#DCDDD8] hover:bg-white hover:text-[#171717]"
+                onClick={() => toggleCollapsed(false)}
+                aria-label="Buka sidebar"
+                aria-expanded={false}
+                className="group flex h-10 w-10 items-center justify-center border border-[#DCDDD8] bg-white text-[#171717] shadow-[0_4px_14px_rgba(0,0,0,0.03)] transition-all duration-200 hover:border-[#C9CCC3] hover:bg-[#F7F8F5]"
               >
-                <PanelLeftClose size={17} strokeWidth={ICON_STROKE} />
-              </button>
-            )}
-          </>
-        )}
-      </div>
+                {/* LOGO NORMAL */}
 
-      {/* ==================================================
+                <Drone
+                  size={19}
+                  strokeWidth={ICON_STROKE}
+                  className="transition-all duration-200 group-hover:hidden"
+                />
+
+                {/* OPEN ICON ON HOVER */}
+
+                <PanelLeftOpen
+                  size={menuIconSize}
+                  strokeWidth={ICON_STROKE}
+                  className="hidden transition-all duration-200 group-hover:block group-hover:uav-text-accent"
+                />
+              </button>
+            </SidebarTooltip>
+          ) : (
+            <>
+              <Link
+                href="/dashboard"
+                className="group flex min-w-0 items-center gap-3 px-2 py-1.5"
+              >
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center bg-[#171717] text-white shadow-[0_6px_18px_rgba(0,0,0,0.08)] transition-transform duration-200 group-hover:-translate-y-0.5">
+                  <Drone size={19} strokeWidth={ICON_STROKE} />
+                </span>
+
+                <span className="min-w-0">
+                  <span className="block text-[13px] font-bold tracking-[-0.02em] text-[#171717]">
+                    UAV
+                  </span>
+
+                  <span className="mt-0.5 block text-[8px] font-bold uppercase tracking-[0.16em] text-[#999B94]">
+                    DAAS Platform
+                  </span>
+                </span>
+              </Link>
+
+              {collapsible && (
+                <button
+                  type="button"
+                  onClick={() => toggleCollapsed(true)}
+                  aria-label="Tutup sidebar"
+                  aria-expanded={true}
+                  className="hidden h-9 w-9 shrink-0 items-center justify-center border border-transparent text-[#8A8C85] transition-all hover:border-[#DCDDD8] hover:bg-white hover:text-[#171717] lg:flex"
+                >
+                  <PanelLeftClose size={17} strokeWidth={ICON_STROKE} />
+                </button>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* ==================================================
           NAVIGATION
       =================================================== */}
 
-      <nav
-        aria-label="Navigasi utama"
-        className="flex-1 overflow-y-auto px-3 py-6"
-      >
-        {/* WORKSPACE */}
-
-        {renderSectionLabel("Workspace", "nav-workspace")}
-
-        <ul
-          aria-labelledby={isCollapsed ? undefined : "nav-workspace"}
-          className="space-y-1"
+        <nav
+          aria-label="Navigasi utama"
+          className="flex-1 overflow-y-auto px-3 py-6"
         >
-          {mainMenuItems.map(renderMenuItem)}
-        </ul>
+          {/* WORKSPACE */}
 
-        {/* ADMINISTRATION */}
-
-        {showAdministration && (
-          <div className="mt-7">
-            {isCollapsed ? (
-              <div aria-hidden="true" className="mx-2 my-3 h-px bg-[#E0E1DD]" />
-            ) : (
-              <div className="mb-2 flex items-center justify-between px-3">
-                <p
-                  id="nav-admin"
-                  className="text-[9px] font-bold uppercase tracking-[0.17em] text-[#999B94]"
-                >
-                  Administration
-                </p>
-
-              </div>
-            )}
-
-            <ul
-              aria-labelledby={isCollapsed ? undefined : "nav-admin"}
-              className="space-y-1"
-            >
-              {adminMenuItems.map(renderMenuItem)}
-            </ul>
-          </div>
-        )}
-
-        {/* PREFERENCES */}
-
-        <div className="mt-7">
-          {renderSectionLabel("Preferences", "nav-preferences")}
+          {renderSectionLabel("Workspace", "nav-workspace")}
 
           <ul
-            aria-labelledby={isCollapsed ? undefined : "nav-preferences"}
+            aria-labelledby={isCollapsed ? undefined : "nav-workspace"}
             className="space-y-1"
           >
-            {settingsMenuItems.map(renderMenuItem)}
+            {mainMenuItems.map(renderMenuItem)}
           </ul>
-        </div>
-      </nav>
 
-      {/* ==================================================
+          {/* ADMINISTRATION */}
+
+          {showAdministration && (
+            <div className="mt-7">
+              {isCollapsed ? (
+                <div
+                  aria-hidden="true"
+                  className="mx-2 my-3 h-px bg-[#E0E1DD]"
+                />
+              ) : (
+                <div className="mb-2 flex items-center justify-between px-3">
+                  <p
+                    id="nav-admin"
+                    className="text-[9px] font-bold uppercase tracking-[0.17em] text-[#999B94]"
+                  >
+                    Administration
+                  </p>
+                </div>
+              )}
+
+              <ul
+                aria-labelledby={isCollapsed ? undefined : "nav-admin"}
+                className="space-y-1"
+              >
+                {adminMenuItems.map(renderMenuItem)}
+              </ul>
+            </div>
+          )}
+
+          {/* PREFERENCES */}
+
+          <div className="mt-7">
+            {renderSectionLabel("Preferences", "nav-preferences")}
+
+            <ul
+              aria-labelledby={isCollapsed ? undefined : "nav-preferences"}
+              className="space-y-1"
+            >
+              {settingsMenuItems.map(renderMenuItem)}
+            </ul>
+          </div>
+        </nav>
+
+        {/* ==================================================
           FOOTER / USER
       =================================================== */}
 
-      <div className="shrink-0 p-3">
-        <SidebarTooltip enabled={isCollapsed} label={profileLabel}>
-          <Link
-            href="/dashboard/settings"
-            aria-label={isCollapsed ? profileLabel : undefined}
-            className={[
-              "group flex items-center border border-[#DCDDD8] bg-white transition-all duration-200",
-              "hover:border-[#C9CCC3] hover:shadow-[0_6px_20px_rgba(0,0,0,0.04)]",
-              isCollapsed ? "mx-auto h-11 w-11 justify-center" : "px-3 py-2.5",
-            ].join(" ")}
-          >
-            {/* AVATAR */}
-
-            <span
+        <div className="shrink-0 p-3">
+          <SidebarTooltip enabled={isCollapsed} label={profileLabel}>
+            <Link
+              href="/dashboard/settings"
+              aria-label={isCollapsed ? profileLabel : undefined}
               className={[
-                "flex shrink-0 items-center justify-center border uav-border-accent-soft font-bold uav-text-accent",
-                isCollapsed ? "h-9 w-9 text-[11px]" : "h-9 w-9 text-[10px]",
+                "group flex items-center border border-[#DCDDD8] bg-white transition-all duration-200",
+                "hover:border-[#C9CCC3] hover:shadow-[0_6px_20px_rgba(0,0,0,0.04)]",
+                isCollapsed
+                  ? "mx-auto h-11 w-11 justify-center"
+                  : "px-3 py-2.5",
               ].join(" ")}
             >
-              <UserRound size={18} strokeWidth={ICON_STROKE} />
-            </span>
+              {/* AVATAR */}
 
-            {!isCollapsed && (
-              <>
-                <span className="ml-3 min-w-0 flex-1">
-                  <span className="block truncate text-xs font-bold text-[#171717]">
-                    {userName}
-                  </span>
+              <span
+                className={[
+                  "flex shrink-0 items-center justify-center border uav-border-accent-soft font-bold uav-text-accent",
+                  isCollapsed ? "h-9 w-9 text-[11px]" : "h-9 w-9 text-[10px]",
+                ].join(" ")}
+              >
+                <UserRound size={18} strokeWidth={ICON_STROKE} />
+              </span>
 
-                  <span className="mt-1 flex min-w-0 items-center gap-1.5">
-                    <span className="truncate text-[9px] font-semibold text-[#777972]">
-                      {isGod ? "Super Admin" : user?.role === "admin" ? "Admin" : "Member"}
+              {!isCollapsed && (
+                <>
+                  <span className="ml-3 min-w-0 flex-1">
+                    <span className="block truncate text-xs font-bold text-[#171717]">
+                      {userName}
                     </span>
-                    {user?.role === "member" && user?.tier && (
-                      <span className="truncate text-[9px] font-medium text-[#999B94]">
-                        · Tier {user.tier}
-                      </span>
-                    )}
-                    {isGod ? (
-                      <>
-                        <span className="sr-only">Protected</span>
-                      </>
-                    ) : user?.role === "admin" ? (
-                      <>
-                        <span className="sr-only">Administrator</span>
-                      </>
-                    ) : null}
-                  </span>
-                </span>
 
-                <ChevronRight
-                  size={14}
-                  strokeWidth={1.7}
-                  className="shrink-0 text-[#B4B6AF] transition-transform group-hover:translate-x-0.5 group-hover:uav-text-accent"
-                />
-              </>
-            )}
-          </Link>
-        </SidebarTooltip>
-      </div>
-    </aside>
+                    <span className="mt-1 flex min-w-0 items-center gap-1.5">
+                      <span className="truncate text-[9px] font-semibold text-[#777972]">
+                        {isGod
+                          ? "Super Admin"
+                          : user?.role === "admin"
+                          ? "Admin"
+                          : "Member"}
+                      </span>
+                      {user?.role === "member" && user?.tier && (
+                        <span className="truncate text-[9px] font-medium text-[#999B94]">
+                          · Tier {user.tier}
+                        </span>
+                      )}
+                      {isGod ? (
+                        <>
+                          <span className="sr-only">Protected</span>
+                        </>
+                      ) : user?.role === "admin" ? (
+                        <>
+                          <span className="sr-only">Administrator</span>
+                        </>
+                      ) : null}
+                    </span>
+                  </span>
+
+                  <ChevronRight
+                    size={14}
+                    strokeWidth={1.7}
+                    className="shrink-0 text-[#B4B6AF] transition-transform group-hover:translate-x-0.5 group-hover:uav-text-accent"
+                  />
+                </>
+              )}
+            </Link>
+          </SidebarTooltip>
+        </div>
+      </aside>
+    </>
   );
 }

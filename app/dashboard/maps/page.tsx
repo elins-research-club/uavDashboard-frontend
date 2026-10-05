@@ -264,8 +264,9 @@ function PlanGeometry({
         WebkitMaskImage: fade,
         maskImage: fade,
       }}
-      className={`pointer-events-none absolute select-none ${className} ${dark ? "text-white opacity-[0.2]" : "text-black opacity-[0.13]"
-        }`}
+      className={`pointer-events-none absolute select-none ${className} ${
+        dark ? "text-white opacity-[0.2]" : "text-black opacity-[0.13]"
+      }`}
     >
       <path
         d={scene.region}
@@ -337,8 +338,9 @@ function SweepButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`group/sweep relative inline-flex items-center justify-center overflow-hidden text-[9px] font-bold uppercase tracking-[0.08em] outline-none transition-transform duration-200 focus-visible:ring-2 focus-visible:ring-[#76B900] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 sm:text-[10px] ${disabled ? "" : "active:scale-[0.985]"
-        } ${sizing} ${base}`}
+      className={`group/sweep relative inline-flex items-center justify-center overflow-hidden text-[9px] font-bold uppercase tracking-[0.08em] outline-none transition-transform duration-200 focus-visible:ring-2 focus-visible:ring-[#76B900] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 sm:text-[10px] ${
+        disabled ? "" : "active:scale-[0.985]"
+      } ${sizing} ${base}`}
     >
       {!disabled && (
         <span
@@ -435,6 +437,8 @@ export default function MapsPage() {
   const [panelView, setPanelView] = useState<"list" | "detail">("list");
 
   const [isMinSearchFocused, setIsMinSearchFocused] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const mobileSearchInputRef = useRef<HTMLInputElement | null>(null);
 
   const [loading, setLoading] = useState(true);
 
@@ -469,6 +473,18 @@ export default function MapsPage() {
   } | null>(null);
 
   const noticeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!mobileSearchOpen) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      mobileSearchInputRef.current?.focus();
+    }, 120);
+
+    return () => window.clearTimeout(timer);
+  }, [mobileSearchOpen]);
 
   /* Fullscreen */
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -514,7 +530,8 @@ export default function MapsPage() {
   ========================================================== */
 
   useEffect(() => {
-    const previousCollapsed = localStorage.getItem("sidebar:collapsed") === "true";
+    const previousCollapsed =
+      localStorage.getItem("sidebar:collapsed") === "true";
 
     localStorage.setItem("sidebar:collapsed", "true");
     window.dispatchEvent(
@@ -754,10 +771,10 @@ export default function MapsPage() {
   const tierBadgeLabel = isAdmin
     ? "Akses Admin"
     : tierKey === "desa"
-      ? "Tier Desa"
-      : tierKey === "kecamatan"
-        ? "Tier Kecamatan"
-        : "User Free";
+    ? "Tier Desa"
+    : tierKey === "kecamatan"
+    ? "Tier Kecamatan"
+    : "User Free";
 
   /* =========================================================
      MAP ACTIONS
@@ -790,8 +807,9 @@ export default function MapsPage() {
       return;
     }
 
-    const shareUrl = `${window.location.origin}${window.location.pathname
-      }?map=${encodeURIComponent(selectedMapRaw.id)}`;
+    const shareUrl = `${window.location.origin}${
+      window.location.pathname
+    }?map=${encodeURIComponent(selectedMapRaw.id)}`;
 
     const shareTitle = selectedMapRaw.title || "Peta Geospasial";
 
@@ -995,8 +1013,8 @@ export default function MapsPage() {
       allowed_tiers: map.allowed_tiers?.length
         ? map.allowed_tiers
         : map.locked_for_free
-          ? ["desa", "kecamatan"]
-          : ["free", "desa", "kecamatan"],
+        ? ["desa", "kecamatan"]
+        : ["free", "desa", "kecamatan"],
     });
 
     setEditErrors({});
@@ -1123,6 +1141,7 @@ export default function MapsPage() {
 
   const closeLayerPanel = () => {
     setIsLayerPanelOpen(false);
+    setMobileSearchOpen(false);
   };
 
   /* =========================================================
@@ -1134,61 +1153,61 @@ export default function MapsPage() {
 
   const detailActions = selectedMapRaw
     ? [
-      {
-        key: "share",
-        icon: ArrowUpRight,
-        label: "Bagikan",
-        onClick: () => handleShare(),
-      },
+        {
+          key: "share",
+          icon: ArrowUpRight,
+          label: "Bagikan",
+          onClick: () => handleShare(),
+        },
 
-      {
-        key: "download",
-        icon: isDownloadingAnalysis
-          ? Loader2
-          : isDownloadLocked
+        {
+          key: "download",
+          icon: isDownloadingAnalysis
+            ? Loader2
+            : isDownloadLocked
             ? Lock
             : Download,
 
-        label: isDownloadingAnalysis ? "Memuat" : "Unduh",
+          label: isDownloadingAnalysis ? "Memuat" : "Unduh",
 
-        onClick: () => handleDownloadAnalysis(),
+          onClick: () => handleDownloadAnalysis(),
 
-        spin: isDownloadingAnalysis,
+          spin: isDownloadingAnalysis,
 
-        disabled: isDownloadingAnalysis,
-      },
+          disabled: isDownloadingAnalysis,
+        },
 
-      {
-        key: "metadata",
-        icon: ScanLine,
-        label: "Metadata",
-        onClick: () => setMetadataMap(selectedMapRaw),
-      },
+        {
+          key: "metadata",
+          icon: ScanLine,
+          label: "Metadata",
+          onClick: () => setMetadataMap(selectedMapRaw),
+        },
 
-      ...(canManage
-        ? [
-          {
-            key: "edit",
-            icon: Pencil,
-            label: "Edit",
+        ...(canManage
+          ? [
+              {
+                key: "edit",
+                icon: Pencil,
+                label: "Edit",
 
-            onClick: (event?: React.MouseEvent) =>
-              openEditModal(selectedMapRaw, event),
-          },
+                onClick: (event?: React.MouseEvent) =>
+                  openEditModal(selectedMapRaw, event),
+              },
 
-          {
-            key: "delete",
-            icon: Trash2,
-            label: "Hapus",
+              {
+                key: "delete",
+                icon: Trash2,
+                label: "Hapus",
 
-            onClick: (event?: React.MouseEvent) =>
-              openDeleteConfirm(selectedMapRaw, event),
+                onClick: (event?: React.MouseEvent) =>
+                  openDeleteConfirm(selectedMapRaw, event),
 
-            danger: true,
-          },
-        ]
-        : []),
-    ]
+                danger: true,
+              },
+            ]
+          : []),
+      ]
     : [];
 
   /* =========================================================
@@ -1219,28 +1238,167 @@ export default function MapsPage() {
       </div>
 
       {/* ===================================================
-          BUTTON — CARI PETA
-          Ikut bergerak mengikuti sidebar
+          DESKTOP — CARI PETA
       ==================================================== */}
 
       {!isFullscreen && !isLayerPanelOpen && (
         <button
           type="button"
           onClick={() => setIsLayerPanelOpen(true)}
-          className="absolute top-2 z-40 flex items-center gap-2 border border-[#DCDDD8] bg-white px-3 py-2.5 text-[10px] font-bold uppercase tracking-[0.07em] text-[#171717] shadow-[0_12px_30px_rgba(0,0,0,0.10)] transition-[left,color,background-color,border-color] duration-300 ease-out hover:border-[#171717] hover:bg-[#171717] hover:text-white sm:top-3"
+          className="absolute top-2 z-40 hidden items-center gap-2 border border-[#DCDDD8] bg-white px-3 py-2.5 text-[10px] font-bold uppercase tracking-[0.07em] text-[#171717] shadow-[0_12px_30px_rgba(0,0,0,0.10)] transition-[left,color,background-color,border-color] duration-300 ease-out hover:border-[#171717] hover:bg-[#171717] hover:text-white sm:top-3 lg:flex"
           style={{
             left: `${mapPanelLeft}px`,
           }}
         >
           <Search className="h-3.5 w-3.5" strokeWidth={1.8} />
-
           <span>Cari Peta</span>
-
           <span className="border border-[#E0E1DC] bg-[#F7F8F5] px-1.5 py-0.5 text-[9px] font-extrabold text-[#171717]">
             {maps.length}
           </span>
         </button>
       )}
+
+      {/* ===================================================
+          MOBILE / TABLET — QUICK SEARCH
+      ==================================================== */}
+
+      {!isFullscreen && (
+        <div className="pointer-events-none absolute right-3 top-3 z-[80] lg:hidden">
+          <motion.div
+            layout
+            initial={false}
+            animate={{
+              width: mobileSearchOpen ? "min(300px, calc(100vw - 76px))" : 42,
+            }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            className="pointer-events-auto overflow-hidden border border-[#DCDDD8] bg-white/95 shadow-[0_12px_30px_rgba(0,0,0,0.10)] backdrop-blur-md"
+          >
+            {!mobileSearchOpen ? (
+              <button
+                type="button"
+                onClick={() => setMobileSearchOpen(true)}
+                aria-label="Cari peta"
+                title="Cari peta"
+                className="flex h-[42px] w-[42px] items-center justify-center text-[#4E504A] transition-colors hover:bg-[#F7F8F5]"
+              >
+                <Search className="h-4 w-4" strokeWidth={1.8} />
+              </button>
+            ) : (
+              <div className="flex h-[42px] items-center">
+                <Search
+                  className="ml-3 h-3.5 w-3.5 shrink-0 text-[#7E8179]"
+                  strokeWidth={1.8}
+                />
+
+                <input
+                  ref={mobileSearchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Cari peta..."
+                  className="h-full min-w-0 flex-1 bg-transparent px-2.5 text-[11px] font-medium text-[#171717] outline-none placeholder:text-[#A0A29B]"
+                />
+
+                {searchQuery ? (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    aria-label="Hapus pencarian"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center text-[#979991] hover:text-[#171717]"
+                  >
+                    <X className="h-3 w-3" strokeWidth={1.8} />
+                  </button>
+                ) : null}
+
+                <button
+                  type="button"
+                  onClick={() => setMobileSearchOpen(false)}
+                  aria-label="Tutup pencarian"
+                  className="mr-1 flex h-8 w-8 shrink-0 items-center justify-center border-l border-[#E7E8E3] text-[#979991] hover:text-[#171717]"
+                >
+                  <X className="h-3 w-3" strokeWidth={1.8} />
+                </button>
+              </div>
+            )}
+          </motion.div>
+
+          {mobileSearchOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -4, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+              className="mt-1 max-h-[48vh] overflow-y-auto border border-[#DCDDD8] bg-white/95 p-1.5 shadow-[0_14px_34px_rgba(0,0,0,0.10)] backdrop-blur-md"
+            >
+              {filteredMapLayers.length === 0 ? (
+                <div className="px-3 py-4 text-center">
+                  <p className="text-[10px] font-bold text-[#555750]">
+                    Peta tidak ditemukan
+                  </p>
+                  <p className="mt-1 text-[8px] font-medium text-[#999B94]">
+                    Coba kata kunci lain.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {filteredMapLayers.slice(0, 6).map((layer) => {
+                    const active = selectedLayer === layer.id;
+
+                    return (
+                      <button
+                        key={layer.id}
+                        type="button"
+                        onClick={() => {
+                          handlePickLayer(layer);
+                          setMobileSearchOpen(false);
+                        }}
+                        className={cn(
+                          "flex w-full items-center gap-2 border p-2 text-left transition-colors",
+                          active
+                            ? "border-[#171717] bg-[#171717] text-white"
+                            : "border-[#E0E1DC] bg-white hover:bg-[#F7F8F5]"
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "flex h-7 w-7 shrink-0 items-center justify-center border",
+                            active
+                              ? "border-white/10 bg-white/10"
+                              : "border-[#E0E1DC] bg-[#F7F8F5]"
+                          )}
+                        >
+                          {layer.locked ? (
+                            <Lock className="h-3 w-3" strokeWidth={1.8} />
+                          ) : (
+                            <MapIcon className="h-3 w-3" strokeWidth={1.8} />
+                          )}
+                        </span>
+
+                        <span className="min-w-0 flex-1">
+                          <span className="block line-clamp-2 text-[10px] font-bold leading-tight">
+                            {layer.name}
+                          </span>
+                          <span
+                            className={cn(
+                              "mt-0.5 block truncate text-[8px]",
+                              active ? "text-white/65" : "text-[#8B8D86]"
+                            )}
+                          >
+                            {layer.location}
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </motion.div>
+          )}
+        </div>
+      )}
+
+      {/* ===================================================
+          DESKTOP — SEARCH / LIST / DETAIL PANEL
+      ==================================================== */}
 
       {/* ===================================================
           LEFT PANEL — SEARCH / LIST / DETAIL
@@ -1261,7 +1419,7 @@ export default function MapsPage() {
             duration: 0.25,
             ease: [0.22, 1, 0.36, 1],
           }}
-          className="absolute top-2 z-40 flex max-h-[58vh] w-[calc(100%-16px)] max-w-[300px] flex-col overflow-hidden border border-[#DCDDD8] bg-white shadow-[0_16px_36px_rgba(0,0,0,0.08)] transition-[left] duration-300 ease-out sm:top-3 sm:max-h-[62vh] sm:w-[300px]"
+          className="absolute top-2 z-40 hidden max-h-[58vh] w-[calc(100%-16px)] max-w-[300px] flex-col overflow-hidden border border-[#DCDDD8] bg-white shadow-[0_16px_36px_rgba(0,0,0,0.08)] transition-[left] duration-300 ease-out sm:top-3 sm:max-h-[62vh] sm:w-[300px] lg:flex"
           style={{
             left: `${mapPanelLeft}px`,
           }}
@@ -1305,10 +1463,11 @@ export default function MapsPage() {
                     onFocus={() => setIsMinSearchFocused(true)}
                     onBlur={() => setIsMinSearchFocused(false)}
                     placeholder="Cari nama, lokasi, atau format..."
-                    className={`h-[34px] w-full border bg-[#FAFAF8] pl-8 pr-8 text-[10px] font-medium text-[#171717] outline-none transition-all placeholder:text-[#A0A29B] focus:bg-white sm:h-9 sm:text-[11px] ${isMinSearchFocused
+                    className={`h-[34px] w-full border bg-[#FAFAF8] pl-8 pr-8 text-[10px] font-medium text-[#171717] outline-none transition-all placeholder:text-[#A0A29B] focus:bg-white sm:h-9 sm:text-[11px] ${
+                      isMinSearchFocused
                         ? "border-[#BFC4B8] ring-4 ring-black/[0.03]"
                         : "border-[#DCDDD8]"
-                      }`}
+                    }`}
                   />
 
                   {searchQuery && (
@@ -1370,7 +1529,8 @@ export default function MapsPage() {
                     </p>
 
                     <p className="mt-1 text-[9px] font-medium leading-4 text-[#858780] sm:text-[10px]">
-                      Upload peta pertama Anda untuk mulai melakukan analisis atau jika ada kendala hubungi developer.
+                      Upload peta pertama Anda untuk mulai melakukan analisis
+                      atau jika ada kendala hubungi developer.
                     </p>
                   </div>
                 )}
@@ -1457,7 +1617,6 @@ export default function MapsPage() {
                         >
                           {layer.location}
                         </p>
-
                       </div>
 
                       <span
@@ -1620,12 +1779,12 @@ export default function MapsPage() {
                                 {React.isValidElement(metadataIcon)
                                   ? metadataIcon
                                   : React.createElement(
-                                    metadataIcon as React.ElementType,
-                                    {
-                                      className: "h-3 w-3",
-                                      strokeWidth: 1.8,
-                                    }
-                                  )}
+                                      metadataIcon as React.ElementType,
+                                      {
+                                        className: "h-3 w-3",
+                                        strokeWidth: 1.8,
+                                      }
+                                    )}
                               </span>
 
                               <span className="truncate text-[9px] font-bold uppercase tracking-[0.06em] text-[#4E504A]">
@@ -1785,10 +1944,11 @@ export default function MapsPage() {
             opacity: 1,
             y: 0,
           }}
-          className={`fixed bottom-3 left-3 right-3 z-[9998] flex items-start gap-3 border px-4 py-3.5 text-[11px] font-medium leading-5 shadow-[0_20px_45px_rgba(0,0,0,0.10)] sm:bottom-6 sm:left-auto sm:right-6 sm:max-w-sm sm:px-5 sm:py-4 sm:text-sm ${notice.type === "success"
+          className={`fixed bottom-3 left-3 right-3 z-[9998] flex items-start gap-3 border px-4 py-3.5 text-[11px] font-medium leading-5 shadow-[0_20px_45px_rgba(0,0,0,0.10)] sm:bottom-6 sm:left-auto sm:right-6 sm:max-w-sm sm:px-5 sm:py-4 sm:text-sm ${
+            notice.type === "success"
               ? "border-[#D8DDD0] bg-[#F7F9F4] text-[#5D664F]"
               : "border-[#E7D0CC] bg-[#FFF7F5] text-[#9B3E32]"
-            }`}
+          }`}
         >
           {notice.type === "success" ? (
             <CheckCircle2
@@ -1838,7 +1998,9 @@ export default function MapsPage() {
                 </p>
 
                 <h3 className="mt-1 text-[18px] font-bold tracking-[-0.03em] text-[#171717] sm:text-xl">
-                  {metadataLayer ? `Metadata Layer — ${metadataLayer.name}` : "Metadata Peta"}
+                  {metadataLayer
+                    ? `Metadata Layer — ${metadataLayer.name}`
+                    : "Metadata Peta"}
                 </h3>
               </div>
 
@@ -1914,16 +2076,16 @@ export default function MapsPage() {
 
                     [
                       "Ukuran File",
-                      formatSize(metadataLayer?.file_size || metadataMap.file_size),
+                      formatSize(
+                        metadataLayer?.file_size || metadataMap.file_size
+                      ),
                     ],
 
                     [
                       "Dibuat",
                       new Date(
                         metadataLayer?.created_at || metadataMap.created_at
-                      ).toLocaleDateString(
-                        "id-ID"
-                      ),
+                      ).toLocaleDateString("id-ID"),
                     ],
                   ].map(([label, value]) => (
                     <InfoRow key={label} label={label}>
@@ -1963,16 +2125,14 @@ export default function MapsPage() {
                               (metadataGeo.bands === 3
                                 ? "Ortho True-Color (3 Saluran RGB)"
                                 : metadataGeo.bands === 1
-                                  ? "Single-Band (Analisis Indeks / Unsur Hara)"
-                                  : `${metadataGeo.bands} Saluran Multispektral`)}
+                                ? "Single-Band (Analisis Indeks / Unsur Hara)"
+                                : `${metadataGeo.bands} Saluran Multispektral`)}
                           </p>
                         </div>
 
                         <span className="shrink-0 border border-[#E0E1DC] bg-white px-2 py-0.5 font-mono text-[10px] font-bold text-[#171717]">
                           {metadataGeo.bands} Saluran (
-                          {metadataGeo.dtypes?.join(", ") ||
-                            "uint8"}
-                          )
+                          {metadataGeo.dtypes?.join(", ") || "uint8"})
                         </span>
                       </div>
 
@@ -1981,41 +2141,38 @@ export default function MapsPage() {
                       {(() => {
                         const bandsList =
                           metadataGeo.band_details &&
-                            metadataGeo.band_details.length > 0
+                          metadataGeo.band_details.length > 0
                             ? metadataGeo.band_details
                             : Array.from(
-                              {
-                                length: metadataGeo.bands || 1,
-                              },
-                              (_, idx) => {
-                                const b = idx + 1;
+                                {
+                                  length: metadataGeo.bands || 1,
+                                },
+                                (_, idx) => {
+                                  const b = idx + 1;
 
-                                const dtype =
-                                  metadataGeo.dtypes?.[idx] ||
-                                  "uint8";
+                                  const dtype =
+                                    metadataGeo.dtypes?.[idx] || "uint8";
 
-                                let label = `Saluran ${b}`;
+                                  let label = `Saluran ${b}`;
 
-                                if (metadataGeo.bands === 3) {
-                                  label =
-                                    b === 1
-                                      ? "Red (Merah)"
-                                      : b === 2
+                                  if (metadataGeo.bands === 3) {
+                                    label =
+                                      b === 1
+                                        ? "Red (Merah)"
+                                        : b === 2
                                         ? "Green (Hijau)"
                                         : "Blue (Biru)";
-                                } else if (
-                                  metadataGeo.bands === 1
-                                ) {
-                                  label = "Nilai Analisis / Indeks";
-                                }
+                                  } else if (metadataGeo.bands === 1) {
+                                    label = "Nilai Analisis / Indeks";
+                                  }
 
-                                return {
-                                  band: b,
-                                  label,
-                                  dtype,
-                                };
-                              }
-                            );
+                                  return {
+                                    band: b,
+                                    label,
+                                    dtype,
+                                  };
+                                }
+                              );
 
                         return (
                           <div className="mt-3 space-y-1.5 border-t border-[#E7E8E3] pt-3">
@@ -2044,12 +2201,12 @@ export default function MapsPage() {
                                 const dotColor = isRed
                                   ? "bg-rose-500"
                                   : isGreen
-                                    ? "bg-emerald-500"
-                                    : isBlue
-                                      ? "bg-sky-500"
-                                      : isAlpha
-                                        ? "bg-slate-400"
-                                        : "bg-amber-500";
+                                  ? "bg-emerald-500"
+                                  : isBlue
+                                  ? "bg-sky-500"
+                                  : isAlpha
+                                  ? "bg-slate-400"
+                                  : "bg-amber-500";
 
                                 return (
                                   <div
@@ -2087,12 +2244,10 @@ export default function MapsPage() {
                     </InfoRow>
 
                     <InfoRow label="Format Tiling">
-                      {metadataGeo.is_tiled
-                        ? "Tiled"
-                        : "Strip / Standar"}
+                      {metadataGeo.is_tiled ? "Tiled" : "Strip / Standar"}
                     </InfoRow>
 
-                      {metadataGeo.nodata !== undefined &&
+                    {metadataGeo.nodata !== undefined &&
                       metadataGeo.nodata !== null && (
                         <InfoRow label="Nilai NoData">
                           {metadataGeo.nodata}
@@ -2113,7 +2268,7 @@ export default function MapsPage() {
                           </span>
 
                           <span className="mt-0.5 block font-bold tabular-nums text-[#171717]">
-                    {metadataGeo.bounds_wgs84.min_lon}°
+                            {metadataGeo.bounds_wgs84.min_lon}°
                           </span>
                         </div>
 
@@ -2123,7 +2278,7 @@ export default function MapsPage() {
                           </span>
 
                           <span className="mt-0.5 block font-bold tabular-nums text-[#171717]">
-                    {metadataGeo.bounds_wgs84.max_lon}°
+                            {metadataGeo.bounds_wgs84.max_lon}°
                           </span>
                         </div>
 
@@ -2133,7 +2288,7 @@ export default function MapsPage() {
                           </span>
 
                           <span className="mt-0.5 block font-bold tabular-nums text-[#171717]">
-                    {metadataGeo.bounds_wgs84.min_lat}°
+                            {metadataGeo.bounds_wgs84.min_lat}°
                           </span>
                         </div>
 
@@ -2143,7 +2298,7 @@ export default function MapsPage() {
                           </span>
 
                           <span className="mt-0.5 block font-bold tabular-nums text-[#171717]">
-                    {metadataGeo.bounds_wgs84.max_lat}°
+                            {metadataGeo.bounds_wgs84.max_lat}°
                           </span>
                         </div>
                       </div>
@@ -2269,10 +2424,11 @@ export default function MapsPage() {
                       title: event.target.value,
                     })
                   }
-                  className={`mt-2 h-10 w-full border bg-[#FAFAF8] px-3.5 text-[13px] font-medium text-[#171717] outline-none transition-all placeholder:text-[#A0A29B] focus:bg-white focus:ring-4 focus:ring-black/[0.03] sm:h-11 sm:px-4 sm:text-sm ${editErrors.title
+                  className={`mt-2 h-10 w-full border bg-[#FAFAF8] px-3.5 text-[13px] font-medium text-[#171717] outline-none transition-all placeholder:text-[#A0A29B] focus:bg-white focus:ring-4 focus:ring-black/[0.03] sm:h-11 sm:px-4 sm:text-sm ${
+                    editErrors.title
                       ? "border-[#E7D0CC] focus:border-[#C27B72]"
                       : "border-[#DCDDD8] focus:border-[#BFC4B8]"
-                    }`}
+                  }`}
                   placeholder="Contoh: Peta Orthomosaic Lahan Padi - Jul 2026"
                 />
 
@@ -2309,10 +2465,11 @@ export default function MapsPage() {
                         location: event.target.value,
                       })
                     }
-                    className={`h-10 w-full border bg-[#FAFAF8] pl-10 pr-3.5 text-[13px] font-medium text-[#171717] outline-none transition-all placeholder:text-[#A0A29B] focus:bg-white focus:ring-4 focus:ring-black/[0.03] sm:h-11 sm:pl-11 sm:pr-4 sm:text-sm ${editErrors.location
+                    className={`h-10 w-full border bg-[#FAFAF8] pl-10 pr-3.5 text-[13px] font-medium text-[#171717] outline-none transition-all placeholder:text-[#A0A29B] focus:bg-white focus:ring-4 focus:ring-black/[0.03] sm:h-11 sm:pl-11 sm:pr-4 sm:text-sm ${
+                      editErrors.location
                         ? "border-[#E7D0CC] focus:border-[#C27B72]"
                         : "border-[#DCDDD8] focus:border-[#BFC4B8]"
-                      }`}
+                    }`}
                     placeholder="Contoh: Desa Sriharjo, Kec. Imogiri, Bantul"
                   />
                 </div>
@@ -2350,10 +2507,11 @@ export default function MapsPage() {
                         survey_date: event.target.value,
                       })
                     }
-                    className={`h-10 w-full border bg-[#FAFAF8] pl-10 pr-3.5 text-[13px] font-medium text-[#171717] outline-none transition-all focus:bg-white focus:ring-4 focus:ring-black/[0.03] sm:h-11 sm:pl-11 sm:pr-4 sm:text-sm ${editErrors.survey_date
+                    className={`h-10 w-full border bg-[#FAFAF8] pl-10 pr-3.5 text-[13px] font-medium text-[#171717] outline-none transition-all focus:bg-white focus:ring-4 focus:ring-black/[0.03] sm:h-11 sm:pl-11 sm:pr-4 sm:text-sm ${
+                      editErrors.survey_date
                         ? "border-[#E7D0CC] focus:border-[#C27B72]"
                         : "border-[#DCDDD8] focus:border-[#BFC4B8]"
-                      }`}
+                    }`}
                   />
                 </div>
 
@@ -2413,7 +2571,11 @@ export default function MapsPage() {
                   {[
                     ["free", "Free", "Akses dasar tanpa langganan."],
                     ["desa", "Desa", "Akses untuk pelanggan tier Desa."],
-                    ["kecamatan", "Kecamatan", "Akses untuk pelanggan tier Kecamatan."],
+                    [
+                      "kecamatan",
+                      "Kecamatan",
+                      "Akses untuk pelanggan tier Kecamatan.",
+                    ],
                   ].map(([value, label, description]) => {
                     const checked = editForm.allowed_tiers.includes(value);
 
@@ -2434,7 +2596,9 @@ export default function MapsPage() {
                             setEditForm((current) => ({
                               ...current,
                               allowed_tiers: checked
-                                ? current.allowed_tiers.filter((tier) => tier !== value)
+                                ? current.allowed_tiers.filter(
+                                    (tier) => tier !== value
+                                  )
                                 : [...current.allowed_tiers, value],
                             }))
                           }

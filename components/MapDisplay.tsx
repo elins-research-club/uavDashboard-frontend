@@ -296,7 +296,7 @@ function ToolbarButton({
       title={title || label}
       aria-label={label}
       className={cn(
-        "group relative flex h-9 w-9 shrink-0 items-center justify-center border outline-none transition-all duration-150",
+        "group relative flex h-10 w-10 shrink-0 items-center justify-center border outline-none transition-all duration-150 sm:h-9 sm:w-9",
 
         "focus-visible:ring-2 focus-visible:ring-[#76B900]/40",
 
@@ -311,7 +311,7 @@ function ToolbarButton({
 
       <span
         className={cn(
-          "pointer-events-none absolute left-1/2 top-[calc(100%+6px)] z-[100] -translate-x-1/2 whitespace-nowrap",
+          "pointer-events-none absolute left-1/2 top-[calc(100%+6px)] z-[100] hidden -translate-x-1/2 whitespace-nowrap sm:block",
 
           "border border-[#DCDDD8] bg-[#171717] px-2 py-1 text-[10px] font-medium text-white",
 
@@ -575,6 +575,22 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
     ===================================================== */
 
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    const [isSmallScreen, setIsSmallScreen] = useState(false);
+
+    useEffect(() => {
+      const media = window.matchMedia("(max-width: 1023px)");
+
+      const syncMobile = () => {
+        setIsSmallScreen(media.matches);
+      };
+
+      syncMobile();
+      media.addEventListener("change", syncMobile);
+
+      return () => {
+        media.removeEventListener("change", syncMobile);
+      };
+    }, []);
 
     useEffect(() => {
       const syncSidebar = () => {
@@ -606,7 +622,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       };
     }, []);
 
-    const mapUiLeft = sidebarCollapsed ? 100 : 282;
+    const mapUiLeft = isSmallScreen ? 8 : sidebarCollapsed ? 100 : 282;
 
     /* =====================================================
 
@@ -3067,10 +3083,50 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
       toolMode === "none" && !compareMode && !postgisCardOpen;
 
     const controlButtonClass =
-      "flex h-8 w-8 items-center justify-center border border-transparent text-[#4E504A] outline-none transition-colors hover:border-[#E0E1DC] hover:bg-[#F7F8F5] hover:text-[#171717] focus-visible:ring-2 focus-visible:ring-[#76B900]/40";
+      "flex h-9 w-9 items-center justify-center border border-transparent text-[#4E504A] outline-none transition-colors hover:border-[#E0E1DC] hover:bg-[#F7F8F5] hover:text-[#171717] focus-visible:ring-2 focus-visible:ring-[#76B900]/40 sm:h-8 sm:w-8";
 
     return (
       <div className="relative h-full w-full overflow-hidden bg-[#F4F5F2]">
+        <style jsx global>{`
+          @media (max-width: 1023px) {
+            [data-map-mobile-layer-host] > div,
+            [data-map-mobile-layer-host] > aside {
+              position: absolute !important;
+              top: 50% !important;
+              right: 8px !important;
+              left: auto !important;
+              bottom: auto !important;
+              margin: 0 !important;
+              transform: translateY(-50%) !important;
+            }
+
+            [data-map-mobile-layer-host] > div {
+              width: 44px !important;
+            }
+
+            [data-map-mobile-layer-host] > aside {
+              width: min(340px, calc(100vw - 44px)) !important;
+              max-width: calc(100vw - 44px) !important;
+              animation: mapLayerDrawerIn 220ms cubic-bezier(0.22, 1, 0.36, 1);
+              transform-origin: right center;
+            }
+
+            [data-map-mobile-layer-host] > aside > div {
+              max-height: min(68dvh, 600px) !important;
+            }
+
+            @keyframes mapLayerDrawerIn {
+              from {
+                opacity: 0;
+                transform: translateY(-50%) translateX(18px) !important;
+              }
+              to {
+                opacity: 1;
+                transform: translateY(-50%) translateX(0) !important;
+              }
+            }
+          }
+        `}</style>
         {/* =================================================
 
               LOADING
@@ -3119,69 +3175,84 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
         ================================================== */}
 
-        <LayerControlPanel
-          mapId={mapId}
-          layers={mapLayers}
-          basemap={basemap}
-          onChangeBasemap={handleChangeBasemap}
-          terrainEnabled={terrainEnabled}
-          onToggleTerrain={handleToggle3D}
-          isFullscreen={isFullscreen}
-          onToggleFullscreen={handleToggleFullscreen}
-          onToggleVisibility={(layerId, visible) => {
-            const map = mapRef.current;
-            const selectedLayer = mapLayersRef.current.find(
-              (layer) => layer.id === layerId
-            );
-            const selectedType = selectedLayer?.layer_type?.toLowerCase();
-            const analysisTypes = new Set([
-              "ndvi",
-              "nitrogen",
-              "phosphorus",
-              "kalium",
-            ]);
-            const isAnalysis = analysisTypes.has(selectedType || "");
+        <div
+          data-map-mobile-layer-host
+          className="pointer-events-none absolute inset-0 z-[60] lg:static"
+        >
+          <LayerControlPanel
+            mapId={mapId}
+            layers={mapLayers}
+            basemap={basemap}
+            onChangeBasemap={handleChangeBasemap}
+            terrainEnabled={terrainEnabled}
+            onToggleTerrain={handleToggle3D}
+            isFullscreen={isFullscreen}
+            onToggleFullscreen={handleToggleFullscreen}
+            onToggleVisibility={(layerId, visible) => {
+              const map = mapRef.current;
+              const selectedLayer = mapLayersRef.current.find(
+                (layer) => layer.id === layerId
+              );
+              const selectedType = selectedLayer?.layer_type?.toLowerCase();
+              const analysisTypes = new Set([
+                "ndvi",
+                "nitrogen",
+                "phosphorus",
+                "kalium",
+              ]);
+              const isAnalysis = analysisTypes.has(selectedType || "");
 
-            const nextLayers = mapLayersRef.current.map((layer) => {
-              const type = layer.layer_type?.toLowerCase();
-              const hideOtherAnalysis =
-                visible &&
-                isAnalysis &&
-                analysisTypes.has(type || "") &&
-                layer.id !== layerId;
+              const nextLayers = mapLayersRef.current.map((layer) => {
+                const type = layer.layer_type?.toLowerCase();
+                const hideOtherAnalysis =
+                  visible &&
+                  isAnalysis &&
+                  analysisTypes.has(type || "") &&
+                  layer.id !== layerId;
 
-              return layer.id === layerId
-                ? { ...layer, is_visible: visible }
-                : hideOtherAnalysis
-                ? { ...layer, is_visible: false }
-                : layer;
-            });
+                return layer.id === layerId
+                  ? { ...layer, is_visible: visible }
+                  : hideOtherAnalysis
+                  ? { ...layer, is_visible: false }
+                  : layer;
+              });
 
-            nextLayers.forEach((layer) => {
-              const targetId = `layer-render-${layer.id}`;
-              if (map?.getLayer(targetId)) {
-                map.setLayoutProperty(
-                  targetId,
-                  "visibility",
-                  layer.is_visible ? "visible" : "none"
-                );
+              nextLayers.forEach((layer) => {
+                const targetId = `layer-render-${layer.id}`;
+                if (map?.getLayer(targetId)) {
+                  map.setLayoutProperty(
+                    targetId,
+                    "visibility",
+                    layer.is_visible ? "visible" : "none"
+                  );
+                }
+              });
+
+              mapLayersRef.current = nextLayers;
+              setMapLayers(nextLayers);
+            }}
+            onChangeOpacity={(layerId, opacity) => {
+              const map = mapRef.current;
+
+              const targetId = `layer-render-${layerId}`;
+
+              if (map && map.getLayer(targetId)) {
+                map.setPaintProperty(targetId, "raster-opacity", opacity);
               }
-            });
 
-            mapLayersRef.current = nextLayers;
-            setMapLayers(nextLayers);
-          }}
-          onChangeOpacity={(layerId, opacity) => {
-            const map = mapRef.current;
+              setMapLayers((prev) =>
+                prev.map((layer) =>
+                  layer.id === layerId
+                    ? {
+                        ...layer,
 
-            const targetId = `layer-render-${layerId}`;
+                        default_opacity: opacity,
+                      }
+                    : layer
+                )
+              );
 
-            if (map && map.getLayer(targetId)) {
-              map.setPaintProperty(targetId, "raster-opacity", opacity);
-            }
-
-            setMapLayers((prev) =>
-              prev.map((layer) =>
+              mapLayersRef.current = mapLayersRef.current.map((layer) =>
                 layer.id === layerId
                   ? {
                       ...layer,
@@ -3189,147 +3260,152 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                       default_opacity: opacity,
                     }
                   : layer
-              )
-            );
-
-            mapLayersRef.current = mapLayersRef.current.map((layer) =>
-              layer.id === layerId
-                ? {
-                    ...layer,
-
-                    default_opacity: opacity,
-                  }
-                : layer
-            );
-          }}
-          onLayerUploaded={async () => {
-            const activeMapId = mapIdRef.current;
-
-            const activeToken = tokenRef.current;
-
-            if (!activeMapId) {
-              return;
-            }
-
-            const baseUrl =
-              process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
-
-            const headers: Record<string, string> = {};
-
-            if (activeToken) {
-              headers.Authorization = `Bearer ${activeToken}`;
-            }
-
-            try {
-              const res = await fetch(`${baseUrl}/maps/${activeMapId}/layers`, {
-                headers,
-              });
-
-              if (res.ok) {
-                const data = (await res.json()) as MapLayerItem[];
-
-                setMapLayers(data);
-
-                mapLayersRef.current = data;
-
-                if (currentMetaRef.current) {
-                  await setupUavLayer(currentMetaRef.current, data);
-                }
-              }
-            } catch (error) {
-              console.error("Gagal refresh layers:", error);
-            }
-          }}
-          onDeleteLayer={async (layerId) => {
-            const activeMapId = mapIdRef.current;
-
-            const activeToken = tokenRef.current;
-
-            if (!activeMapId) {
-              return;
-            }
-
-            const baseUrl =
-              process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
-
-            const headers: Record<string, string> = {};
-
-            if (activeToken) {
-              headers.Authorization = `Bearer ${activeToken}`;
-            }
-
-            try {
-              const res = await fetch(
-                `${baseUrl}/maps/${activeMapId}/layers/${layerId}`,
-
-                {
-                  method: "DELETE",
-
-                  headers,
-                }
               );
+            }}
+            onLayerUploaded={async () => {
+              const activeMapId = mapIdRef.current;
 
-              if (res.ok) {
-                const map = mapRef.current;
+              const activeToken = tokenRef.current;
 
-                if (map) {
-                  const layerIdMap = `layer-render-${layerId}`;
+              if (!activeMapId) {
+                return;
+              }
 
-                  const sourceId = `layer-source-${layerId}`;
+              const baseUrl =
+                process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
 
-                  if (map.getLayer(layerIdMap)) {
-                    map.removeLayer(layerIdMap);
+              const headers: Record<string, string> = {};
+
+              if (activeToken) {
+                headers.Authorization = `Bearer ${activeToken}`;
+              }
+
+              try {
+                const res = await fetch(
+                  `${baseUrl}/maps/${activeMapId}/layers`,
+                  {
+                    headers,
                   }
-
-                  if (map.getSource(sourceId)) {
-                    map.removeSource(sourceId);
-                  }
-                }
-
-                setMapLayers((prev) =>
-                  prev.filter((layer) => layer.id !== layerId)
                 );
 
-                mapLayersRef.current = mapLayersRef.current.filter(
-                  (layer) => layer.id !== layerId
-                );
-              }
-            } catch (error) {
-              console.error("Gagal menghapus layer:", error);
-            }
-          }}
-          onRetryConvert={async (layerId) => {
-            const activeMapId = mapIdRef.current;
+                if (res.ok) {
+                  const data = (await res.json()) as MapLayerItem[];
 
-            const activeToken = tokenRef.current;
+                  setMapLayers(data);
 
-            if (!activeMapId) {
-              return;
-            }
+                  mapLayersRef.current = data;
 
-            const baseUrl =
-              process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
-
-            const headers: Record<string, string> = {};
-
-            if (activeToken) {
-              headers.Authorization = `Bearer ${activeToken}`;
-            }
-
-            try {
-              const res = await fetch(
-                `${baseUrl}/maps/${activeMapId}/layers/${layerId}/convert`,
-
-                {
-                  method: "POST",
-
-                  headers,
+                  if (currentMetaRef.current) {
+                    await setupUavLayer(currentMetaRef.current, data);
+                  }
                 }
-              );
+              } catch (error) {
+                console.error("Gagal refresh layers:", error);
+              }
+            }}
+            onDeleteLayer={async (layerId) => {
+              const activeMapId = mapIdRef.current;
 
-              if (res.ok) {
-                setMapLayers((prev) =>
-                  prev.map((l) =>
+              const activeToken = tokenRef.current;
+
+              if (!activeMapId) {
+                return;
+              }
+
+              const baseUrl =
+                process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
+
+              const headers: Record<string, string> = {};
+
+              if (activeToken) {
+                headers.Authorization = `Bearer ${activeToken}`;
+              }
+
+              try {
+                const res = await fetch(
+                  `${baseUrl}/maps/${activeMapId}/layers/${layerId}`,
+
+                  {
+                    method: "DELETE",
+
+                    headers,
+                  }
+                );
+
+                if (res.ok) {
+                  const map = mapRef.current;
+
+                  if (map) {
+                    const layerIdMap = `layer-render-${layerId}`;
+
+                    const sourceId = `layer-source-${layerId}`;
+
+                    if (map.getLayer(layerIdMap)) {
+                      map.removeLayer(layerIdMap);
+                    }
+
+                    if (map.getSource(sourceId)) {
+                      map.removeSource(sourceId);
+                    }
+                  }
+
+                  setMapLayers((prev) =>
+                    prev.filter((layer) => layer.id !== layerId)
+                  );
+
+                  mapLayersRef.current = mapLayersRef.current.filter(
+                    (layer) => layer.id !== layerId
+                  );
+                }
+              } catch (error) {
+                console.error("Gagal menghapus layer:", error);
+              }
+            }}
+            onRetryConvert={async (layerId) => {
+              const activeMapId = mapIdRef.current;
+
+              const activeToken = tokenRef.current;
+
+              if (!activeMapId) {
+                return;
+              }
+
+              const baseUrl =
+                process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
+
+              const headers: Record<string, string> = {};
+
+              if (activeToken) {
+                headers.Authorization = `Bearer ${activeToken}`;
+              }
+
+              try {
+                const res = await fetch(
+                  `${baseUrl}/maps/${activeMapId}/layers/${layerId}/convert`,
+
+                  {
+                    method: "POST",
+
+                    headers,
+                  }
+                );
+
+                if (res.ok) {
+                  setMapLayers((prev) =>
+                    prev.map((l) =>
+                      l.id === layerId
+                        ? {
+                            ...l,
+
+                            conversion_status: "pending",
+
+                            conversion_error: null,
+                          }
+                        : l
+                    )
+                  );
+
+                  mapLayersRef.current = mapLayersRef.current.map((l) =>
                     l.id === layerId
                       ? {
                           ...l,
@@ -3339,141 +3415,132 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                           conversion_error: null,
                         }
                       : l
+                  );
+                }
+              } catch (error) {
+                console.error("Gagal memicu ulang konversi:", error);
+              }
+            }}
+            token={tokenRef.current ?? undefined}
+            onReorderLayers={async (newLayers) => {
+              const activeMapId = mapIdRef.current;
+
+              const activeToken = tokenRef.current;
+
+              if (!activeMapId) {
+                return;
+              }
+
+              const updated = newLayers.map((layer, idx) => ({
+                ...layer,
+
+                display_order: idx,
+              }));
+
+              setMapLayers(updated);
+
+              mapLayersRef.current = updated;
+
+              const map = mapRef.current;
+
+              if (map) {
+                updated.forEach((l, i) => {
+                  const mlId = `layer-render-${l.id}`;
+
+                  if (map.getLayer(mlId)) {
+                    const nextLayer = updated[i + 1];
+
+                    const beforeId = nextLayer
+                      ? `layer-render-${nextLayer.id}`
+                      : undefined;
+
+                    if (beforeId && map.getLayer(beforeId)) {
+                      map.moveLayer(mlId, beforeId);
+                    } else {
+                      map.moveLayer(mlId);
+                    }
+                  }
+                });
+              }
+
+              const baseUrl =
+                process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
+
+              const headers: Record<string, string> = {
+                "Content-Type": "application/json",
+              };
+
+              if (activeToken) {
+                headers.Authorization = `Bearer ${activeToken}`;
+              }
+
+              try {
+                await Promise.all(
+                  updated.map((layer) =>
+                    fetch(`${baseUrl}/maps/${activeMapId}/layers/${layer.id}`, {
+                      method: "PATCH",
+
+                      headers,
+
+                      body: JSON.stringify({
+                        display_order: layer.display_order,
+                      }),
+                    })
                   )
                 );
-
-                mapLayersRef.current = mapLayersRef.current.map((l) =>
-                  l.id === layerId
-                    ? {
-                        ...l,
-
-                        conversion_status: "pending",
-
-                        conversion_error: null,
-                      }
-                    : l
-                );
+              } catch (err) {
+                console.error("Gagal persist urutan layer:", err);
               }
-            } catch (error) {
-              console.error("Gagal memicu ulang konversi:", error);
-            }
-          }}
-          token={tokenRef.current ?? undefined}
-          onReorderLayers={async (newLayers) => {
-            const activeMapId = mapIdRef.current;
+            }}
+            onSetBaseLayer={async (layerId) => {
+              const activeMapId = mapIdRef.current;
 
-            const activeToken = tokenRef.current;
+              const activeToken = tokenRef.current;
 
-            if (!activeMapId) {
-              return;
-            }
+              if (!activeMapId) {
+                return;
+              }
 
-            const updated = newLayers.map((layer, idx) => ({
-              ...layer,
+              const updated = mapLayersRef.current.map((l) => ({
+                ...l,
 
-              display_order: idx,
-            }));
+                is_base_layer: l.id === layerId,
+              }));
 
-            setMapLayers(updated);
+              setMapLayers(updated);
 
-            mapLayersRef.current = updated;
+              mapLayersRef.current = updated;
 
-            const map = mapRef.current;
+              const baseUrl =
+                process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
 
-            if (map) {
-              updated.forEach((l, i) => {
-                const mlId = `layer-render-${l.id}`;
+              const headers: Record<string, string> = {
+                "Content-Type": "application/json",
+              };
 
-                if (map.getLayer(mlId)) {
-                  const nextLayer = updated[i + 1];
+              if (activeToken) {
+                headers.Authorization = `Bearer ${activeToken}`;
+              }
 
-                  const beforeId = nextLayer
-                    ? `layer-render-${nextLayer.id}`
-                    : undefined;
-
-                  if (beforeId && map.getLayer(beforeId)) {
-                    map.moveLayer(mlId, beforeId);
-                  } else {
-                    map.moveLayer(mlId);
-                  }
-                }
-              });
-            }
-
-            const baseUrl =
-              process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
-
-            const headers: Record<string, string> = {
-              "Content-Type": "application/json",
-            };
-
-            if (activeToken) {
-              headers.Authorization = `Bearer ${activeToken}`;
-            }
-
-            try {
-              await Promise.all(
-                updated.map((layer) =>
-                  fetch(`${baseUrl}/maps/${activeMapId}/layers/${layer.id}`, {
+              try {
+                await fetch(
+                  `${baseUrl}/maps/${activeMapId}/layers/${layerId}`,
+                  {
                     method: "PATCH",
 
                     headers,
 
                     body: JSON.stringify({
-                      display_order: layer.display_order,
+                      is_base_layer: true,
                     }),
-                  })
-                )
-              );
-            } catch (err) {
-              console.error("Gagal persist urutan layer:", err);
-            }
-          }}
-          onSetBaseLayer={async (layerId) => {
-            const activeMapId = mapIdRef.current;
-
-            const activeToken = tokenRef.current;
-
-            if (!activeMapId) {
-              return;
-            }
-
-            const updated = mapLayersRef.current.map((l) => ({
-              ...l,
-
-              is_base_layer: l.id === layerId,
-            }));
-
-            setMapLayers(updated);
-
-            mapLayersRef.current = updated;
-
-            const baseUrl =
-              process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001/api";
-
-            const headers: Record<string, string> = {
-              "Content-Type": "application/json",
-            };
-
-            if (activeToken) {
-              headers.Authorization = `Bearer ${activeToken}`;
-            }
-
-            try {
-              await fetch(`${baseUrl}/maps/${activeMapId}/layers/${layerId}`, {
-                method: "PATCH",
-
-                headers,
-
-                body: JSON.stringify({
-                  is_base_layer: true,
-                }),
-              });
-            } catch (err) {
-              console.error("Gagal mengubah base layer:", err);
-            }
-          }}
-        />
+                  }
+                );
+              } catch (err) {
+                console.error("Gagal mengubah base layer:", err);
+              }
+            }}
+          />
+        </div>
 
         {/* =================================================
 
@@ -3481,88 +3548,96 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
         ================================================== */}
 
-        <div className="absolute inset-x-0 top-2 z-50 mx-auto flex w-fit max-w-[calc(100%-12px)] translate-x-8 items-center gap-1 border border-[#DCDDD8] bg-white/95 p-1 shadow-[0_10px_24px_rgba(0,0,0,0.07)] backdrop-blur-md sm:top-2.5">
-          <ToolbarButton
-            active={isPlainNavigation}
-            title="Navigasi Standar"
-            label="Navigasi"
-            onClick={() => {
-              setToolMode("none");
-
-              handleCloseCompare();
-
-              handleClearMeasurement();
-
-              setPostgisCardOpen(false);
-            }}
-          >
-            <MousePointer className="h-4 w-4" strokeWidth={ICON_STROKE} />
-          </ToolbarButton>
-
-          {spatialInfo?.has_spatial_geometry && spatialInfo.area_hectares && (
+        <div className="pointer-events-auto absolute left-2 right-2 top-2 z-50 mx-auto hidden w-fit max-w-[calc(100%-16px)] items-center gap-1 overflow-x-auto overscroll-x-contain rounded-sm border border-[#DCDDD8] bg-white/95 p-1 shadow-[0_10px_24px_rgba(0,0,0,0.07)] backdrop-blur-md [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:left-1/2 sm:right-auto sm:top-2.5 sm:w-fit sm:max-w-[calc(100%-24px)] sm:-translate-x-1/2 sm:overflow-visible lg:flex">
+          <div className="hidden lg:block">
             <ToolbarButton
-              active={postgisCardOpen}
-              title="Lihat Luas Lahan"
-              label="Luas Lahan"
+              active={isPlainNavigation}
+              title="Navigasi Standar"
+              label="Navigasi"
               onClick={() => {
-                const next = !postgisCardOpen;
+                setToolMode("none");
 
-                setPostgisCardOpen(next);
+                handleCloseCompare();
 
-                if (next) {
-                  setToolMode("none");
+                handleClearMeasurement();
 
-                  handleCloseCompare();
-
-                  handleClearMeasurement();
-                }
+                setPostgisCardOpen(false);
               }}
             >
-              <img
-                src="/postgis.png"
-                alt="PostGIS"
-                className="h-5 w-5 shrink-0 object-contain"
-              />
+              <MousePointer className="h-4 w-4" strokeWidth={ICON_STROKE} />
             </ToolbarButton>
+          </div>
+
+          {spatialInfo?.has_spatial_geometry && spatialInfo.area_hectares && (
+            <div className="hidden lg:block">
+              <ToolbarButton
+                active={postgisCardOpen}
+                title="Lihat Luas Lahan"
+                label="Luas Lahan"
+                onClick={() => {
+                  const next = !postgisCardOpen;
+
+                  setPostgisCardOpen(next);
+
+                  if (next) {
+                    setToolMode("none");
+
+                    handleCloseCompare();
+
+                    handleClearMeasurement();
+                  }
+                }}
+              >
+                <img
+                  src="/postgis.png"
+                  alt="PostGIS"
+                  className="h-5 w-5 shrink-0 object-contain"
+                />
+              </ToolbarButton>
+            </div>
           )}
 
-          <ToolbarButton
-            active={toolMode === "distance"}
-            title="Ukur Jarak Lintasan"
-            label="Ukur Jarak"
-            onClick={() => {
-              handleCloseCompare();
+          <div className="hidden lg:block">
+            <ToolbarButton
+              active={toolMode === "distance"}
+              title="Ukur Jarak Lintasan"
+              label="Ukur Jarak"
+              onClick={() => {
+                handleCloseCompare();
 
-              setPostgisCardOpen(false);
+                setPostgisCardOpen(false);
 
-              const next = toolMode === "distance" ? "none" : "distance";
+                const next = toolMode === "distance" ? "none" : "distance";
 
-              setToolMode(next);
+                setToolMode(next);
 
-              handleClearMeasurement();
-            }}
-          >
-            <Ruler className="h-4 w-4" strokeWidth={ICON_STROKE} />
-          </ToolbarButton>
+                handleClearMeasurement();
+              }}
+            >
+              <Ruler className="h-4 w-4" strokeWidth={ICON_STROKE} />
+            </ToolbarButton>
+          </div>
 
-          <ToolbarButton
-            active={toolMode === "area"}
-            title="Ukur Luas Lahan"
-            label="Ukur Luas"
-            onClick={() => {
-              handleCloseCompare();
+          <div className="hidden lg:block">
+            <ToolbarButton
+              active={toolMode === "area"}
+              title="Ukur Luas Lahan"
+              label="Ukur Luas"
+              onClick={() => {
+                handleCloseCompare();
 
-              setPostgisCardOpen(false);
+                setPostgisCardOpen(false);
 
-              const next = toolMode === "area" ? "none" : "area";
+                const next = toolMode === "area" ? "none" : "area";
 
-              setToolMode(next);
+                setToolMode(next);
 
-              handleClearMeasurement();
-            }}
-          >
-            <LandPlot className="h-4 w-4" strokeWidth={ICON_STROKE} />
-          </ToolbarButton>
+                handleClearMeasurement();
+              }}
+            >
+              <LandPlot className="h-4 w-4" strokeWidth={ICON_STROKE} />
+            </ToolbarButton>
+          </div>
 
           <ToolbarButton
             active={compareMode}
@@ -3613,6 +3688,65 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
         </div>
 
         {/* =================================================
+              MOBILE / TABLET MAP TOOLS
+              Navigasi · Bandingkan · Petak
+        ================================================== */}
+        <div className="pointer-events-auto absolute bottom-3 right-3 z-50 flex flex-col overflow-hidden border border-[#DCDDD8] bg-white/95 p-1 shadow-[0_10px_24px_rgba(0,0,0,0.08)] backdrop-blur-md lg:hidden">
+          <ToolbarButton
+            active={isPlainNavigation}
+            title="Navigasi"
+            label="Navigasi"
+            onClick={() => {
+              setToolMode("none");
+              handleCloseCompare();
+              handleClearMeasurement();
+              setPostgisCardOpen(false);
+            }}
+          >
+            <MousePointer className="h-4 w-4" strokeWidth={ICON_STROKE} />
+          </ToolbarButton>
+
+          <ToolbarButton
+            active={compareMode}
+            title="Bandingkan Layer"
+            label="Bandingkan"
+            onClick={() => {
+              handleClearMeasurement();
+              setPostgisCardOpen(false);
+              setToolMode("none");
+
+              if (compareMode) {
+                handleCloseCompare();
+              } else {
+                setCompareMode(true);
+
+                if (mapLayers.length >= 2) {
+                  setCompareLayerA(mapLayers[0]?.id || "");
+                  setCompareLayerB(mapLayers[1]?.id || "");
+                } else if (mapLayers.length === 1) {
+                  setCompareLayerA(mapLayers[0]?.id || "");
+                  setCompareLayerB("__basemap__");
+                }
+              }
+            }}
+          >
+            <SplitSquareVertical
+              className="h-4 w-4"
+              strokeWidth={ICON_STROKE}
+            />
+          </ToolbarButton>
+
+          <ToolbarButton
+            active={gridEnabled}
+            title="Tampilkan Grid Petak Pertanian"
+            label="Petak"
+            onClick={() => setGridEnabled((prev) => !prev)}
+          >
+            <Grid className="h-4 w-4" strokeWidth={ICON_STROKE} />
+          </ToolbarButton>
+        </div>
+
+        {/* =================================================
 
               MEASUREMENT STATUS CARD
 
@@ -3626,7 +3760,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               className={cn(
                 hudCardClass,
 
-                "absolute inset-x-0 top-16 z-50 mx-auto w-[calc(100%-16px)] max-w-[310px]"
+                "absolute inset-x-2 top-14 z-50 mx-auto w-[calc(100%-16px)] max-w-[310px] sm:inset-x-0 sm:top-16"
               )}
             >
               <HudHeader
@@ -3804,7 +3938,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               className={cn(
                 hudCardClass,
 
-                "absolute inset-x-0 top-16 z-50 mx-auto w-[calc(100%-16px)] max-w-[520px]"
+                "absolute inset-x-2 top-14 z-50 mx-auto w-[calc(100%-16px)] max-w-[520px] sm:inset-x-0 sm:top-16"
               )}
             >
               <HudHeader
@@ -3950,7 +4084,7 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
               className={cn(
                 hudCardClass,
 
-                "absolute inset-x-0 top-16 z-50 mx-auto w-[calc(100%-16px)] max-w-[325px]"
+                "absolute inset-x-2 top-14 z-50 mx-auto w-[calc(100%-16px)] max-w-[325px] sm:inset-x-0 sm:top-16"
               )}
             >
               <HudHeader
@@ -4140,9 +4274,11 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 
             const isSmall = containerW < 640;
 
-            const cardWidth = isSmall ? 220 : 260;
+            const cardWidth = isSmall
+              ? Math.min(300, Math.max(0, containerW - 16))
+              : 300;
 
-            const SAFE_TOP = 54;
+            const SAFE_TOP = isSmall ? 58 : 54;
 
             const SAFE_BOTTOM = 10;
 
@@ -4784,12 +4920,14 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
                 className={cn(
                   "pointer-events-auto absolute z-30 flex flex-col transition-all duration-75 ease-out",
 
-                  isSmall ? "w-[250px]" : "w-[300px]"
+                  isSmall ? "w-auto" : "w-[300px]"
                 )}
                 style={{
                   left: `${clampedLeft}px`,
 
                   top: `${clampedTop}px`,
+
+                  width: `${cardWidth}px`,
 
                   maxHeight: `${maxAllowedH}px`,
                 }}
@@ -5304,14 +5442,14 @@ const MapDisplay = forwardRef<MapHandle, MapDisplayProps>(
 ================================================== */}
 
         <div
-          className="pointer-events-none absolute bottom-2 z-20 flex flex-col items-start gap-1 sm:bottom-3"
+          className="pointer-events-none absolute bottom-2 z-20 hidden flex-col items-start gap-1 lg:flex lg:bottom-3"
           style={{
             left: `${mapUiLeft}px`,
 
             transition: "left 300ms ease-out",
           }}
         >
-          <div className="pointer-events-auto flex items-center gap-px border border-[#DCDDD8] bg-white/95 p-px shadow-[0_8px_18px_rgba(0,0,0,0.06)] backdrop-blur-md">
+          <div className="pointer-events-auto flex max-w-[calc(100vw-16px)] items-center gap-px overflow-hidden border border-[#DCDDD8] bg-white/95 p-px shadow-[0_8px_18px_rgba(0,0,0,0.06)] backdrop-blur-md">
             <button
               type="button"
               onClick={handleRotateLeft}

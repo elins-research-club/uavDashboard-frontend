@@ -386,7 +386,7 @@ function IconButton({
       disabled={disabled}
       onClick={onClick}
       className={[
-        "group flex h-7 w-7 shrink-0 items-center justify-center border outline-none transition-all",
+        "group flex h-8 w-8 shrink-0 items-center justify-center border outline-none transition-all sm:h-7 sm:w-7",
         "focus-visible:ring-2 focus-visible:ring-[#76B900]/40",
         active
           ? "border-[#171717] bg-[#171717] text-white"
@@ -421,13 +421,13 @@ function TinyActionButton({
       disabled={disabled}
       onClick={onClick}
       className={[
-        "inline-flex h-7 items-center justify-center gap-1 border px-2 text-[9px] font-semibold outline-none transition-colors",
+        "inline-flex h-8 items-center justify-center gap-1 border px-2 text-[9px] font-semibold outline-none transition-colors sm:h-7",
         "focus-visible:ring-2 focus-visible:ring-[#76B900]/40",
         disabled
           ? "cursor-not-allowed border-transparent text-[#B0B1AB]"
           : danger
-            ? "border-[#E8D4CF] bg-[#FFF8F6] text-[#9B3E32] hover:border-[#D9B9B1] hover:bg-[#FFF4F1]"
-            : "border-[#DCDDD8] bg-white text-[#555750] hover:border-[#171717] hover:bg-[#171717] hover:text-white",
+          ? "border-[#E8D4CF] bg-[#FFF8F6] text-[#9B3E32] hover:border-[#D9B9B1] hover:bg-[#FFF4F1]"
+          : "border-[#DCDDD8] bg-white text-[#555750] hover:border-[#171717] hover:bg-[#171717] hover:text-white",
       ].join(" ")}
     >
       {children}
@@ -805,29 +805,25 @@ export default function LayerControlPanel({
     return (
       <motion.div
         {...panelMotion}
-        className="pointer-events-auto absolute right-2 top-2 z-[60] sm:right-3 sm:top-3"
+        className="pointer-events-auto absolute left-2 top-2 z-[60] sm:left-3 sm:top-3 lg:left-auto lg:right-3"
       >
         <button
           type="button"
           onClick={() => setPanelOpen(true)}
           title="Buka Layer Control"
           aria-label="Buka Layer Control"
-          className="group flex h-10 items-center gap-2.5 border border-[#DCDDD8] bg-white/95 px-3 shadow-[0_10px_24px_rgba(0,0,0,0.08)] backdrop-blur-md outline-none transition-colors hover:border-[#171717] hover:bg-white focus-visible:ring-2 focus-visible:ring-[#76B900]/40"
+          className="group relative flex h-10 w-10 items-center justify-center border border-[#DCDDD8] bg-white/95 text-[#171717] shadow-[0_10px_24px_rgba(0,0,0,0.08)] backdrop-blur-md outline-none transition-all duration-150 hover:border-[#171717] hover:bg-white hover:shadow-[0_12px_28px_rgba(0,0,0,0.11)] focus-visible:ring-2 focus-visible:ring-[#76B900]/40 active:scale-[0.97] sm:h-11 sm:w-11"
         >
-          <Layers3 className="h-4 w-4 text-[#171717]" strokeWidth={1.8} />
+          <Layers3
+            className="h-[18px] w-[18px] transition-transform duration-200 group-hover:scale-105"
+            strokeWidth={1.8}
+          />
 
-          <span className="text-[10px] font-bold tracking-[-0.01em] text-[#171717]">
-            Layers
-          </span>
-
-          <span className="border border-[#E0E1DC] bg-[#F7F8F5] px-1.5 py-0.5 text-[9px] font-bold tabular-nums text-[#666861]">
+          <span className="absolute -right-1 -top-1 flex min-w-[17px] items-center justify-center border border-white bg-[#171717] px-1 py-0.5 text-[8px] font-bold leading-none tabular-nums text-white shadow-[0_3px_8px_rgba(0,0,0,0.14)]">
             {orderedLayers.length}
           </span>
 
-          <ChevronLeft
-            className="h-3.5 w-3.5 text-[#999B94] transition-transform group-hover:translate-x-0.5"
-            strokeWidth={1.8}
-          />
+          <span className="sr-only">Layers</span>
         </button>
       </motion.div>
     );
@@ -836,20 +832,16 @@ export default function LayerControlPanel({
   return (
     <motion.aside
       {...panelMotion}
-      className="pointer-events-auto absolute right-2 top-2 z-[60] w-[300px] max-w-[calc(100%-16px)] sm:right-3 sm:top-3"
+      className="pointer-events-auto absolute bottom-2 left-2 right-2 top-auto z-[60] w-auto max-w-none sm:bottom-3 sm:left-auto sm:right-3 sm:w-[360px] sm:max-w-[calc(100%-24px)] lg:top-3 lg:bottom-auto lg:w-[300px] lg:max-w-[calc(100%-24px)]"
     >
-      <div className="flex max-h-[62vh] flex-col overflow-hidden border border-[#DCDDD8] bg-white/95 shadow-[0_14px_34px_rgba(0,0,0,0.09)] backdrop-blur-md">
+      <div className="flex max-h-[58dvh] min-h-0 flex-col overflow-hidden border border-[#DCDDD8] bg-white/95 shadow-[0_14px_34px_rgba(0,0,0,0.09)] backdrop-blur-md sm:max-h-[62dvh] lg:max-h-[62vh]">
         {/* =================================================
             HEADER
         ================================================== */}
         <div className="shrink-0 border-b border-[#E7E8E3] bg-white">
           <div className="flex items-center justify-between gap-2 px-2.5 py-2">
             <div className="flex min-w-0 items-center gap-2">
-
-
               <div className="min-w-0">
-
-
                 <div className="mt-0.5 flex items-center gap-1.5">
                   <span className="truncate text-[15px] font-bold uppercase tracking-[-0.05em] text-[#171717]">
                     Layer Control
@@ -881,7 +873,7 @@ export default function LayerControlPanel({
                 >
                   <Upload className="h-3 w-3" strokeWidth={2} />
 
-                  <span>Upload Map</span>
+                  <span className="hidden sm:inline">Upload Map</span>
                 </button>
               )}
 
@@ -1144,8 +1136,6 @@ export default function LayerControlPanel({
                   <p className="text-[12px] font-bold text-[#171717]">
                     Terrain 3D
                   </p>
-
-
                 </div>
               </div>
 
@@ -1180,34 +1170,35 @@ export default function LayerControlPanel({
               <span className="text-[8px] font-bold uppercase tracking-[0.12em] text-[#999B94]">
                 Pilihan Layer
               </span>
-
             </div>
 
             <div className="grid grid-cols-2 gap-1">
-              {[...(orthoLayer ? [orthoLayer] : []), ...analysisLayers].map((layer) => {
-                const config = getLayerConfig(layer);
-                const Icon = config.icon;
-                const active = Boolean(layer.is_visible);
+              {[...(orthoLayer ? [orthoLayer] : []), ...analysisLayers].map(
+                (layer) => {
+                  const config = getLayerConfig(layer);
+                  const Icon = config.icon;
+                  const active = Boolean(layer.is_visible);
 
-                return (
-                  <button
-                    key={String(layer.id)}
-                    type="button"
-                    onClick={() => onToggleVisibility(layer.id, true)}
-                    aria-pressed={active}
-                    className={[
-                      "flex min-w-0 items-center gap-1.5 border px-2 py-1.5 text-left text-[9px] font-semibold outline-none transition-colors",
-                      "focus-visible:ring-2 focus-visible:ring-[#76B900]/40",
-                      active
-                        ? "border-[#171717] bg-[#171717] text-white"
-                        : "border-[#DCDDD8] bg-[#FAFAF8] text-[#666861] hover:border-[#BFC1BB] hover:bg-white hover:text-[#171717]",
-                    ].join(" ")}
-                  >
-                    <Icon className="h-3 w-3 shrink-0" strokeWidth={1.8} />
-                    <span className="truncate">{config.shortLabel}</span>
-                  </button>
-                );
-              })}
+                  return (
+                    <button
+                      key={String(layer.id)}
+                      type="button"
+                      onClick={() => onToggleVisibility(layer.id, true)}
+                      aria-pressed={active}
+                      className={[
+                        "flex min-w-0 items-center gap-1.5 border px-2 py-1.5 text-left text-[9px] font-semibold outline-none transition-colors",
+                        "focus-visible:ring-2 focus-visible:ring-[#76B900]/40",
+                        active
+                          ? "border-[#171717] bg-[#171717] text-white"
+                          : "border-[#DCDDD8] bg-[#FAFAF8] text-[#666861] hover:border-[#BFC1BB] hover:bg-white hover:text-[#171717]",
+                      ].join(" ")}
+                    >
+                      <Icon className="h-3 w-3 shrink-0" strokeWidth={1.8} />
+                      <span className="truncate">{config.shortLabel}</span>
+                    </button>
+                  );
+                }
+              )}
             </div>
           </div>
         )}
@@ -1308,7 +1299,7 @@ export default function LayerControlPanel({
                     />
 
                     {/* MAIN ROW */}
-                    <div className="flex min-w-0 items-center gap-1.5 pl-2 pr-1.5 py-1.5">
+                    <div className="flex min-w-0 items-center gap-1.5 pl-2 pr-1.5 py-2 sm:py-1.5">
                       {onReorderLayers ? (
                         <button
                           type="button"
@@ -1366,7 +1357,6 @@ export default function LayerControlPanel({
                           >
                             {config.shortLabel}
                           </span>
-
                         </div>
                       </div>
 
@@ -1431,7 +1421,7 @@ export default function LayerControlPanel({
                     </div>
 
                     {/* OPACITY */}
-                    <div className="px-2 pb-2 pt-0.5">
+                    <div className="px-2 pb-2 pt-1 sm:pt-0.5">
                       <div className="flex items-center gap-2">
                         <span className="shrink-0 text-[8px] font-semibold uppercase tracking-[0.05em] text-[#A0A19B]">
                           Opacity
@@ -1541,40 +1531,40 @@ export default function LayerControlPanel({
                             {(extraMeta.min_value != null ||
                               extraMeta.max_value != null ||
                               extraMeta.unit) && (
-                                <div className="border border-[#E0E1DC] bg-white p-1.5">
-                                  <div className="grid grid-cols-3 gap-1.5">
-                                    <div>
-                                      <span className="block text-[8px] font-semibold text-[#A0A19B]">
-                                        Min
-                                      </span>
+                              <div className="border border-[#E0E1DC] bg-white p-1.5">
+                                <div className="grid grid-cols-3 gap-1.5">
+                                  <div>
+                                    <span className="block text-[8px] font-semibold text-[#A0A19B]">
+                                      Min
+                                    </span>
 
-                                      <span className="mt-0.5 block text-[9px] font-bold tabular-nums text-[#171717]">
-                                        {extraMeta.min_value ?? "-"}
-                                      </span>
-                                    </div>
+                                    <span className="mt-0.5 block text-[9px] font-bold tabular-nums text-[#171717]">
+                                      {extraMeta.min_value ?? "-"}
+                                    </span>
+                                  </div>
 
-                                    <div className="border-x border-[#E7E8E3] px-1.5">
-                                      <span className="block text-[8px] font-semibold text-[#A0A19B]">
-                                        Max
-                                      </span>
+                                  <div className="border-x border-[#E7E8E3] px-1.5">
+                                    <span className="block text-[8px] font-semibold text-[#A0A19B]">
+                                      Max
+                                    </span>
 
-                                      <span className="mt-0.5 block text-[9px] font-bold tabular-nums text-[#171717]">
-                                        {extraMeta.max_value ?? "-"}
-                                      </span>
-                                    </div>
+                                    <span className="mt-0.5 block text-[9px] font-bold tabular-nums text-[#171717]">
+                                      {extraMeta.max_value ?? "-"}
+                                    </span>
+                                  </div>
 
-                                    <div>
-                                      <span className="block text-[8px] font-semibold text-[#A0A19B]">
-                                        Unit
-                                      </span>
+                                  <div>
+                                    <span className="block text-[8px] font-semibold text-[#A0A19B]">
+                                      Unit
+                                    </span>
 
-                                      <span className="mt-0.5 block truncate text-[9px] font-bold text-[#171717]">
-                                        {extraMeta.unit || "-"}
-                                      </span>
-                                    </div>
+                                    <span className="mt-0.5 block truncate text-[9px] font-bold text-[#171717]">
+                                      {extraMeta.unit || "-"}
+                                    </span>
                                   </div>
                                 </div>
-                              )}
+                              </div>
+                            )}
 
                             {isFailed && layer.conversion_error && (
                               <div className="border border-[#E8D4CF] bg-[#FFF7F5] px-2 py-1.5">
