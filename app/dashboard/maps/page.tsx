@@ -80,6 +80,7 @@ interface MapData {
   file_format: string;
   locked_for_free: boolean;
   allowed_tiers?: string[];
+  allowed_user_ids?: string[];
   purchasable: boolean;
   purchase_price?: number | null;
   created_at: string;
@@ -507,9 +508,26 @@ export default function MapsPage() {
     survey_date: "",
     description: "",
     allowed_tiers: ["free", "desa", "kecamatan"],
+    allowed_user_ids: [] as string[],
   });
 
+  const [accessUsers, setAccessUsers] = useState<
+    { id: string; username: string; email: string }[]
+  >([]);
+
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  useEffect(() => {
+    api.get("/admin/users").then(({ data }) => {
+      setAccessUsers(
+        data.map((user: { id: string; username: string; email: string }) => ({
+          id: user.id,
+          username: user.username,
+          email: user.email,
+        }))
+      );
+    }).catch(() => setAccessUsers([]));
+  }, []);
 
   const [editErrors, setEditErrors] = useState<{
     title?: string;
@@ -1015,6 +1033,7 @@ export default function MapsPage() {
         : map.locked_for_free
         ? ["desa", "kecamatan"]
         : ["free", "desa", "kecamatan"],
+      allowed_user_ids: map.allowed_user_ids || [],
     });
 
     setEditErrors({});
@@ -1063,6 +1082,7 @@ export default function MapsPage() {
         survey_date: editForm.survey_date,
         description: editForm.description.trim(),
         allowed_tiers: editForm.allowed_tiers,
+        allowed_user_ids: editForm.allowed_user_ids,
       });
 
       showNotice("Peta berhasil diperbarui.");
@@ -1148,8 +1168,7 @@ export default function MapsPage() {
      DETAIL ACTIONS
   ========================================================== */
 
-  const canManage =
-    Boolean(selectedMapRaw) && (isAdmin || !selectedMap?.locked);
+  const canManage = Boolean(selectedMapRaw) && isAdmin;
 
   const detailActions = selectedMapRaw
     ? [
@@ -2331,18 +2350,20 @@ export default function MapsPage() {
             {/* FOOTER */}
 
             <div className="grid grid-cols-1 gap-2 border-t border-[#E6E7E2] px-4 py-4 sm:grid-cols-2 sm:px-6 sm:py-5">
-              <SweepButton
-                tone="dark"
-                onClick={() => {
-                  openEditModal(metadataMap);
+              {isAdmin && (
+                <SweepButton
+                  tone="dark"
+                  onClick={() => {
+                    openEditModal(metadataMap);
 
-                  setMetadataMap(null);
-                }}
-                sizing="w-full px-5 py-3.5"
-              >
-                <Pencil className="h-3.5 w-3.5" strokeWidth={1.8} />
-                Edit Peta
-              </SweepButton>
+                    setMetadataMap(null);
+                  }}
+                  sizing="w-full px-5 py-3.5"
+                >
+                  <Pencil className="h-3.5 w-3.5" strokeWidth={1.8} />
+                  Edit Peta
+                </SweepButton>
+              )}
 
               <button
                 type="button"
@@ -2565,7 +2586,7 @@ export default function MapsPage() {
 
                 <div className="space-y-2">
                   <p className="text-[10px] font-medium leading-5 text-[#858780] sm:text-[11px]">
-                    Pilih tier member yang boleh mengakses peta ini.
+                    User dapat mengakses jika tier atau akun khususnya memenuhi salah satu aturan berikut.
                   </p>
 
                   {[
@@ -2616,6 +2637,44 @@ export default function MapsPage() {
                       </label>
                     );
                   })}
+
+                  <div className="border border-[#E1E2DD] bg-white p-3.5 sm:p-4">
+                    <p className="text-[11px] font-bold text-[#171717] sm:text-xs">
+                      User tertentu
+                    </p>
+                    <p className="mt-1 text-[10px] font-medium leading-5 text-[#858780] sm:text-[11px]">
+                      Pilih satu atau beberapa akun yang tetap boleh mengakses peta ini.
+                    </p>
+                    <div className="mt-3 max-h-36 space-y-1.5 overflow-y-auto">
+                      {accessUsers.map((user) => {
+                        const checked = editForm.allowed_user_ids.includes(user.id);
+
+                        return (
+                          <label
+                            key={user.id}
+                            className="flex cursor-pointer items-center gap-2 border border-[#E7E8E3] px-2.5 py-2 hover:bg-[#F7F8F5]"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() =>
+                                setEditForm((current) => ({
+                                  ...current,
+                                  allowed_user_ids: checked
+                                    ? current.allowed_user_ids.filter((id) => id !== user.id)
+                                    : [...current.allowed_user_ids, user.id],
+                                }))
+                              }
+                              className="h-3.5 w-3.5 accent-[#171717]"
+                            />
+                            <span className="min-w-0 truncate text-[10px] font-semibold text-[#33332F]">
+                              {user.username} · {user.email.toLowerCase()}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

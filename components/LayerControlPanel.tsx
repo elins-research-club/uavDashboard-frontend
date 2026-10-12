@@ -439,7 +439,7 @@ export default function LayerControlPanel({
   mapId,
   layers,
   token,
-  basemap = "street",
+  basemap = "satellite",
   onChangeBasemap,
   terrainEnabled = false,
   onToggleTerrain,
@@ -1322,6 +1322,13 @@ export default function LayerControlPanel({
                       )}
 
                       <span
+                        className="flex h-5 w-5 shrink-0 items-center justify-center border border-[#DCDDD8] bg-[#F7F8F5] text-[8px] font-bold tabular-nums text-[#666861]"
+                        title={`Urutan layer ${index + 1}`}
+                      >
+                        {index + 1}
+                      </span>
+
+                      <span
                         className="flex h-6 w-6 shrink-0 items-center justify-center"
                         style={{
                           color: config.accent,
@@ -1342,7 +1349,7 @@ export default function LayerControlPanel({
                           </button>
 
                           {layer.is_base_layer && (
-                            <span className="shrink-0 border border-[#D9E5C4] bg-[#F5FAEE] px-1 py-0.5 text-[8px] font-bold uppercase tracking-[0.04em] text-[#5A7A1D]">
+                            <span className="shrink-0 bg-[#76B900] px-1 py-0.5 text-[8px] font-bold uppercase tracking-[0.04em] text-white">
                               Base
                             </span>
                           )}

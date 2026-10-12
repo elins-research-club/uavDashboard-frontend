@@ -217,7 +217,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   timezone: "wib",
   dateFormat: "dd/mm/yyyy",
   locale: "id-ID",
-  mapBasemap: "street",
+  mapBasemap: "satellite",
   mapTerrain: false,
   mapOpacity: 0.95,
 
